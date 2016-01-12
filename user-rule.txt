@@ -41,3 +41,4 @@
 ||unity3d.com^
 ||greasyfork.org^
 ||openuserjs.org^
+||mozilla.org^
