@@ -1,3 +1,4 @@
+[AutoProxy 0.3.0]
 !---------403 Forbidden & URL Redirects---------
 !--ehentai
 |http://85.17.73.31/
