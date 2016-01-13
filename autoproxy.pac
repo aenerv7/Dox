@@ -1,4 +1,4 @@
-[AutoProxy]
+[AutoProxy 0.3.0]
 /**
  * gfwlist2pac 0.0.1 http://codelife.me
  * Generated: Wed, 13 Jan 2016 04:29:48 GMT
