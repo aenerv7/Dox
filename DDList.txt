@@ -4570,6 +4570,8 @@ taipei.gov.tw
 ||curse.com^
 ||deviantart.com^
 ||javlibrary.com^
+||greasyfork.org^
+||openuserjs.org^
 @@||hiwifi.com^
 @@||acfun.tv^
 @@||bilibili.tv^
