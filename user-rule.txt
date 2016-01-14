@@ -43,3 +43,5 @@
 ||greasyfork.org
 ||openuserjs.org
 ||mozilla.org
+||zhowtime.com
+||stuffin.space
