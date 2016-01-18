@@ -45,3 +45,5 @@
 ||mozilla.org
 ||zhowtime.com
 ||stuffin.space
+||wallhaven.cc
+||desktoppr.co
