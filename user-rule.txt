@@ -5,6 +5,8 @@
 @@||bilibili.tv
 @@||acfun.tv
 @@||hiwifi.com
+||google.com
+||gmail.com
 ||javlibrary.com
 ||deviantart.com
 ||curse.com
@@ -47,5 +49,3 @@
 ||stuffin.space
 ||wallhaven.cc
 ||desktoppr.co
-||google.com
-||gmail.com
