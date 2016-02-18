@@ -36,6 +36,7 @@
 ||wordpress.com
 ||kat.cr
 ||vidble.com
+||amazon.com
 ||amazonaws.com
 ||airconsole.com
 ||hegre-art.com
@@ -50,3 +51,9 @@
 ||wallhaven.cc
 ||desktoppr.co
 ||wnacg.net
+||wildstar-online.com
+||ncsoft.com
+||evozi.com
+||en.miui.com
+||9gag.com
+||pornhub.com
