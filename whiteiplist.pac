@@ -1,4 +1,4 @@
-var wall_proxy = "PROXY 127.0.0.1:7777;";
+var wall_proxy = "PROXY vt-cn4.vnet.link:19378;";
 var nowall_proxy = "DIRECT;";
 var direct = "DIRECT;";
 var ip_proxy = "DIRECT;";
