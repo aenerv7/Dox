@@ -1,7 +1,7 @@
-var wall_proxy = "PROXY vt-cn4.vnet.link:19378;";
-var nowall_proxy = "DIRECT;";
-var direct = "DIRECT;";
-var ip_proxy = "DIRECT;";
+var wall_proxy = "PROXY vt-cn4.vnet.link:19378";
+var nowall_proxy = "DIRECT";
+var direct = "DIRECT";
+var ip_proxy = "DIRECT";
 
 /*
  * Copyright (C) 2014 breakwa11
