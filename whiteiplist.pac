@@ -79,9 +79,6 @@ function getProxyFromIP(strIp) {
 	return wall_proxy;
 }
 function FindProxyForURL(url, host) {
-	if ( isPlainHostName(host) === true ) {
-		return direct;
-	}
 	if ( check_ipv4(host) === true ) {
 		return getProxyFromDirectIP(host);
 	}
