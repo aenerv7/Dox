@@ -2,23 +2,35 @@
 #context-forward image,
 #context-reload image,
 #context-stop image,
-#context-bookmarkpage image{
-   display:none !important;
+#context-bookmarkpage image
+{
+   display: none !important;
 }
 
 #context-back:before,
 #context-forward:before,
 #context-reload:before,
 #context-stop:before,
-#context-bookmarkpage:before{
+#context-bookmarkpage:before
+{
    content: attr(aria-label) !important;
-   -moz-margin-start:32px !important;
+   -moz-margin-start: 32px !important;
 }
-#context-navigation{
+#context-navigation
+{
    -moz-box-orient: vertical !important;
 }
-#context-navigation > .menuitem-iconic {
+#context-navigation > .menuitem-iconic
+{
   -moz-box-pack: start !important;
+}
+#context-bookmarkpage + menuseparator
+{ 
+    display: none !important; 
+}
+#context-sep-navigation
+{
+    -moz-margin-start: 0px !important;
 }
 
 * {
