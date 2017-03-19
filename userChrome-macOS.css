@@ -21,3 +21,7 @@
 #context-navigation > .menuitem-iconic {
   -moz-box-pack: start !important;
 }
+
+* {
+    font-family: "SF UI Display", "PingFang SC", "PingFang TC" !important;
+}
