@@ -24,10 +24,6 @@
 {
   -moz-box-pack: start !important;
 }
-#context-bookmarkpage + menuseparator
-{ 
-    display: none !important; 
-}
 #context-sep-navigation
 {
     -moz-margin-start: 0px !important;
