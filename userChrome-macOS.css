@@ -12,7 +12,6 @@
 #context-stop:before,
 #context-bookmarkpage:before{
    content: attr(aria-label) !important;
-   /* Mac 为 21px, Windows 为 32px*/
    -moz-margin-start:21px !important;
 }
 #context-navigation{
@@ -20,6 +19,10 @@
 }
 #context-navigation > .menuitem-iconic {
   -moz-box-pack: start !important;
+}
+#context-sep-navigation
+{
+    -moz-margin-start: 0px !important;
 }
 
 * {
