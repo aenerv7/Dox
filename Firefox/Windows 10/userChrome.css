@@ -4,7 +4,7 @@
 #context-stop image,
 #context-bookmarkpage image
 {
-   display:none !important;
+   display: none !important;
 }
 
 #context-back:before,
@@ -14,13 +14,13 @@
 #context-bookmarkpage:before
 {
    content: attr(aria-label) !important;
-   -moz-margin-start:21px !important;
+   -moz-margin-start: 32px !important;
 }
 #context-navigation
 {
    -moz-box-orient: vertical !important;
 }
-#context-navigation > .menuitem-iconic 
+#context-navigation > .menuitem-iconic
 {
   -moz-box-pack: start !important;
 }
@@ -28,12 +28,7 @@
 {
     -moz-margin-start: 0px !important;
 }
-.tabbrowser-tab
-{
-    height: 26px !important;
-}
 
-*
-{
-    font-family: "SF UI Display", "PingFang SC", "PingFang TC" !important;
+* {
+    font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft JhengHei UI", "Yu Gothic UI", "Malgun Gothic" !important;
 }

@@ -1,0 +1,262 @@
+html,
+[lang=zh-CN]
+{
+  font-family: "Microsoft YaHei UI", sans-serif;
+}
+
+[lang=zh-TW]
+{
+  font-family: "Microsoft JhengHei UI", sans-serif;
+}
+
+[lang=zh-HK]
+{
+  font-family: "Microsoft JhengHei UI", sans-serif;
+}
+
+[lang=ja-JP]
+{
+  font-family: sans-serif;
+}
+
+[lang=ko-KR]
+{
+  font-family: sans-serif;
+}
+
+body, input, textarea, keygen, select, button
+{
+  font-family: inherit;
+  font-synthesis: none;
+  font-feature-settings: "liga", "kern";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+
+/*
+ * 字体
+ */
+
+/* 中文 (简体) */
+
+@font-face
+{
+  font-family: "SimSun";
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "宋体";
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "NSimSun";
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "新宋体";
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "SimHei";
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "黑体";
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "STHeiti SC";
+  src: local("Microsoft YaHei UI");
+}
+
+/* 中文 (繁體) */
+
+@font-face
+{
+  font-family: "MingLiU";
+  src: local("Microsoft JhengHei UI");
+}
+
+@font-face
+{
+  font-family: "MingLiU-ExtB";
+  src: local("Microsoft JhengHei UI");
+}
+
+@font-face
+{
+  font-family: "MingLiU_HKSCS";
+  src: local("Microsoft JhengHei UI");
+}
+
+@font-face
+{
+  font-family: "MingLiU_HKSCS-ExtB";
+  src: local("Microsoft JhengHei UI");
+}
+
+@font-face
+{
+  font-family: "PMingLiU";
+  src: local("Microsoft JhengHei UI");
+}
+
+@font-face
+{
+  font-family: "PMingLiU-ExtB";
+  src: local("Microsoft JhengHei UI");
+}
+
+@font-face
+{
+  font-family: "STHeiti TC";
+  src: local("Microsoft JhengHei UI");
+}
+
+/* Latin */
+
+@font-face
+{
+  font-family: "Arial";
+  unicode-range: U+0-2E7F;
+  src: local("Arial");
+}
+
+@font-face
+{
+  font-family: "Arial";
+  unicode-range: U+2E80-FFFF;
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "Tahoma";
+  unicode-range: U+0-2E7F;
+  src: local("Tahoma");
+}
+
+@font-face
+{
+  font-family: "Tahoma";
+  unicode-range: U+2E80-FFFF;
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "Verdana";
+  unicode-range: U+0-2E7F;
+  src: local("Verdana");
+}
+
+@font-face
+{
+  font-family: "Verdana";
+  unicode-range: U+2E80-FFFF;
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "Helvetica";
+  unicode-range: U+0-2E7F;
+  src: local("Helvetica");
+}
+
+@font-face
+{
+  font-family: "Helvetica";
+  unicode-range: U+2E80-FFFF;
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "Courier";
+  unicode-range: U+0-2E7F;
+  src: local("Courier");
+}
+
+@font-face
+{
+  font-family: "Courier";
+  unicode-range: U+2E80-FFFF;
+  src: local("Microsoft YaHei UI");
+}
+
+@font-face
+{
+  font-family: "Courier New";
+  unicode-range: U+0-2E7F;
+  src: local("Courier New");
+}
+
+@font-face
+{
+  font-family: "Courier New";
+  unicode-range: U+2E80-FFFF;
+  src: local("Microsoft YaHei UI");
+}
+
+/* i really want this to be global */
+
+/* 网站全局字体 */
+
+@-moz-document domain("baidu.com"),
+               domain("sogou.com"),
+               domain("userstyles.org")
+{
+  *
+  {
+    font-family: "Microsoft YaHei UI", sans-serif;
+  }
+}
+
+/* 百度 (baidu.com) */
+
+@-moz-document url("https://www.baidu.com/"),
+               url("https://www.baidu.com/#"),
+               url-prefix("https://www.baidu.com/?tn=")
+{
+  .s-treasure, .mnav[href^="http"]:not([href*="baidu.com"]), .qrcode-layer
+  {
+    display: none !important;
+  }
+}
+
+/* 搜狗 (sogou.com) */
+
+@-moz-document domain("sogou.com")
+{
+  .nav-new, .bizr_rb, [id^="rightgameout"]
+  {
+    display: none !important;
+  }
+}
+
+/* Userstyles (userstyles.org) */
+
+@-moz-document domain("userstyles.org")
+{
+  .ad
+  {
+    display: none !important;
+  }
+}
+
+
+/* END */
