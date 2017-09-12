@@ -27,8 +27,8 @@
 @font-face { font-family: Helvetica; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
 @font-face { font-family: 'Open Sans'; unicode-range: U+0-2E7F; src: local('Open Sans'); }
 @font-face { font-family: 'Open Sans'; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
-@font-face { font-family: 'SF UI TEXT'; unicode-range: U+0-2E7F; src: local('SF UI TEXT'); }
-@font-face { font-family: 'SF UI TEXT'; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
+@font-face { font-family: 'Segoe UI'; unicode-range: U+0-2E7F; src: local('SF UI TEXT'); }
+@font-face { font-family: 'Segoe UI'; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
 @font-face { font-family: 'Lucida Console'; unicode-range: U+0-FFFF; src: local('Inziu Iosevka SC'); }
 @font-face { font-family: Tahoma; unicode-range: U+0-2E7F; src: local(Tahoma); }
 @font-face { font-family: Tahoma; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
@@ -40,6 +40,10 @@
 @font-face { font-family: Verdana; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
 
 /* 简体中文 */
+@font-face { font-family: 'Microsoft JhengHei'; unicode-range: U+0-2E7F; src: local('PingFang TC'); }
+@font-face { font-family: 'Microsoft YaHei'; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
+@font-face { font-family: 'Microsoft JhengHei UI'; unicode-range: U+0-2E7F; src: local('PingFang TC'); }
+@font-face { font-family: 'Microsoft YaHei UI'; unicode-range: U+2E80-FFFF; src: local('PingFang SC'); }
 @font-face { font-family: NSimsun; unicode-range: U+0-FFFF; src: local('Inziu Iosevka SC'); }
 @font-face { font-family: Simhei; unicode-range: U+0-FFFF; src: local('PingFang SC'); }
 @font-face { font-family: Simsun; unicode-range: U+0-FFFF; src: local('PingFang SC'); }
