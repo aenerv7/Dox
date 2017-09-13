@@ -2,8 +2,8 @@
 [lang=zh-CN] { font-family: "Microsoft YaHei UI", sans-serif; }
 [lang=zh-TW] { font-family: "Microsoft JhengHei UI", sans-serif; }
 [lang=zh-HK] { font-family: "Microsoft JhengHei UI", sans-serif; }
-[lang=ja-JP] { font-family: sans-serif; }
-[lang=ko-KR] { font-family: sans-serif; }
+[lang=ja-JP] { font-family: "Yu Gothic UI", sans-serif; }
+[lang=ko-KR] { font-family: "Malgun Gothic", sans-serif; }
 
 /* 标准字体 */
 @font-face { font-family: monospace; unicode-range: U+0-FFFF; src: local('Inziu Iosevka SC'); }
