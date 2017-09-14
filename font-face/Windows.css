@@ -59,7 +59,6 @@
 /* 日文 */
 @font-face { font-family: 'ＭＳ Ｐゴシック'; unicode-range: U+0-FFFF; src: local('Yu Gothic UI'); }
 
-
 /* 等宽 */
 @font-face { font-family: Consolas; unicode-range: U+0-2E7F; src: local(Consolas), local('Inziu Iosevka CL'); }
 @font-face { font-family: Consolas; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
