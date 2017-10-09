@@ -4,14 +4,19 @@
 
 ## 工具列表
 
-* WinFonts.css: Windows 平台浏览器用字体修改
+* Fireofx
+** Windows 10
+*** userChrome.css: 用户界面自定义
+*** userContent.css: 网页字体修改
+** macOS
+*** userChrome.css: 用户界面自定义
+*** userContent.css: 网页字体修改
+
+* font-face: 浏览器用字体修改
+** Windows.css: Windows 平台
+** macOS.css: macOS 平台
 
 * chn.acl: 绕过大陆地区 ACL
-
-* userChrome-Win.css: Firefox Windows 用户界面自定义
-* userChrome-macOS.css: Firefox macOS 用户界面自定义
-* userContent-Win.css: Firefox Windows 用字体修改
-* userContent-macOS.css: Firefox macOS 用字体修改
 
 ## ACL 参考列表
 
