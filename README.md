@@ -22,7 +22,5 @@
 #### ACL 参考列表
 
 [ShadowsocksX-NG 白名单模式 ACL](https://raw.githubusercontent.com/shadowsocksr/shadowsocksr-libev/master/acl/chn.acl)
-
 [ShadowsocksX-NG 自动模式 ACL](https://raw.githubusercontent.com/shadowsocksr/shadowsocksr-libev/master/acl/gfwlist.acl)
-
 [ShadowsocksX-NG 中国模式 ACL](https://raw.githubusercontent.com/shadowsocksr/ShadowsocksX-NG/develop/ShadowsocksX-NG/backchn.acl)
