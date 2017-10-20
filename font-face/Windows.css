@@ -68,10 +68,12 @@
 /* 等宽 */
 @font-face { font-family: Consolas; unicode-range: U+0-2E7F; src: local(Consolas), local('Inziu Iosevka CL'); }
 @font-face { font-family: Consolas; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: Courier; unicode-range: U+0-2E7F; src: local(Courier), local('Segoe UI'); }
-@font-face { font-family: Courier; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
+@font-face { font-family: Courier; unicode-range: U+0-2E7F; src: local(Courier), local('Inziu Iosevka CL'); }
+@font-face { font-family: Courier; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
 @font-face { font-family: 'Courier New'; unicode-range: U+0-2E7F; src: local('Courier New'), local('Inziu Iosevka CL'); }
 @font-face { font-family: 'Courier New'; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
+@font-face { font-family: FantasqueSansMonoRegular; unicode-range: U+0-2E7F; src: local(FantasqueSansMonoRegular), local('Inziu Iosevka CL'); }
+@font-face { font-family: FantasqueSansMonoRegular; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
 @font-face { font-family: 'Lucida Console'; unicode-range: U+0-2E7F; src: local('Lucida Console'), local('Inziu Iosevka CL'); }
 @font-face { font-family: 'Lucida Console'; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
 @font-face { font-family: MingLiU; unicode-range: U+0-FFFF; src: local('Inziu Iosevka TC'); }
