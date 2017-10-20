@@ -15,25 +15,25 @@
 @font-face { font-family: -webkit-standard; unicode-range: U+0-FFFF; src: local('Source Han Sans SC'); }
 
 /* 英文 */
-@font-face { font-family: Arial; unicode-range: U+0-2E7F; src: local(Arial), local('Source Han Sans SC'); }
+@font-face { font-family: Arial; unicode-range: U+0-2E7F; src: local(Arial), local(Sans); }
 @font-face { font-family: Arial; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: Helvetica; unicode-range: U+0-2E7F; src: local(Helvetica), local('Source Han Sans SC'); }
+@font-face { font-family: Helvetica; unicode-range: U+0-2E7F; src: local(Helvetica), local(Sans); }
 @font-face { font-family: Helvetica; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: "lucida grande"; unicode-range: U+0-2E7F; src: local("lucida grande"), local('Source Han Sans SC'); }
+@font-face { font-family: "lucida grande"; unicode-range: U+0-2E7F; src: local("lucida grande"), local(Sans); }
 @font-face { font-family: "lucida grande"; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: "Lucida Grande"; unicode-range: U+0-2E7F; src: local("Lucida Grande"), local('Source Han Sans SC'); }
+@font-face { font-family: "Lucida Grande"; unicode-range: U+0-2E7F; src: local("Lucida Grande"), local(Sans); }
 @font-face { font-family: "Lucida Grande"; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: 'Open Sans'; unicode-range: U+0-2E7F; src: local('Open Sans'), local('Source Han Sans SC'); }
+@font-face { font-family: 'Open Sans'; unicode-range: U+0-2E7F; src: local('Open Sans'), local(Sans); }
 @font-face { font-family: 'Open Sans'; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: 'Segoe UI'; unicode-range: U+0-2E7F; src: local('Source Han Sans'); }
+@font-face { font-family: 'Segoe UI'; unicode-range: U+0-2E7F; src: local(Sans); }
 @font-face { font-family: 'Segoe UI'; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: Tahoma; unicode-range: U+0-2E7F; src: local(Tahoma), local('Source Han Sans SC'); }
+@font-face { font-family: Tahoma; unicode-range: U+0-2E7F; src: local(Tahoma), local(Sans); }
 @font-face { font-family: Tahoma; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: Times; unicode-range: U+0-2E7F; src: local(Times), local('Source Han Sans SC'); }
+@font-face { font-family: Times; unicode-range: U+0-2E7F; src: local(Times), local(Serif); }
 @font-face { font-family: Times; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: 'Times New Roman'; unicode-range: U+0-2E7F; src: local('Times New Roman'), local('Source Han Sans SC'); }
+@font-face { font-family: 'Times New Roman'; unicode-range: U+0-2E7F; src: local('Times New Roman'), local(Serif); }
 @font-face { font-family: 'Times New Roman'; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
-@font-face { font-family: Verdana; unicode-range: U+0-2E7F; src: local(Verdana), local('Source Han Sans SC') }
+@font-face { font-family: Verdana; unicode-range: U+0-2E7F; src: local(Verdana), local(Sans) }
 @font-face { font-family: Verdana; unicode-range: U+2E80-FFFF; src: local('Source Han Sans SC'); }
 
 /* 简体中文 */
