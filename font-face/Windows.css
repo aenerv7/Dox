@@ -6,7 +6,7 @@
 [lang=ko-KR] { font-family: "Malgun Gothic", sans-serif; }
 
 /* 标准字体 */
-@font-face { font-family: monospace; unicode-range: U+0-FFFF; src: local('Inziu Iosevka SC'); }
+@font-face { font-family: monospace; unicode-range: U+0-FFFF; src: local('Sarasa Mono SC'); }
 @font-face { font-family: serif; unicode-range: U+0-2E7F; src: local('Segoe UI'); }
 @font-face { font-family: serif; unicode-range: U+0-FFFF; src: local('Microsoft YaHei UI'); }
 @font-face { font-family: sans-serif; unicode-range: U+0-2E7F; src: local('Segoe UI'); }
@@ -66,25 +66,25 @@
 @font-face { font-family: 'ＭＳ Ｐゴシック'; unicode-range: U+0-FFFF; src: local('Yu Gothic UI'); }
 
 /* 等宽 */
-@font-face { font-family: Consolas; unicode-range: U+0-2E7F; src: local(Consolas), local('Inziu Iosevka CL'); }
-@font-face { font-family: Consolas; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: Courier; unicode-range: U+0-2E7F; src: local(Courier), local('Inziu Iosevka CL'); }
-@font-face { font-family: Courier; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: 'Courier New'; unicode-range: U+0-2E7F; src: local('Courier New'), local('Inziu Iosevka CL'); }
-@font-face { font-family: 'Courier New'; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: FantasqueSansMonoRegular; unicode-range: U+0-2E7F; src: local(FantasqueSansMonoRegular), local('Inziu Iosevka CL'); }
-@font-face { font-family: FantasqueSansMonoRegular; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: 'Lucida Console'; unicode-range: U+0-2E7F; src: local('Lucida Console'), local('Inziu Iosevka CL'); }
-@font-face { font-family: 'Lucida Console'; unicode-range: U+2E80-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: MingLiU; unicode-range: U+0-FFFF; src: local('Inziu Iosevka TC'); }
-@font-face { font-family: MingLiU-ExtB; unicode-range: U+0-FFFF; src: local('Inziu Iosevka TC'); }
-@font-face { font-family: MingLiU_HKSCS; unicode-range: U+0-FFFF; src: local('Inziu Iosevka TC'); }
-@font-face { font-family: MingLiU_HKSCS-ExtB; unicode-range: U+0-FFFF; src: local('Inziu Iosevka TC'); }
-@font-face { font-family: NSimsun; unicode-range: U+0-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: 细明体; unicode-range: U+0-FFFF; src: local('Inziu Iosevka TC'); }
-@font-face { font-family: 細明體; unicode-range: U+0-FFFF; src: local('Inziu Iosevka TC'); }
-@font-face { font-family: 新宋体; unicode-range: U+0-FFFF; src: local('Inziu Iosevka SC'); }
-@font-face { font-family: 新宋體; unicode-range: U+0-FFFF; src: local('Inziu Iosevka SC'); }
+@font-face { font-family: Consolas; unicode-range: U+0-2E7F; src: local(Consolas), local('Sarasa Mono CL'); }
+@font-face { font-family: Consolas; unicode-range: U+2E80-FFFF; src: local('Sarasa Mono SC'); }
+@font-face { font-family: Courier; unicode-range: U+0-2E7F; src: local(Courier), local('Sarasa Mono CL'); }
+@font-face { font-family: Courier; unicode-range: U+2E80-FFFF; src: local('Sarasa Mono SC'); }
+@font-face { font-family: 'Courier New'; unicode-range: U+0-2E7F; src: local('Courier New'), local('Sarasa Mono CL'); }
+@font-face { font-family: 'Courier New'; unicode-range: U+2E80-FFFF; src: local('Sarasa Mono SC'); }
+@font-face { font-family: FantasqueSansMonoRegular; unicode-range: U+0-2E7F; src: local(FantasqueSansMonoRegular), local('Sarasa Mono CL'); }
+@font-face { font-family: FantasqueSansMonoRegular; unicode-range: U+2E80-FFFF; src: local('Sarasa Mono SC'); }
+@font-face { font-family: 'Lucida Console'; unicode-range: U+0-2E7F; src: local('Lucida Console'), local('Sarasa Mono CL'); }
+@font-face { font-family: 'Lucida Console'; unicode-range: U+2E80-FFFF; src: local('Sarasa Mono SC'); }
+@font-face { font-family: MingLiU; unicode-range: U+0-FFFF; src: local('Sarasa Mono TC'); }
+@font-face { font-family: MingLiU-ExtB; unicode-range: U+0-FFFF; src: local('Sarasa Mono TC'); }
+@font-face { font-family: MingLiU_HKSCS; unicode-range: U+0-FFFF; src: local('Sarasa Mono TC'); }
+@font-face { font-family: MingLiU_HKSCS-ExtB; unicode-range: U+0-FFFF; src: local('Sarasa Mono TC'); }
+@font-face { font-family: NSimsun; unicode-range: U+0-FFFF; src: local('Sarasa Mono SC'); }
+@font-face { font-family: 细明体; unicode-range: U+0-FFFF; src: local('Sarasa Mono TC'); }
+@font-face { font-family: 細明體; unicode-range: U+0-FFFF; src: local('Sarasa Mono TC'); }
+@font-face { font-family: 新宋体; unicode-range: U+0-FFFF; src: local('Sarasa Mono SC'); }
+@font-face { font-family: 新宋體; unicode-range: U+0-FFFF; src: local('Sarasa Mono SC'); }
 
 /* 特殊 */
 @font-face { font-family: 瀹嬩綋; unicode-range: U+0-FFFF; src: local('Microsoft YaHei UI'); }
