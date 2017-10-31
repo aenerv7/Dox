@@ -6,36 +6,36 @@
 [lang=ko-KR] { font-family: "Malgun Gothic", sans-serif; }
 
 /* 标准字体 */
-@font-face { font-family: monospace; unicode-range: U+0-FFFF; src: local('Sarasa Mono SC'); }
-@font-face { font-family: serif; unicode-range: U+0-2E7F; src: local('Segoe UI'); }
+@font-face { font-family: monospace; unicode-range: U+0-FFFF; src: local('Sarasa Mono SC'), loacl(monospace); }
+@font-face { font-family: serif; unicode-range: U+0-2E7F; src: local('SF UI'), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: serif; unicode-range: U+0-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: sans-serif; unicode-range: U+0-2E7F; src: local('Segoe UI'); }
+@font-face { font-family: sans-serif; unicode-range: U+0-2E7F; src: local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: sans-serif; unicode-range: U+0-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: -webkit-standard; unicode-range: U+0-2E7F; src: local('Segoe UI'); }
+@font-face { font-family: -webkit-standard; unicode-range: U+0-2E7F; src: local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: -webkit-standard; unicode-range: U+0-FFFF; src: local('Microsoft YaHei UI'); }
 
 /* 英文 */
-@font-face { font-family: Arial; unicode-range: U+0-2E7F; src: local(Arial), local('Segoe UI'); }
+@font-face { font-family: Arial; unicode-range: U+0-2E7F; src: local(Arial), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: Arial; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: Helvetica; unicode-range: U+0-2E7F; src: local(Helvetica), local('Segoe UI'); }
+@font-face { font-family: Helvetica; unicode-range: U+0-2E7F; src: local(Helvetica), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: Helvetica; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: 'Helvetica Neue'; unicode-range: U+0-2E7F; src: local('Helvetica Neue'), local('Segoe UI'); }
+@font-face { font-family: 'Helvetica Neue'; unicode-range: U+0-2E7F; src: local('Helvetica Neue'), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: 'Helvetica Neue'; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: "lucida grande"; unicode-range: U+0-2E7F; src: local("lucida grande"), local('Segoe UI'); }
+@font-face { font-family: "lucida grande"; unicode-range: U+0-2E7F; src: local("lucida grande"), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: "lucida grande"; unicode-range: U+2E80-FFFF; src: local('PingFangSC'); }
-@font-face { font-family: "Lucida Grande"; unicode-range: U+0-2E7F; src: local("Lucida Grande"), local('Segoe UI'); }
+@font-face { font-family: "Lucida Grande"; unicode-range: U+0-2E7F; src: local("Lucida Grande"), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: "Lucida Grande"; unicode-range: U+2E80-FFFF; src: local('PingFangSC'); }
-@font-face { font-family: 'Open Sans'; unicode-range: U+0-2E7F; src: local('Open Sans'), local('Segoe UI'); }
+@font-face { font-family: 'Open Sans'; unicode-range: U+0-2E7F; src: local('Open Sans'), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: 'Open Sans'; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: 'Segoe UI'; unicode-range: U+0-2E7F; src: local('Segoe UI'); }
+@font-face { font-family: 'Segoe UI'; unicode-range: U+0-2E7F; src: local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: 'Segoe UI'; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: Tahoma; unicode-range: U+0-2E7F; src: local(Tahoma), local('Segoe UI'); }
+@font-face { font-family: Tahoma; unicode-range: U+0-2E7F; src: local(Tahoma), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: Tahoma; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: Times; unicode-range: U+0-2E7F; src: local(Times), local('Segoe UI'); }
+@font-face { font-family: Times; unicode-range: U+0-2E7F; src: local(Times), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: Times; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
 @font-face { font-family: 'Times New Roman'; unicode-range: U+0-2E7F; src: local('Times New Roman'); }
 @font-face { font-family: 'Times New Roman'; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
-@font-face { font-family: Verdana; unicode-range: U+0-2E7F; src: local(Verdana), local('Segoe UI'); }
+@font-face { font-family: Verdana; unicode-range: U+0-2E7F; src: local(Verdana), local('SF UI'), local('Segoe UI'); }
 @font-face { font-family: Verdana; unicode-range: U+2E80-FFFF; src: local('Microsoft YaHei UI'); }
 
 /* 简体中文 */
