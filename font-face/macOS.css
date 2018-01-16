@@ -43,6 +43,8 @@
 @font-face { font-family: 'Hiragino Sans GB'; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 @font-face { font-family: 'Microsoft Yahei'; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 @font-face { font-family: 'Microsoft YaHei'; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
+@font-face { font-family: 'Microsoft Yahei UI'; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
+@font-face { font-family: 'Microsoft YaHei UI'; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 @font-face { font-family: 'WenQuanYi Micro Hei'; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 @font-face { font-family: Simhei; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 @font-face { font-family: Simsun; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
@@ -51,6 +53,9 @@
 @font-face { font-family: 华文黑体; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 @font-face { font-family: 宋体; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 @font-face { font-family: 宋體; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
+@font-face { font-family: 微软雅黑; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
+@font-face { font-family: '微软雅黑 UI'; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
+@font-face { font-family: 文泉驿微米黑; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
 
 /* 繁体中文 */
 @font-face { font-family: 'Microsoft Jhenghei'; unicode-range: U+0-2E7F; src: local('PingFang TC'), local('PingFangTC'); }
@@ -65,6 +70,8 @@
 @font-face { font-family: PMingLiU-ExtB; unicode-range: U+0-FFFF; src: local('PingFang TC'), local('PingFangTC'); }
 @font-face { font-family: 新细明体; unicode-range: U+0-FFFF; src: local('PingFang TC'), local('PingFangTC'); }
 @font-face { font-family: 新細明體; unicode-range: U+0-FFFF; src: local('PingFang TC'), local('PingFangTC'); }
+@font-face { font-family: 微軟正黑; unicode-range: U+0-FFFF; src: local('PingFang TC'), local('PingFangTC'); }
+@font-face { font-family: '微軟正黑 UI'; unicode-range: U+0-FFFF; src: local('PingFang TC'), local('PingFangTC'); }
 
 /* 日文 */
 @font-face { font-family: 'Hiragino Kaku Gothic Pro'; unicode-range: U+0-FFFF; src: local('Hiragino Kaku Gothic Pro'); }
