@@ -8,21 +8,23 @@
 
 #### Windows 10
 
-* userChrome.css: 用户界面自定义
-
-* userContent.css: 网页字体修改
+* userChrome.css: Windows 10 Firefox 用户界面自定义
 
 #### macOS
 
-* userChrome.css: 用户界面自定义
+* userChrome.css: macOS Firefox 用户界面自定义
 
-* userContent.css: 网页字体修改
+#### Linux
+
+* userChrome.css: 基于 Ubuntu 的 Linux 平台上 Firefox 用户界面自定义
 
 ### font-face: 浏览器用字体修改
 
 * Windows.css: Windows 平台
 
 * macOS.css: macOS 平台
+
+* Linux.css 基于 Ubuntu 的 Linux 平台
 
 ### ACL
 
