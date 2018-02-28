@@ -1,9 +1,19 @@
 /* 根据语言设置 */
 [lang=zh-CN] { font-family: 'Microsoft YaHei UI', sans-serif; }
+[lang=zh-CN] { font-family: 'Microsoft YaHei UI', serif; }
+[lang=zh-CN] { font-family: 'Sarasa Mono SC', monospace; }
 [lang=zh-TW] { font-family: 'Microsoft JhengHei UI', sans-serif; }
+[lang=zh-TW] { font-family: 'Microsoft JhengHei UI', serif; }
+[lang=zh-TW] { font-family: 'Sarasa Mono SC', monospace; }
 [lang=zh-HK] { font-family: 'Microsoft JhengHei UI', sans-serif; }
+[lang=zh-HK] { font-family: 'Microsoft JhengHei UI', serif; }
+[lang=zh-HK] { font-family: 'Sarasa Mono SC', monospace; }
 [lang=ja-JP] { font-family: 'Yu Gothic UI', sans-serif; }
+[lang=ja-JP] { font-family: 'Yu Gothic UI', serif; }
+[lang=ja-JP] { font-family: 'Sarasa Mono SC', monospace; }
 [lang=ko-KR] { font-family: 'Malgun Gothic', sans-serif; }
+[lang=ko-KR] { font-family: 'Malgun Gothic', serif; }
+[lang=ko-KR] { font-family: 'Sarasa Mono SC', monospace; }
 
 /* 标准字体 */
 @font-face { font-family: monospace; unicode-range: U+0-FFFF; src: local('Sarasa Mono SC'); }
