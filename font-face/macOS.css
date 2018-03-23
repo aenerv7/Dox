@@ -104,3 +104,12 @@
 
 /* 特殊 */
 @font-face { font-family: 瀹嬩綋; unicode-range: U+0-FFFF; src: local('PingFang SC'), local('PingFangSC'); }
+
+/* 个别网站适配 */
+@-moz-document domain("cnbeta.com")
+{
+  .cb-textarea-wrapper #J_reply_textarea_0
+  {
+    font-family: 'PingFang SC', 'PingFangSC';
+  }
+}

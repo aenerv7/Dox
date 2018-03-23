@@ -1,3 +1,5 @@
+/* i really want this to be global */
+
 /* 根据语言设置 */
 [lang=zh-CN] { font-family: 'Microsoft YaHei UI', sans-serif; }
 [lang=zh-TW] { font-family: 'Microsoft JhengHei UI', sans-serif; }
@@ -89,3 +91,12 @@
 
 /* 特殊 */
 @font-face { font-family: 瀹嬩綋; unicode-range: U+0-FFFF; src: local('Microsoft YaHei UI'); }
+
+/* 个别网站适配 */
+@-moz-document domain("cnbeta.com")
+{
+  .cb-textarea-wrapper #J_reply_textarea_0
+  {
+    font-family: 'Microsoft YaHei UI';
+  }
+}
