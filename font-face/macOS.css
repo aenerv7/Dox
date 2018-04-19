@@ -1,3 +1,5 @@
+/* i really want this to be global */
+
 /* 根据语言设置 */
 [lang=zh-CN] { font-family: 'PingFang SC', 'PingFangSC' sans-serif; }
 [lang=zh-TW] { font-family: 'PingFang TC', 'PingFangTC' sans-serif; }
