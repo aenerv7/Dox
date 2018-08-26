@@ -1,6 +1,30 @@
 [proxy_all]
 
 [bypass_list]
+
+# CN 域名直连
+^.*\.cn$
+(^|\.)alibaba\.com$
+(^|\.)alicdn\.com$
+(^|\.)aliexpress\.com$
+(^|\.)aliimg\.com$
+(^|\.)alikunlun\.com$
+(^|\.)alipay\.com$
+(^|\.)alipayobjects\.com$
+(^|\.)alisoft\.com$
+(^|\.)aliyun\.com$
+(^|\.)aliyuncdn\.com$
+(^|\.)aliyuncs\.com$
+(^|\.)bilibili\.com$
+(^|\.)bilibili\.tv$
+(^|\.)jd\.com$
+(^|\.)taobao\.com$
+(^|\.)taobaocdn\.com$
+(^|\.)tbcache\.com$
+(^|\.)tbcdn\.com$
+(^|\.)tmall\.com$
+
+# CN IP
 1.0.1.0/24
 1.0.2.0/23
 1.0.8.0/21
