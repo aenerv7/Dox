@@ -2,7 +2,7 @@
 
 [bypass_list]
 
-# CN 域名直连
+# 域名直连
 ^.*\.cn$
 (^|\.)alibaba\.com$
 (^|\.)alicdn\.com$
