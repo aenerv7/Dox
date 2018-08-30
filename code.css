@@ -1,4 +1,12 @@
-.satusbar-item left statusbar-entry
+.statusbar-item.left.statusbar-entry
 {
-  font-family : 'Segoe UI', 'Microsoft YaHei UI';
+  font-family : 'Microsoft YaHei UI';
+}
+.section.recent
+{
+  font-family : 'Microsoft YaHei UI';
+}
+div.section.recent
+{
+  font-family : 'Microsoft YaHei UI';
 }
