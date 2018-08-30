@@ -1,8 +1,8 @@
 .statusbar-item.left.statusbar-entry
 {
-  font-family : 'Segoe UI', 'Microsoft YaHei UI';
+  font-family : -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI';
 }
 .section.recent
 {
-  font-family : 'Segoe UI', 'Microsoft YaHei UI';
+  font-family : -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI';
 }
