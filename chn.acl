@@ -25,33 +25,6 @@
 (^|\.)tmall\.com$
 
 # CN IP
-[proxy_all]
-
-[bypass_list]
-
-# 域名直连
-^.*\.cn$
-(^|\.)alibaba\.com$
-(^|\.)alicdn\.com$
-(^|\.)aliexpress\.com$
-(^|\.)aliimg\.com$
-(^|\.)alikunlun\.com$
-(^|\.)alipay\.com$
-(^|\.)alipayobjects\.com$
-(^|\.)alisoft\.com$
-(^|\.)aliyun\.com$
-(^|\.)aliyuncdn\.com$
-(^|\.)aliyuncs\.com$
-(^|\.)bilibili\.com$
-(^|\.)bilibili\.tv$
-(^|\.)jd\.com$
-(^|\.)taobao\.com$
-(^|\.)taobaocdn\.com$
-(^|\.)tbcache\.com$
-(^|\.)tbcdn\.com$
-(^|\.)tmall\.com$
-
-# CN IP
 1.0.1.0/24
 1.0.2.0/23
 1.0.8.0/21
@@ -3815,6 +3788,7 @@
 103.121.52.0/22
 103.121.160.0/22
 103.121.164.0/22
+103.121.252.0/22
 103.192.0.0/22
 103.192.4.0/22
 103.192.8.0/22
