@@ -17,6 +17,7 @@
 (^|\.)aliyuncs\.com$
 (^|\.)bilibili\.com$
 (^|\.)bilibili\.tv$
+(^|\.)ipip\.net$
 (^|\.)jd\.com$
 (^|\.)taobao\.com$
 (^|\.)taobaocdn\.com$
