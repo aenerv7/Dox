@@ -217,14 +217,14 @@
 
 @font-face
 {
-  font-family: 宋體; 
-  src: local('PingFang SC'), local('Microsoft YaHei UI');
+  font-family: 新细明体; 
+  src: local('PingFang TC'), local('Microsoft YaHei UI');
 }
 
 @font-face
 {
-  font-family: '宋體'; 
-  src: local('PingFang SC'), local('Microsoft YaHei UI');
+  font-family: '新细明体'; 
+  src: local('PingFang TC'), local('Microsoft YaHei UI');
 }
 
 /* 繁体中文 */
@@ -237,19 +237,25 @@
 
 @font-face
 {
-  font-family: PMingLiU; 
-  src: local('PingFang TC'), local('Microsoft JhengHei UI');
+  font-family: 宋體; 
+  src: local('PingFang SC'), local('Microsoft JhengHei UI');
 }
 
 @font-face
 {
-  font-family: 新细明体; 
-  src: local('PingFang TC'), local('Microsoft JhengHei UI');
+  font-family: '宋體'; 
+  src: local('PingFang SC'), local('Microsoft JhengHei UI');
 }
 
 @font-face
 {
   font-family: 新細明體; 
+  src: local('PingFang TC'), local('Microsoft JhengHei UI');
+}
+
+@font-face
+{
+  font-family: '新細明體'; 
   src: local('PingFang TC'), local('Microsoft JhengHei UI');
 }
 
@@ -313,12 +319,6 @@
 
 @font-face
 {
-  font-family: FantasqueSansMonoRegular; 
-  src: local('Sarasa Term SC');
-}
-
-@font-face
-{
   font-family: 'Lucida Console'; 
   src: local('Sarasa Term SC');
 }
@@ -361,7 +361,19 @@
 
 @font-face
 {
+  font-family: '细明体'; 
+  src: local('Sarasa Term SC');
+}
+
+@font-face
+{
   font-family: 細明體; 
+  src: local('Sarasa Term SC');
+}
+
+@font-face
+{
+  font-family: '細明體'; 
   src: local('Sarasa Term SC');
 }
 
@@ -373,7 +385,19 @@
 
 @font-face
 {
+  font-family: '新宋体'; 
+  src: local('Sarasa Term SC');
+}
+
+@font-face
+{
   font-family: 新宋體; 
+  src: local('Sarasa Term SC');
+}
+
+@font-face
+{
+  font-family: '新宋體'; 
   src: local('Sarasa Term SC');
 }
 
