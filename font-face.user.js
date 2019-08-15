@@ -3,7 +3,7 @@
 // @description	  根据平台自适应中文字体优化
 // @author        aenerv7
 // @run-at        document-start
-// @version       2.1
+// @version       2.2
 // @namespace 	  https://greasyfork.org/users/4220
 // ==/UserScript==
 (function () {
@@ -11,7 +11,7 @@
 	var css = "@font-face { font-family: serif; src: local('PingFang SC'), local('Microsoft YaHei UI'); } \n";
 	css = css.concat("@font-face { font-family: sans-serif; src: local('PingFang SC'), local('Microsoft YaHei UI'); } \n");
 	css = css.concat("@font-face { font-family: -webkit-standard; src: local('PingFang SC'), local('Microsoft YaHei UI'); } \n");
-	css = css.concat("@font-face { font-family: monospace; src: local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: monospace; src: local('Sarasa Term SC'); } \n");
 	// 英文
 	css = css.concat("@font-face { font-family: -apple-system; src: local(-apple-system), local(BlinkMacSystemFont), local('Segoe UI'); } \n");
 	css = css.concat("@font-face { font-family: -apple-system; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
@@ -72,42 +72,42 @@
 	css = css.concat("@font-face { font-family: 'ＭＳ Ｐゴシック'; src: local('Hiragino Kaku Gothic ProN'), local('Yu Gothic UI'); } \n");
 	css = css.concat("@font-face { font-family: 'ヒラギノ角ゴ Pro W3'; src: local('Hiragino Kaku Gothic ProN'), local('Yu Gothic UI'); } \n");
 	// 等宽字体
-	css = css.concat("@font-face { font-family: Consolas; src: local(Consolas), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: Consolas; src: local(Consolas), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: Consolas; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: 'Lucida Console'; src: local('Lucida Console'), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: 'Lucida Console'; src: local('Lucida Console'), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: 'Lucida Console'; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: MingLiU; src: local(MingLiU), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: MingLiU; src: local(MingLiU), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: MingLiU; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: MingLiU-ExtB; src: local(MingLiU-ExtB), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: MingLiU-ExtB; src: local(MingLiU-ExtB), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: MingLiU-ExtB; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: MingLiU_HKSCS; src: local(MingLiU_HKSCS), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: MingLiU_HKSCS; src: local(MingLiU_HKSCS), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: MingLiU_HKSCS; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: MingLiU_HKSCS-ExtB; src: local(MingLiU_HKSCS-ExtB), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: MingLiU_HKSCS-ExtB; src: local(MingLiU_HKSCS-ExtB), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: MingLiU_HKSCS-ExtB; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: nsimsun; src: local(nsimsun), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: nsimsun; src: local(nsimsun), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: nsimsun; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: NSimsun; src: local(NSimsun), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: NSimsun; src: local(NSimsun), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: NSimsun; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: 细明体; src: local(细明体), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: 细明体; src: local(细明体), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: 细明体; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: '细明体'; src: local('细明体'), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: '细明体'; src: local('细明体'), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: '细明体'; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: 細明體; src: local(細明體), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: 細明體; src: local(細明體), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: 細明體; src: local('PingFang TC'), local('Microsoft JhengHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: '細明體'; src: local('細明體'), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: '細明體'; src: local('細明體'), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: '細明體'; src: local('PingFang TC'), local('Microsoft JhengHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: 新宋体; src: local(新宋体), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: 新宋体; src: local(新宋体), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: 新宋体; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: '新宋体'; src: local('新宋体'), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: '新宋体'; src: local('新宋体'), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: '新宋体'; src: local('PingFang SC'), local('Microsoft YaHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: 新宋體; src: local(新宋體), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: 新宋體; src: local(新宋體), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: 新宋體; src: local('PingFang TC'), local('Microsoft JhengHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
-	css = css.concat("@font-face { font-family: '新宋體'; src: local('新宋體'), local('Source Han Mono'); } \n");
+	css = css.concat("@font-face { font-family: '新宋體'; src: local('新宋體'), local('Sarasa Term SC'); } \n");
 	css = css.concat("@font-face { font-family: '新宋體'; src: local('PingFang TC'), local('Microsoft JhengHei UI'); unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A0-31BA, U+31C0-31E3, U+3400-4DB5, U+4E00-9FA5, U+9FA6-9FCB, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+F900-FAD9, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2F800-2FA1D; } \n");
 	// 特殊
 	css = css.concat("@font-face { font-family: 瀹嬩綋; src: local('PingFang SC'), local('Microsoft YaHei UI'); } \n");
 	// 元素修改
-	css = css.concat("textarea { font-family: 'Source Han Mono'; }");
+	css = css.concat("textarea { font-family: 'Sarasa Term SC'; }");
 
 	if (typeof GM_addStyle != "undefined") {
 		GM_addStyle(css);

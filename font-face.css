@@ -49,7 +49,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: monospace; 
-  src: local('Source Han Mono');
+  src: local('Sarasa Term SC');
 }
 
 /* 英文 */
@@ -389,7 +389,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: Consolas; 
-  src: local(Consolas), local('Source Han Mono');
+  src: local(Consolas), local('Sarasa Term SC');
 }
 
 @font-face
@@ -402,7 +402,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: Courier; 
-  src: local(Courier), local('Source Han Mono');
+  src: local(Courier), local('Sarasa Term SC');
 }
 
 @font-face
@@ -415,7 +415,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: 'Courier New'; 
-  src: local('Courier New'), local('Source Han Mono');
+  src: local('Courier New'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -428,7 +428,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: FantasqueSansMonoRegular; 
-  src: local(FantasqueSansMonoRegular), local('Source Han Mono');
+  src: local(FantasqueSansMonoRegular), local('Sarasa Term SC');
 }
 
 @font-face
@@ -441,7 +441,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: 'lucida console'; 
-  src: local('lucida console'), local('Source Han Mono');
+  src: local('lucida console'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -454,7 +454,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: 'Lucida Console'; 
-  src: local(FantasqueSansMonoRegular), local('Source Han Mono');
+  src: local(FantasqueSansMonoRegular), local('Sarasa Term SC');
 }
 
 @font-face
@@ -467,7 +467,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: MingLiU; 
-  src: local(MingLiU), local('Source Han Mono');
+  src: local(MingLiU), local('Sarasa Term SC');
 }
 
 @font-face
@@ -480,7 +480,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: MingLiU-ExtB; 
-  src: local(MingLiU-ExtB), local('Source Han Mono');
+  src: local(MingLiU-ExtB), local('Sarasa Term SC');
 }
 
 @font-face
@@ -493,7 +493,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: MingLiU_HKSCS; 
-  src: local(MingLiU_HKSCS), local('Source Han Mono');
+  src: local(MingLiU_HKSCS), local('Sarasa Term SC');
 }
 
 @font-face
@@ -506,7 +506,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: MingLiU_HKSCS-ExtB; 
-  src: local(MingLiU_HKSCS-ExtB), local('Source Han Mono');
+  src: local(MingLiU_HKSCS-ExtB), local('Sarasa Term SC');
 }
 
 @font-face
@@ -519,7 +519,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: nsimsun; 
-  src: local(nsimsun), local('Source Han Mono');
+  src: local(nsimsun), local('Sarasa Term SC');
 }
 
 @font-face
@@ -532,7 +532,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: NSimsun; 
-  src: local(NSimsun), local('Source Han Mono');
+  src: local(NSimsun), local('Sarasa Term SC');
 }
 
 @font-face
@@ -545,7 +545,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: 细明体; 
-  src: local(细明体), local('Source Han Mono');
+  src: local(细明体), local('Sarasa Term SC');
 }
 
 @font-face
@@ -558,7 +558,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: '细明体'; 
-  src: local('细明体'), local('Source Han Mono');
+  src: local('细明体'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -571,7 +571,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: 細明體; 
-  src: local(細明體), local('Source Han Mono');
+  src: local(細明體), local('Sarasa Term SC');
 }
 
 @font-face
@@ -584,7 +584,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: '細明體'; 
-  src: local('細明體'), local('Source Han Mono');
+  src: local('細明體'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -597,7 +597,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: 新宋体; 
-  src: local(新宋体), local('Source Han Mono');
+  src: local(新宋体), local('Sarasa Term SC');
 }
 
 @font-face
@@ -610,7 +610,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: '新宋体'; 
-  src: local('新宋体'), local('Source Han Mono');
+  src: local('新宋体'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -623,7 +623,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: 新宋體; 
-  src: local(新宋體), local('Source Han Mono');
+  src: local(新宋體), local('Sarasa Term SC');
 }
 
 @font-face
@@ -636,7 +636,7 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 @font-face
 {
   font-family: '新宋體'; 
-  src: local('新宋體'), local('Source Han Mono');
+  src: local('新宋體'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -657,5 +657,5 @@ unicode-range: U+2E80-2EF3, U+2F00-2FD5, U+2FF0-2FFB, U+3007, U+3105-3120, U+31A
 /* 元素修改 */
 textarea
 {
-  font-family: 'Source Han Mono'; 
+  font-family: 'Sarasa Term SC'; 
 }
