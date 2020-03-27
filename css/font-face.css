@@ -286,25 +286,25 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Microsoft Yahei'; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('Microsoft YaHei'), local('Source Han Sans SC'), local('PingFang SC');
 }
 
 @font-face
 {
   font-family: 'Microsoft YaHei'; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('Microsoft YaHei'), local('Source Han Sans SC'), local('PingFang SC');
 }
 
 @font-face
 {
   font-family: 'Microsoft YaHei UI'; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('Microsoft YaHei'), local('Source Han Sans SC'), local('PingFang SC');
 }
 
 @font-face
 {
   font-family: 'PingFang SC'; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('PingFang SC'), local('Source Han Sans SC'), local('Microsoft YaHei');
 }
 
 @font-face
@@ -376,25 +376,25 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 宋体; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('Source Han Serif SC'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face
 {
   font-family: '宋体'; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('Source Han Serif SC'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face
 {
   font-family: 新细明体; 
-  src: local('Source Han Sans TC'), local('PingFang TC'), local('Microsoft YaHei');
+  src: local('Source Han Serif TC'), local('PingFang TC'), local('Microsoft YaHei');
 }
 
 @font-face
 {
   font-family: '新细明体'; 
-  src: local('Source Han Sans TC'), local('PingFang TC'), local('Microsoft YaHei');
+  src: local('Source Han Serif TC'), local('PingFang TC'), local('Microsoft YaHei');
 }
 
 /* 繁体中文 */
@@ -402,31 +402,31 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Microsoft Jhenghei'; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
+  src: local('Microsoft JhengHei'), local('Source Han Sans TC'), local('PingFang TC');
 }
 
 @font-face
 {
   font-family: 'Microsoft JhengHei'; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
+  src: local('Microsoft JhengHei'), local('Source Han Sans TC'), local('PingFang TC');
 }
 
 @font-face
 {
   font-family: 'Microsoft JhengHei UI'; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
+  src: local('Microsoft JhengHei'), local('Source Han Sans TC'), local('PingFang TC');
 }
 
 @font-face
 {
   font-family: 'PingFang HK'; 
-  src: local('Microsoft JhengHei'), local('PingFang HK'), local('Source Han Sans HC');
+  src: local('PingFang HK'), local('Source Han Sans HC'), local('Microsoft JhengHei');
 }
 
 @font-face
 {
   font-family: 'PingFang TC'; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
+  src: local('PingFang TC'), local('Source Han Sans TC'), local('Microsoft JhengHei');
 }
 
 @font-face
@@ -438,7 +438,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Source Han Sans HC'; 
-  src: local('Microsoft JhengHei'), local('PingFang HK'), local('Source Han Sans HC');
+  src: local('Source Han Sans HC'), local('Microsoft JhengHei'), local('PingFang HK');
 }
 
 @font-face
@@ -450,25 +450,25 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 宋體; 
-  src: local('Source Han Sans SC'), local('PingFang SC'), local('Microsoft JhengHei');
+  src: local('Source Han Serif SC'), local('PingFang SC'), local('Microsoft JhengHei');
 }
 
 @font-face
 {
   font-family: '宋體'; 
-  src: local('Source Han Sans SC'), local('PingFang SC'), local('Microsoft JhengHei');
+  src: local('Source Han Serif SC'), local('PingFang SC'), local('Microsoft JhengHei');
 }
 
 @font-face
 {
   font-family: 新細明體; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
+  src: local('Source Han Serif TC'), local('Microsoft JhengHei'), local('PingFang TC');
 }
 
 @font-face
 {
   font-family: '新細明體'; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
+  src: local('Source Han Serif TC'), local('Microsoft JhengHei'), local('PingFang TC');
 }
 
 /* 日文 */
@@ -476,49 +476,61 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Hiragino Kaku Gothic ProN'; 
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Hiragino Kaku Gothic ProN'), local('Source Han Sans'), local('Yu Gothic');
 }
 
 @font-face
 {
   font-family: Meiryo;
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Source Han Sans'), local('Hiragino Kaku Gothic ProN');
 }
 
 @font-face
 {
   font-family: 'Meiryo UI'; 
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Source Han Sans'), local('Hiragino Kaku Gothic ProN');
 }
 
 @font-face
 {
   font-family: 'MS PGothic';
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Source Han Sans'), local('Hiragino Kaku Gothic ProN');
 }
 
 @font-face
 {
   font-family: 'ＭＳ Ｐゴシック';
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Source Han Sans'), local('Hiragino Kaku Gothic ProN');
 }
 
 @font-face
 {
   font-family: 'Source Han Sans'; 
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Source Han Sans'), local('Yu Gothic'), local('Hiragino Kaku Gothic ProN');
+}
+
+@font-face
+{
+  font-family: 'Source Han Serif'; 
+  src: local('Source Han Serif'), local('Yu Gothic'), local('Hiragino Kaku Gothic ProN');
 }
 
 @font-face
 {
   font-family: 'Yu Gothic UI'; 
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Source Han Sans'), local('Hiragino Kaku Gothic ProN');
+}
+
+@font-face
+{
+  font-family: 'Yu Mincho'; 
+  src: local('Yu Mincho'), local('Source Han Serif'), local('Hiragino Kaku Gothic ProN');
 }
 
 @font-face
 {
   font-family: 'ヒラギノ角ゴ Pro W3';
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Source Han Sans'), local('Hiragino Kaku Gothic ProN');
 }
 
 /* 等宽 */
@@ -544,7 +556,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face
 {
-  font-family: Consolas; 
+  font-family: Courier; 
   src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
@@ -609,22 +621,8 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face
 {
-  font-family: MingLiU; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: MingLiU-ExtB; 
   src: local('Sarasa Term TC');
-}
-
-@font-face
-{
-  font-family: MingLiU-ExtB; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
@@ -635,22 +633,8 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face
 {
-  font-family: MingLiU_HKSCS; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: MingLiU_HKSCS-ExtB; 
   src: local('Sarasa Term TC');
-}
-
-@font-face
-{
-  font-family: MingLiU_HKSCS-ExtB; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
@@ -661,22 +645,8 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face
 {
-  font-family: nsimsun; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: NSimsun; 
   src: local('Sarasa Term SC');
-}
-
-@font-face
-{
-  font-family: NSimsun; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
@@ -687,22 +657,8 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face
 {
-  font-family: 细明体; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: '细明体'; 
   src: local('Sarasa Term SC');
-}
-
-@font-face
-{
-  font-family: '细明体'; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
@@ -713,22 +669,8 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face
 {
-  font-family: 細明體; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: '細明體'; 
   src: local('Sarasa Term TC');
-}
-
-@font-face
-{
-  font-family: '細明體'; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
@@ -739,48 +681,20 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face
 {
-  font-family: 新宋体; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: '新宋体'; 
   src: local('Sarasa Term SC');
 }
 
 @font-face
 {
-  font-family: '新宋体'; 
-  src: local('Source Han Sans SC'), local('Microsoft YaHei'), local('PingFang SC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: 新宋體; 
   src: local('Sarasa Term TC');
 }
 
 @font-face
 {
-  font-family: 新宋體; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
-}
-
-@font-face
-{
   font-family: '新宋體'; 
   src: local('Sarasa Term TC');
-}
-
-@font-face
-{
-  font-family: '新宋體'; 
-  src: local('Source Han Sans TC'), local('Microsoft JhengHei'), local('PingFang TC');
-  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 /* 特殊 */
