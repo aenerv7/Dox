@@ -464,7 +464,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Yu Mincho'; 
-  src: local('Source Han Serif'), local('Hiragino Kaku Gothic ProN');
+  src: local('Source Han Serif JP'), local('Hiragino Kaku Gothic ProN');
 }
 
 /* 日文 黑体（无衬线） */
