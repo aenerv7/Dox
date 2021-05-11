@@ -1,4 +1,5 @@
 ! Title: AENERV7 User Rules
+! Version: 1.0.1
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
@@ -8,3 +9,4 @@
 @@||processon.com^$important,document
 @@||urlencoder.org^$important,document
 @@||wolai.com^$important,document
+@@||zdic.net^$important,document
