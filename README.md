@@ -35,3 +35,7 @@
 
 * font-face.css: 根据平台自动适配字体
 * vscode.css: Visual Studio Code 外观自定义
+
+### AD Filtering Rules
+
+* user_rules.txt: 自定义规则
