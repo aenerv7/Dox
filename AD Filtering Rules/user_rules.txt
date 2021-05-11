@@ -1,0 +1,10 @@
+! Title: AENERV7 User Rules
+! Last Modified: %timestamp%
+! Expires: 1 days (update frequency)
+! Homepage: https://github.com/aenerv7/Dox/
+!
+@@||bilibili.com^$important,document
+@@||inoreader.com^$important,document
+@@||processon.com^$important,document
+@@||urlencoder.org^$important,document
+@@||wolai.com^$important,document
