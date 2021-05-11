@@ -9,6 +9,14 @@
 * backtochn.acl: 回到中国
 * chn.acl: 绕过大陆地区
 
+#### ACL 参考列表
+
+[ShadowsocksX-NG 白名单模式 ACL](https://raw.githubusercontent.com/shadowsocksr/shadowsocksr-libev/master/acl/chn.acl)
+
+[ShadowsocksX-NG 自动模式 ACL](https://raw.githubusercontent.com/shadowsocksr/shadowsocksr-libev/master/acl/gfwlist.acl)
+
+[ShadowsocksX-NG 中国模式 ACL](https://raw.githubusercontent.com/shadowsocksr/ShadowsocksX-NG/develop/ShadowsocksX-NG/backchn.acl)
+
 ### Fireofx
 
 #### Windows 10
@@ -27,15 +35,3 @@
 
 * font-face.css: 根据平台自动适配字体
 * vscode.css: Visual Studio Code 外观自定义
-
-#### ACL 参考列表
-
-[ShadowsocksX-NG 白名单模式 ACL](https://raw.githubusercontent.com/shadowsocksr/shadowsocksr-libev/master/acl/chn.acl)
-
-[ShadowsocksX-NG 自动模式 ACL](https://raw.githubusercontent.com/shadowsocksr/shadowsocksr-libev/master/acl/gfwlist.acl)
-
-[ShadowsocksX-NG 中国模式 ACL](https://raw.githubusercontent.com/shadowsocksr/ShadowsocksX-NG/develop/ShadowsocksX-NG/backchn.acl)
-
-### UserScript: 各种 user.js
-
-* font-face.user.js: font-face.css 的 UserScript 版本
