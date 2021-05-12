@@ -21,3 +21,6 @@
 @@||visualstudio.com^$important,document
 @@||wolai.com^$important,document
 @@||zdic.net^$important,document
+pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div.yyl-ads-swiper:first-child
+pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div.yyl-ads-swiper:nth-child(4)
+pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div:last-child > div.yyl-ads-swiper:last-child
