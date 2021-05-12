@@ -1,10 +1,14 @@
 ! Title: AENERV7 User Rules
-! Version: 1.0.2
+! Version: 1.0.3
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
 !
 @@||bilibili.com^$important,document
+@@||bitbucket.com^$important,document
+@@||curseforge.com^$important,document
+@@||github.com^$important,document
+@@||gitlab.com^$important,document
 @@||inoreader.com^$important,document
 @@||livescore.com^$important,document
 @@||microsoft.com^$important,document
@@ -12,6 +16,7 @@
 @@||msn.cn^$important,document
 @@||office.com^$important,document
 @@||processon.com^$important,document
+@@||sourceforge.com^$important,document
 @@||urlencoder.org^$important,document
 @@||visualstudio.com^$important,document
 @@||wolai.com^$important,document
