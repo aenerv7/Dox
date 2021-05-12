@@ -1,5 +1,5 @@
 ! Title: AENERV7 User Rules
-! Version: 1.0.7
+! Version: 1.0.8
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
