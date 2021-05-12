@@ -13,11 +13,13 @@
 @@||gitlab.com^$important,document
 @@||gog.com^$important,document
 @@||inoreader.com^$important,document
+@@||live.com^$important,document
 @@||livescore.com^$important,document
 @@||microsoft.com^$important,document
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
 @@||office.com^$important,document
+@@||outlook.com^$important,document
 @@||processon.com^$important,document
 @@||sourceforge.com^$important,document
 @@||unity.cn^$important,document
