@@ -6,7 +6,13 @@
 !
 @@||bilibili.com^$important,document
 @@||inoreader.com^$important,document
+@@||livescore.com^$important,document
+@@||microsoft.com^$important,document
+@@||msn.com^$important,document
+@@||msn.cn^$important,document
+@@||office.com^$important,document
 @@||processon.com^$important,document
 @@||urlencoder.org^$important,document
+@@||visualstudio.com^$important,document
 @@||wolai.com^$important,document
 @@||zdic.net^$important,document
