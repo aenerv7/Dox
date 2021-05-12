@@ -1,5 +1,5 @@
 ! Title: AENERV7 User Rules
-! Version: 1.0.5
+! Version: 1.0.6
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
@@ -8,8 +8,10 @@
 @@||bitbucket.com^$important,document
 @@||carloswilkes.com^$important,document
 @@||curseforge.com^$important,document
+@@||epicgames.com^$important,document
 @@||github.com^$important,document
 @@||gitlab.com^$important,document
+@@||gog.com^$important,document
 @@||inoreader.com^$important,document
 @@||livescore.com^$important,document
 @@||microsoft.com^$important,document
