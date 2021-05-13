@@ -10,6 +10,7 @@
 @@||carloswilkes.com^$important,document
 @@||curseforge.com^$important,document
 @@||epicgames.com^$important,document
+@@||gcores.com^$important,document
 @@||github.com^$important,document
 @@||gitlab.com^$important,document
 @@||gog.com^$important,document
@@ -23,6 +24,12 @@
 @@||outlook.com^$important,document
 @@||processon.com^$important,document
 @@||sourceforge.com^$important,document
+@@||steamcommunity.com^$important,document
+@@||steamcontent.com^$important,document
+@@||steamgames.com^$important,document
+@@||steampowered.com^$important,document
+@@||steamstatic.com^$important,document
+@@||steamusercontent.com^$important,document
 @@||unity.cn^$important,document
 @@||unity.com^$important,document
 @@||urlencoder.org^$important,document
