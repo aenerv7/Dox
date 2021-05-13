@@ -1,6 +1,6 @@
 [Adblock Plus 2.0]
 ! Title: AENERV7 User Rules
-! Version: 10
+! Version: 11
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
@@ -15,6 +15,7 @@
 @@||gitlab.com^$important,document
 @@||gog.com^$important,document
 @@||inoreader.com^$important,document
+@@||jetbrains.com^$important,document
 @@||live.com^$important,document
 @@||livescore.com^$important,document
 @@||microsoft.com^$important,document
