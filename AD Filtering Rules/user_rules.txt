@@ -1,6 +1,6 @@
 [Adblock Plus 2.0]
 ! Title: AENERV7 User Rules
-! Version: 15
+! Version: 16
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
@@ -43,6 +43,7 @@
 @@||v2ex.com^$important,document
 @@||wolai.com^$important,document
 @@||zdic.net^$important,document
+accuweather.com###connatix
 cnbeta.com###COMMENTS > div.cnbeta-article-comments-wrapper.clear:last-child > div.cnbeta-article-comments-postbox:first-child
 cnbeta.com###COMMENTS > div.header-section:first-child
 cnbeta.com##div.main-wrap:nth-child(2) > div.cnbeta-article-wrapper:last-child > div.cnbeta-update:nth-child(2) > div.w1200 > div.cnbeta-article:first-child > div.cnbeta-article-latest:nth-child(9)
