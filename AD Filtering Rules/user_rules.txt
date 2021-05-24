@@ -1,4 +1,3 @@
-[Adblock Plus 2.0]
 ! Title: AENERV7 User Rules
 ! Version: 19
 ! Last Modified: %timestamp%
