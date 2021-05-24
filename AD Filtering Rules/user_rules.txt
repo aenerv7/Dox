@@ -1,13 +1,14 @@
 [Adblock Plus 2.0]
 ! Title: AENERV7 User Rules
-! Version: 18
+! Version: 19
 ! Last Modified: %timestamp%
-! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
 !
 @@||apple.com^$important,document
-@@||music.apple.com^$important,document
+@@||apple.com.cn^$important,document
 @@||bandcamp.com^$important,document
+@@||battle.net^$important,document
+@@||battlenet.com.cn^$important,document
 @@||bilibili.com^$important,document
 @@||bitbucket.com^$important,document
 @@||carloswilkes.com^$important,document
@@ -19,6 +20,7 @@
 @@||gitlab.com^$important,document
 @@||gog.com^$important,document
 @@||gumroad.com^$important,document
+@@||humblebundle.com^$important,document
 @@||inoreader.com^$important,document
 @@||jetbrains.com^$important,document
 @@||live.com^$important,document
@@ -27,6 +29,7 @@
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
 @@||office.com^$important,document
+@@||origin.com^$important,document
 @@||outlook.com^$important,document
 @@||processon.com^$important,document
 @@||soundcloud.com^$important,document
@@ -37,6 +40,8 @@
 @@||steampowered.com^$important,document
 @@||steamstatic.com^$important,document
 @@||steamusercontent.com^$important,document
+@@||ubi.com^$important,document
+@@||ubisoft.com^$important,document
 @@||unity.cn^$important,document
 @@||unity.com^$important,document
 @@||urlencoder.org^$important,document
