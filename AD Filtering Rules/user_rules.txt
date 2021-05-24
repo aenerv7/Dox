@@ -6,6 +6,7 @@
 ! Homepage: https://github.com/aenerv7/Dox/
 !
 @@||apple.com^$important,document
+@@||music.apple.com^$important,document
 @@||bandcamp.com^$important,document
 @@||bilibili.com^$important,document
 @@||bitbucket.com^$important,document
