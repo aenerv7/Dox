@@ -1,6 +1,7 @@
 ! Title: AENERV7 User Rules
-! Version: 19
+! Version: 20
 ! Last Modified: %timestamp%
+! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/
 !
 @@||apple.com^$important,document
