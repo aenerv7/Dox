@@ -1,5 +1,7 @@
 ! Title: AENERV7 User Rules
-! Version: 21
+! Version: 22
+! Last Modified: %timestamp%
+! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/tree/master/AD%20Filtering%20Rules
 !
 ! Whitelist
