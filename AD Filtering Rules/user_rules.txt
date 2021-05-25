@@ -4,7 +4,6 @@
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox/tree/master/AD%20Filtering%20Rules
 !
-! Whitelist
 @@||*.gov.cn^$important,document
 @@||*.org.cn^$important,document
 @@||apple.com^$important,document
@@ -53,8 +52,6 @@
 @@||v2ex.com^$important,document
 @@||wolai.com^$important,document
 @@||zdic.net^$important,document
-!
-! Specific elements blocking
 accuweather.com###connatix
 cnbeta.com###COMMENTS > div.cnbeta-article-comments-wrapper.clear:last-child > div.cnbeta-article-comments-postbox:first-child
 cnbeta.com###COMMENTS > div.header-section:first-child
