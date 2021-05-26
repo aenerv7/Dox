@@ -16,6 +16,7 @@
 @@||carloswilkes.com^$important,document
 @@||curseforge.com^$important,document
 @@||epicgames.com^$important,document
+@@||fast.com^$important,document
 @@||gamasutra.com^$important,document
 @@||gcores.com^$important,document
 @@||github.com^$important,document
@@ -36,6 +37,7 @@
 @@||processon.com^$important,document
 @@||soundcloud.com^$important,document
 @@||sourceforge.com^$important,document
+@@||speedtest.net^$important,document
 @@||steamcommunity.com^$important,document
 @@||steamcontent.com^$important,document
 @@||steamgames.com^$important,document
