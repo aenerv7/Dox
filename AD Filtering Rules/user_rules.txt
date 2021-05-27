@@ -1,5 +1,5 @@
 ! Title: AENERV7's User Rules
-! Version: 23
+! Version: 25
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
@@ -13,6 +13,7 @@
 @@||battlenet.com.cn^$important,document
 @@||bilibili.com^$important,document
 @@||bitbucket.com^$important,document
+@@||blender.org^$important,document
 @@||carloswilkes.com^$important,document
 @@||curseforge.com^$important,document
 @@||discord.com^$important,document
@@ -34,6 +35,7 @@
 @@||microsoft.com^$important,document
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
+@@||notion.so^$important,document
 @@||office.com^$important,document
 @@||origin.com^$important,document
 @@||outlook.com^$important,document
