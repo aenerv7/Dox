@@ -1,5 +1,5 @@
 ! Title: AENERV7's User Rules
-! Version: 25
+! Version: 26
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
@@ -35,10 +35,12 @@
 @@||microsoft.com^$important,document
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
+@@||netflix.com^$important,document
 @@||notion.so^$important,document
 @@||office.com^$important,document
 @@||origin.com^$important,document
 @@||outlook.com^$important,document
+@@||pornhubpremium.com^$important,document
 @@||processon.com^$important,document
 @@||soundcloud.com^$important,document
 @@||sourceforge.com^$important,document
@@ -58,6 +60,7 @@
 @@||visualstudio.com^$important,document
 @@||v2ex.com^$important,document
 @@||wolai.com^$important,document
+@@||xideos.red^$important,document
 @@||zdic.net^$important,document
 accuweather.com###connatix
 cnbeta.com###COMMENTS > div.cnbeta-article-comments-wrapper.clear:last-child > div.cnbeta-article-comments-postbox:first-child
