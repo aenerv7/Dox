@@ -15,6 +15,7 @@
 @@||bitbucket.com^$important,document
 @@||blender.org^$important,document
 @@||carloswilkes.com^$important,document
+@@||cihai.com.cn^$important,document
 @@||curseforge.com^$important,document
 @@||discord.com^$important,document
 @@||discord.gg^$important,document
