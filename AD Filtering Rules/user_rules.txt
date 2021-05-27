@@ -15,6 +15,8 @@
 @@||bitbucket.com^$important,document
 @@||carloswilkes.com^$important,document
 @@||curseforge.com^$important,document
+@@||discord.com^$important,document
+@@||discord.gg^$important,document
 @@||epicgames.com^$important,document
 @@||fast.com^$important,document
 @@||gamasutra.com^$important,document
@@ -28,6 +30,7 @@
 @@||jetbrains.com^$important,document
 @@||live.com^$important,document
 @@||livescore.com^$important,document
+@@||logitech.com^$important,document
 @@||microsoft.com^$important,document
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
