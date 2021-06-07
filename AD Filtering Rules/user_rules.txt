@@ -1,5 +1,5 @@
 ! Title: AENERV7's User Rules
-! Version: 26
+! Version: 27
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
@@ -34,6 +34,7 @@
 @@||livescore.com^$important,document
 @@||logitech.com^$important,document
 @@||microsoft.com^$important,document
+@@||microsoftonline.com^$important,document
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
 @@||netflix.com^$important,document
