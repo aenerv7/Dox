@@ -1,5 +1,5 @@
 ! Title: AENERV7's User Rules
-! Version: 27
+! Version: 28
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
@@ -44,6 +44,7 @@
 @@||outlook.com^$important,document
 @@||pornhubpremium.com^$important,document
 @@||processon.com^$important,document
+@@||romsuniverse.com^$important,document
 @@||soundcloud.com^$important,document
 @@||sourceforge.com^$important,document
 @@||speedtest.net^$important,document
