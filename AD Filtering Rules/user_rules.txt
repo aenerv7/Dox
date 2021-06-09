@@ -1,5 +1,5 @@
 ! Title: AENERV7's User Rules
-! Version: 29
+! Version: 31
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
@@ -73,6 +73,7 @@
 @@||steamusercontent.com^$important,document
 @@||ubi.com^$important,document
 @@||ubisoft.com^$important,document
+@@||ubisoft.com.cn^$important,document
 @@||unity.cn^$important,document
 @@||unity.com^$important,document
 @@||urlencoder.org^$important,document
