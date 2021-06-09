@@ -1,9 +1,12 @@
 ! Title: AENERV7's User Rules
-! Version: 28
+! Version: 29
 ! Last Modified: %timestamp%
 ! Expires: 1 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
 !
+@@||*.ac.co.uk^$important,document
+@@||*.edu^$important,document
+@@||*.edu.cn^$important,document
 @@||*.gov.cn^$important,document
 @@||*.org.cn^$important,document
 @@||apple.com^$important,document
@@ -19,8 +22,13 @@
 @@||curseforge.com^$important,document
 @@||discord.com^$important,document
 @@||discord.gg^$important,document
+@@||ea.com^$important,document
+@@||engadget.com^$important,document
 @@||epicgames.com^$important,document
 @@||fast.com^$important,document
+@@||fig.co^$important,document
+@@||fosshub.com^$important,document
+@@||f-droid.org^$important,document
 @@||gamasutra.com^$important,document
 @@||gcores.com^$important,document
 @@||github.com^$important,document
@@ -29,7 +37,9 @@
 @@||gumroad.com^$important,document
 @@||humblebundle.com^$important,document
 @@||inoreader.com^$important,document
+@@||itch.io^$important,document
 @@||jetbrains.com^$important,document
+@@||kickstarter.com^$important,document
 @@||live.com^$important,document
 @@||livescore.com^$important,document
 @@||logitech.com^$important,document
@@ -40,14 +50,21 @@
 @@||netflix.com^$important,document
 @@||notion.so^$important,document
 @@||office.com^$important,document
+@@||oneplus.com^$important,document
+@@||oneplus.net^$important,document
 @@||origin.com^$important,document
 @@||outlook.com^$important,document
+@@||patreon.com^$important,document
+@@||pornhub.com^$important,document
 @@||pornhubpremium.com^$important,document
 @@||processon.com^$important,document
+@@||quaro.com^$important,document
 @@||romsuniverse.com^$important,document
 @@||soundcloud.com^$important,document
 @@||sourceforge.com^$important,document
 @@||speedtest.net^$important,document
+@@||stackexchange.com^$important,document
+@@||stackoverflow.com^$important,document
 @@||steamcommunity.com^$important,document
 @@||steamcontent.com^$important,document
 @@||steamgames.com^$important,document
@@ -62,16 +79,16 @@
 @@||vgtime.com^$important,document
 @@||visualstudio.com^$important,document
 @@||v2ex.com^$important,document
+@@||winscp.net^$important,document
 @@||wolai.com^$important,document
+@@||xideos.com^$important,document
 @@||xideos.red^$important,document
 @@||zdic.net^$important,document
+@@||zhihu.com^$important,document
 accuweather.com###connatix
 cnbeta.com###COMMENTS > div.cnbeta-article-comments-wrapper.clear:last-child > div.cnbeta-article-comments-postbox:first-child
 cnbeta.com###COMMENTS > div.header-section:first-child
 cnbeta.com##div.main-wrap:nth-child(2) > div.cnbeta-article-wrapper:last-child > div.cnbeta-update:nth-child(2) > div.w1200 > div.cnbeta-article:first-child > div.cnbeta-article-latest:nth-child(9)
-cn.engadget.com###module-engadget-deeplink-top-ad > div > div.Bgc\(engadgetBlack\).W\(100vw\).D\(f\).Ai\(st\).Pos\(r\).Z\(1\).Jc\(c\).Py\(25px\).M\(MarginCenter\)
-cn.engadget.com###post-right-col > div.Mb\(40px\).Mih\(250px\):first-child
-cn.engadget.com###module-engadget-homepage-hero > div > div.rwd-outer-container.W\(100vw\).D\(f\).Jc\(sa\).Bgc\(engadgetGhostWhite\).Pos\(r\):last-child > div.rwd-inner-container.W\(1235px\).W\(980px\)--lg.W\(100\%\)--md.Mx\(20px\)--md.My\(40px\).Mt\(25px\)\!--sm.Mb\(0px\)\!--sm > div.D\(f\).Ai\(st\).Pos\(r\).Z\(1\):last-child > div:last-child > div.D\(f\).Ai\(st\).H\(100\%\) > div.D\(f\).Ai\(st\).W\(300px\).Miw\(300px\).Mih\(100\%\).D\(n\)--md.Mstart\(40px\):last-child > div.W\(100\%\) > div.Mih\(250px\):first-child
 pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div.yyl-ads-swiper:first-child
 pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div.yyl-ads-swiper:nth-child(4)
 pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div:last-child > div.yyl-ads-swiper:last-child
