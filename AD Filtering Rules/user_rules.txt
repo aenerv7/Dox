@@ -1,7 +1,7 @@
 ! Title: AENERV7's User Rules
-! Version: 31
-! Last Modified: %timestamp%
+! Version: 32
 ! Expires: 1 days (update frequency)
+! TimeUpdated: 2021/0610/2259+8
 ! Homepage: https://github.com/aenerv7/Dox
 !
 @@||*.ac.co.uk^$important,document
@@ -20,6 +20,7 @@
 @@||carloswilkes.com^$important,document
 @@||cihai.com.cn^$important,document
 @@||curseforge.com^$important,document
+@@||deepl.com^$important,document
 @@||discord.com^$important,document
 @@||discord.gg^$important,document
 @@||ea.com^$important,document
@@ -36,6 +37,7 @@
 @@||gog.com^$important,document
 @@||gumroad.com^$important,document
 @@||humblebundle.com^$important,document
+@@||icloud.com^$important,document
 @@||inoreader.com^$important,document
 @@||itch.io^$important,document
 @@||jetbrains.com^$important,document
@@ -43,6 +45,7 @@
 @@||live.com^$important,document
 @@||livescore.com^$important,document
 @@||logitech.com^$important,document
+@@||ludwig.guru^$important,document
 @@||microsoft.com^$important,document
 @@||microsoftonline.com^$important,document
 @@||msn.com^$important,document
