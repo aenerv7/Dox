@@ -464,57 +464,57 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Yu Mincho'; 
-  src: local('Source Han Serif JP'), local('Hiragino Kaku Gothic ProN');
+  src: local('Source Han Serif JP'), local('Hiragino Sans');
 }
 
 /* 日文 黑体（无衬线） */
 
 @font-face
 {
-  font-family: 'Hiragino Kaku Gothic ProN'; 
+  font-family: 'Hiragino Sans'; 
   src: local('Yu Gothic'), local('Source Han Sans');
 }
 
 @font-face
 {
   font-family: Meiryo;
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Hiragino Sans'), local('Source Han Sans');
 }
 
 @font-face
 {
   font-family: 'Meiryo UI'; 
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Hiragino Sans'), local('Source Han Sans');
 }
 
 @font-face
 {
   font-family: 'MS PGothic';
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Hiragino Sans'), local('Source Han Sans');
 }
 
 @font-face
 {
   font-family: 'ＭＳ Ｐゴシック';
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Hiragino Sans'), local('Source Han Sans');
 }
 
 @font-face
 {
   font-family: 'Source Han Sans'; 
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN');
+  src: local('Yu Gothic'), local('Hiragino Sans');
 }
 
 @font-face
 {
   font-family: 'Yu Gothic UI'; 
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Hiragino Sans'), local('Source Han Sans');
 }
 
 @font-face
 {
   font-family: 'ヒラギノ角ゴ Pro W3';
-  src: local('Yu Gothic'), local('Hiragino Kaku Gothic ProN'), local('Source Han Sans');
+  src: local('Yu Gothic'), local('Hiragino Sans'), local('Source Han Sans');
 }
 
 /* 等宽 */
