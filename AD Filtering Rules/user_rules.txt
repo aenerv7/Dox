@@ -1,7 +1,7 @@
 ! Title: AENERV7's User Rules
-! Version: 32
+! Version: 33
 ! Expires: 1 days (update frequency)
-! TimeUpdated: 2021-06-10T23:02:54+08:00
+! TimeUpdated: 2021-06-12T23:54:00+08:00
 ! Homepage: https://github.com/aenerv7/Dox
 !
 @@||*.ac.co.uk^$important,document
@@ -9,8 +9,10 @@
 @@||*.edu.cn^$important,document
 @@||*.gov.cn^$important,document
 @@||*.org.cn^$important,document
+@@||192.168.50.1^$important,document
 @@||apple.com^$important,document
 @@||apple.com.cn^$important,document
+@@||asus.com^$important,document
 @@||bandcamp.com^$important,document
 @@||battle.net^$important,document
 @@||battlenet.com.cn^$important,document
@@ -48,6 +50,7 @@
 @@||ludwig.guru^$important,document
 @@||microsoft.com^$important,document
 @@||microsoftonline.com^$important,document
+@@||msi.com^$important,document
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
 @@||netflix.com^$important,document
