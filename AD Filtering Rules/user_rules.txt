@@ -1,7 +1,7 @@
 ! Title: AENERV7's User Rules
-! Version: 33
+! Version: 34
 ! Expires: 1 days (update frequency)
-! TimeUpdated: 2021-06-12T23:54:00+08:00
+! TimeUpdated: 2021-06-21T11:50:00+08:00
 ! Homepage: https://github.com/aenerv7/Dox
 !
 @@||*.ac.co.uk^$important,document
@@ -92,6 +92,7 @@
 @@||xideos.red^$important,document
 @@||zdic.net^$important,document
 @@||zhihu.com^$important,document
+590m.com###main-content > div.container > div.content:first-child > div.card.bg-light.mb-3:nth-child(10) > div.card-body.p-3.d-flex.flex-row:first-child
 accuweather.com###connatix
 cnbeta.com###COMMENTS > div.cnbeta-article-comments-wrapper.clear:last-child > div.cnbeta-article-comments-postbox:first-child
 cnbeta.com###COMMENTS > div.header-section:first-child
