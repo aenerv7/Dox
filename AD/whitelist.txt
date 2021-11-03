@@ -7,6 +7,7 @@ opera-scheme
 vivaldi-scheme
 wyciwyg-scheme
 192.168.50.1
+ac.co.uk
 appinn.com
 apple.com
 apple.com.cn
@@ -25,6 +26,8 @@ deepl.com
 discord.com
 discord.gg
 ea.com
+edu
+edu.cn
 engadget.com
 epicgames.com
 f-droid.org
@@ -36,9 +39,9 @@ gcores.com
 github.com
 gitlab.com
 gog.com
+gov.cn
 gumroad.com
 gushiwen.cn
-hltv.org
 humblebundle.com
 icloud.com
 imgur.com
@@ -48,7 +51,6 @@ jetbrains.com
 keylol.com
 kickstarter.com
 libretro.com
-liquipedia.net
 live.com
 livescore.com
 logitech.com
@@ -63,6 +65,7 @@ notion.so
 office.com
 oneplus.com
 oneplus.net
+org.cn
 origin.com
 outlook.com
 patreon.com
