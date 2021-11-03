@@ -17,6 +17,11 @@
 
 [ShadowsocksX-NG 中国模式 ACL](https://raw.githubusercontent.com/shadowsocksr/ShadowsocksX-NG/develop/ShadowsocksX-NG/backchn.acl)
 
+### AD
+
+* user_rules.txt: 自定义规则
+* whitelist.txt: 自定义白名单
+
 ### Fireofx
 
 #### Windows 10
@@ -35,7 +40,3 @@
 
 * font-face.css: 根据平台自动适配字体
 * vscode.css: Visual Studio Code 外观自定义
-
-### AD Filtering Rules
-
-* user_rules.txt: 自定义规则
