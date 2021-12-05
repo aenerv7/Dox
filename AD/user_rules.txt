@@ -1,7 +1,7 @@
 ! Title: AENERV7's User Rules
-! Version: 34
+! Version: 35
 ! Expires: 1 days (update frequency)
-! TimeUpdated: 2021-06-21T11:50:00+08:00
+! TimeUpdated: 2021-11-03T17:10:00+08:00
 ! Homepage: https://github.com/aenerv7/Dox
 !
 @@||*.ac.co.uk^$important,document
@@ -97,6 +97,16 @@ accuweather.com###connatix
 cnbeta.com###COMMENTS > div.cnbeta-article-comments-wrapper.clear:last-child > div.cnbeta-article-comments-postbox:first-child
 cnbeta.com###COMMENTS > div.header-section:first-child
 cnbeta.com##div.main-wrap:nth-child(2) > div.cnbeta-article-wrapper:last-child > div.cnbeta-update:nth-child(2) > div.w1200 > div.cnbeta-article:first-child > div.cnbeta-article-latest:nth-child(9)
+www.olevod.com##.play_infobox > .guangao > .C1U
+www.olevod.com##.play_infobox > .guangao > .C1M
+www.olevod.com##.guangao > .C1D
+www.torrentkitty.io##.modal-body
+www.torrentkitty.io##.modal.in.nordvpn-popup--v12.nordvpn-popup.fade
+www.torrentkitty.tv##.modal-body
+www.torrentkitty.tv##.modal.in.nordvpn-popup--v12.nordvpn-popup.fade
 pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div.yyl-ads-swiper:first-child
 pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div.yyl-ads-swiper:nth-child(4)
 pc.yiyouliao.com###app > div.yyl-main-box:first-child > div.yyl-main-content:last-child > div.yyl-content.yyl-detail > div.yyl-ads-main:last-child > div:last-child > div.yyl-ads-swiper:last-child
+torrentkitty.io##.modal-body
+torrentkitty.io##.modal.in.nordvpn-popup--v12.nordvpn-popup.fade
+
