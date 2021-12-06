@@ -1,7 +1,7 @@
 ! Title: AENERV7's User Rules
-! Version: 35
+! Version: 36
 ! Expires: 1 days (update frequency)
-! TimeUpdated: 2021-11-03T17:10:00+08:00
+! TimeUpdated: 2021-12-06T10:37:00+08:00
 ! Homepage: https://github.com/aenerv7/Dox
 !
 @@||*.ac.co.uk^$important,document
