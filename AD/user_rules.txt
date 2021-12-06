@@ -37,6 +37,7 @@
 @@||github.com^$important,document
 @@||gitlab.com^$important,document
 @@||gog.com^$important,document
+@@||google.com^$important,document
 @@||gumroad.com^$important,document
 @@||humblebundle.com^$important,document
 @@||icloud.com^$important,document
@@ -53,6 +54,7 @@
 @@||msi.com^$important,document
 @@||msn.com^$important,document
 @@||msn.cn^$important,document
+@@||namecheap.com^$important,document
 @@||netflix.com^$important,document
 @@||notion.so^$important,document
 @@||office.com^$important,document
@@ -86,6 +88,8 @@
 @@||vgtime.com^$important,document
 @@||visualstudio.com^$important,document
 @@||v2ex.com^$important,document
+@@||weibo.cn^$important,document
+@@||weibo.com^$important,document
 @@||winscp.net^$important,document
 @@||wolai.com^$important,document
 @@||xideos.com^$important,document
