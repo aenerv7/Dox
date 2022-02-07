@@ -7,6 +7,7 @@
 ### ACL
 * backtochn.acl: 回到中国
 * chn.acl: 绕过大陆地区
+* Whitelist_AdGuard_AdBlocker: 用于 AdGuard AdBlocker 的白名单
 
 #### ACL 参考列表
 [ShadowsocksX-NG 白名单模式 ACL](https://raw.githubusercontent.com/shadowsocksr/shadowsocksr-libev/master/acl/chn.acl)
