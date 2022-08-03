@@ -516,7 +516,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Consolas; 
-  src: local(Consolas), local('Source Code Pro');
+  src: local(Consolas), local('Sarasa Term SC');
 }
 
 @font-face
@@ -529,7 +529,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Courier; 
-  src: local(Courier), local('Source Code Pro');
+  src: local(Courier), local('Sarasa Term SC');
 }
 
 @font-face
@@ -542,7 +542,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Courier New'; 
-  src: local('Courier New'), local('Source Code Pro');
+  src: local('Courier New'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -555,7 +555,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: FantasqueSansMonoRegular; 
-  src: local(FantasqueSansMonoRegular), local('Source Code Pro');
+  src: local(FantasqueSansMonoRegular), local('Sarasa Term SC');
 }
 
 @font-face
@@ -568,7 +568,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'lucida console'; 
-  src: local('lucida console'), local('Source Code Pro');
+  src: local('lucida console'), local('Sarasa Term SC');
 }
 
 @font-face
@@ -581,7 +581,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Lucida Console'; 
-  src: local('Lucida Console'), local('Source Code Pro');
+  src: local('Lucida Console'), local('Sarasa Term SC');
 }
 
 @font-face
