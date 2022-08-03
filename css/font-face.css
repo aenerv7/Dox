@@ -45,13 +45,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: monospace; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
 {
   font-family: Monospace; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
@@ -594,85 +594,85 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: MingLiU; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 @font-face
 {
   font-family: MingLiU-ExtB; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 @font-face
 {
   font-family: MingLiU_HKSCS; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 @font-face
 {
   font-family: MingLiU_HKSCS-ExtB; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 @font-face
 {
   font-family: nsimsun; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
 {
   font-family: NSimsun; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
 {
   font-family: 细明体; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
 {
   font-family: '细明体'; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
 {
   font-family: 細明體; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 @font-face
 {
   font-family: '細明體'; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 @font-face
 {
   font-family: 新宋体; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
 {
   font-family: '新宋体'; 
-  src: local('Sarasa Mono SC');
+  src: local('Sarasa Term SC');
 }
 
 @font-face
 {
   font-family: 新宋體; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 @font-face
 {
   font-family: '新宋體'; 
-  src: local('Sarasa Mono TC');
+  src: local('Sarasa Term TC');
 }
 
 /* 特殊 */
@@ -693,6 +693,6 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 /*
 textarea
 {
-  font-family: 'Sarasa Mono SC'; 
+  font-family: 'Sarasa Term SC'; 
 }
 */
