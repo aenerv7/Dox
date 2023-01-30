@@ -45,13 +45,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: monospace; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
 {
   font-family: Monospace; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
@@ -510,7 +510,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Consolas; 
-  src: local(Consolas), local('Sarasa Term SC');
+  src: local(Consolas), local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
@@ -523,7 +523,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Courier; 
-  src: local(Courier), local('Sarasa Term SC');
+  src: local(Courier), local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
@@ -536,7 +536,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Courier New'; 
-  src: local('Courier New'), local('Sarasa Term SC');
+  src: local('Courier New'), local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
@@ -549,7 +549,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: FantasqueSansMonoRegular; 
-  src: local(FantasqueSansMonoRegular), local('Sarasa Term SC');
+  src: local(FantasqueSansMonoRegular), local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
@@ -562,7 +562,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'lucida console'; 
-  src: local('lucida console'), local('Sarasa Term SC');
+  src: local('lucida console'), local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
@@ -575,7 +575,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Lucida Console'; 
-  src: local('Lucida Console'), local('Sarasa Term SC');
+  src: local('Lucida Console'), local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
@@ -588,85 +588,85 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: MingLiU; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 @font-face
 {
   font-family: MingLiU-ExtB; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 @font-face
 {
   font-family: MingLiU_HKSCS; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 @font-face
 {
   font-family: MingLiU_HKSCS-ExtB; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 @font-face
 {
   font-family: nsimsun; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
 {
   font-family: NSimsun; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 细明体; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
 {
   font-family: '细明体'; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 細明體; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 @font-face
 {
   font-family: '細明體'; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 @font-face
 {
   font-family: 新宋体; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
 {
   font-family: '新宋体'; 
-  src: local('Sarasa Term SC');
+  src: local('Sarasa Term SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 新宋體; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 @font-face
 {
   font-family: '新宋體'; 
-  src: local('Sarasa Term TC');
+  src: local('Sarasa Term TC Nerd Font');
 }
 
 /* 特殊 */
@@ -687,6 +687,6 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 /*
 textarea
 {
-  font-family: 'Sarasa Term SC'; 
+  font-family: 'Sarasa Term SC Nerd Font'; 
 }
 */
