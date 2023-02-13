@@ -18,6 +18,9 @@
 * user_rules.txt: 自定义规则
 * whitelist.txt: 自定义白名单
 
+### AutoHotKey
+* SizerAHK: 窗口尺寸和位置调整
+
 ### CSS
 * font-face.css: 根据平台自动适配字体
 * vscode.css: Visual Studio Code 外观自定义
