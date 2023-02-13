@@ -22,7 +22,7 @@ return
     }
 }
 
-#!F::
+#!A::
 {
     global windowTitle := WinGetTitle("A")
 
