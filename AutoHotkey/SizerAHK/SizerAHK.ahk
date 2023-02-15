@@ -68,21 +68,16 @@ return
     {
         global windowTitle := WinGetTitle("A")
     
-        windowMinMax := WinGetMinMax(windowTitle)
-        if(windowMinMax != -1)
-        {
-            if(windowMinMax = 1)
-            {
-                WinRestore(windowTitle)
-            }
-    
-            SizerMenu := Menu()
-            SizerMenu.Add("1280x720", Adjust_1280_720)
-            SizerMenu.Add("1280x720 Centre", Adjust_1280_720_Centre)
-            SizerMenu.Add("1920x1080", Adjust_1920_1080)
-            SizerMenu.Add("1920x1080 Centre", Adjust_1920_1080_Centre)
-            SizerMenu.Show()
-        }
+        SizerMenu := Menu()
+        SizerMenu.Add("720x1280", Adjust_720_1280)
+        SizerMenu.Add("720x1280 Centre", Adjust_720_1280_Centre)
+        SizerMenu.Add("1280x720", Adjust_1280_720)
+        SizerMenu.Add("1280x720 Centre", Adjust_1280_720_Centre)
+        SizerMenu.Add("1600x900", Adjust_1600_900)
+        SizerMenu.Add("1600x900 Centre", Adjust_1600_900_Centre)
+        SizerMenu.Add("1920x1080", Adjust_1920_1080)
+        SizerMenu.Add("1920x1080 Centre", Adjust_1920_1080_Centre)
+        SizerMenu.Show()
     }
     catch Error as err
     {
@@ -115,6 +110,16 @@ MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWid
     ; MsgBox "Monitor Size: " currentWidth " | " currentHeight
 }
 
+Adjust_720_1280(Name, Index, Menu)
+{
+    AdjustWindow(720, 1280, false)
+}
+
+Adjust_720_1280_Centre(Name, Index, Menu)
+{
+    AdjustWindow(720, 1280, true)
+}
+
 Adjust_1280_720(Name, Index, Menu)
 {
     AdjustWindow(1280, 720, false)
@@ -123,6 +128,16 @@ Adjust_1280_720(Name, Index, Menu)
 Adjust_1280_720_Centre(Name, Index, Menu)
 {
     AdjustWindow(1280, 720, true)
+}
+
+Adjust_1600_900(Name, Index, Menu)
+{
+    AdjustWindow(1600, 900, false)
+}
+
+Adjust_1600_900_Centre(Name, Index, Menu)
+{
+    AdjustWindow(1600, 900, true)
 }
 
 Adjust_1920_1080(Name, Index, Menu)
@@ -137,16 +152,32 @@ Adjust_1920_1080_Centre(Name, Index, Menu)
 
 AdjustWindow(width, height, centre)
 {
-    if(centre == true)
+    try
     {
-        WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
+        windowMinMax := WinGetMinMax(windowTitle)
+        if(windowMinMax != -1)
+        {
+            if(windowMinMax = 1)
+            {
+                WinRestore(windowTitle)
+            }
+        }
     
-        MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
-    
-        WinMove currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2), width, height, windowTitle
+        if(centre == true)
+        {
+            WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
+        
+            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
+        
+            WinMove currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2), width, height, windowTitle
+        }
+        else
+        {
+            WinMove , , width, height, windowTitle
+        }
     }
-    else
+    catch Error as err
     {
-        WinMove , , width, height, windowTitle
+        MsgBox err.Message, "Error"
     }
 }
