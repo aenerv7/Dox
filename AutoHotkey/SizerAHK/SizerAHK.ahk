@@ -1,4 +1,6 @@
 ﻿#Requires AutoHotkey v2.0
+#SingleInstance
+#NoTrayIcon
 
 A_IconTip := "SizerAHK"
 
@@ -8,62 +10,83 @@ return
 
 #!C::
 {
-    global windowTitle := WinGetTitle("A")
-
-    windowMinMax := WinGetMinMax(windowTitle)
-    if(windowMinMax = 0)
+    try
     {
-        WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
-        ; MsgBox "Window Pos: " windowPosY " | " windowPosX " -- Size: " windowWidth " | " windowHeight
-        
-        MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
-
-        WinMove currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2), , , windowTitle
+        global windowTitle := WinGetTitle("A")
+    
+        windowMinMax := WinGetMinMax(windowTitle)
+        if(windowMinMax = 0)
+        {
+            WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
+            ; MsgBox "Window Pos: " windowPosY " | " windowPosX " -- Size: " windowWidth " | " windowHeight
+            
+            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
+    
+            WinMove currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2), , , windowTitle
+        }
+    }
+    catch Error as err
+    {
+        MsgBox err.Message, "Error"
     }
 }
 
 #!A::
 {
-    global windowTitle := WinGetTitle("A")
-
-    windowMinMax := WinGetMinMax(windowTitle)
-    if(windowMinMax != -1)
+    try
     {
-        if(windowMinMax = 1)
+        global windowTitle := WinGetTitle("A")
+    
+        windowMinMax := WinGetMinMax(windowTitle)
+        if(windowMinMax != -1)
         {
-            WinRestore(windowTitle)
+            if(windowMinMax = 1)
+            {
+                WinRestore(windowTitle)
+            }
+            
+            WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
+    
+            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
+    
+            modifiedWindowWidth := currentWidth * 3 / 4
+            modifiedWindowHeight := currentHeight * 3 / 4
+    
+            WinMove currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle
+            ; MsgBox "Monitor Size: " currentWidth " | " currentHeight "`nWindow Size: " windowWidth " | " windowHeight
         }
-        
-        WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
-
-        MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
-
-        modifiedWindowWidth := currentWidth * 3 / 4
-        modifiedWindowHeight := currentHeight * 3 / 4
-
-        WinMove currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle
-        ; MsgBox "Monitor Size: " currentWidth " | " currentHeight "`nWindow Size: " windowWidth " | " windowHeight
+    }
+    catch Error as err
+    {
+        MsgBox err.Message, "Error"
     }
 }
 
 #!S::
 {
-    global windowTitle := WinGetTitle("A")
-
-    windowMinMax := WinGetMinMax(windowTitle)
-    if(windowMinMax != -1)
+    try
     {
-        if(windowMinMax = 1)
+        global windowTitle := WinGetTitle("A")
+    
+        windowMinMax := WinGetMinMax(windowTitle)
+        if(windowMinMax != -1)
         {
-            WinRestore(windowTitle)
+            if(windowMinMax = 1)
+            {
+                WinRestore(windowTitle)
+            }
+    
+            SizerMenu := Menu()
+            SizerMenu.Add("1280x720", Adjust_1280_720)
+            SizerMenu.Add("1280x720 Centre", Adjust_1280_720_Centre)
+            SizerMenu.Add("1920x1080", Adjust_1920_1080)
+            SizerMenu.Add("1920x1080 Centre", Adjust_1920_1080_Centre)
+            SizerMenu.Show()
         }
-
-        SizerMenu := Menu()
-        SizerMenu.Add("1280x720", Adjust_1280_720)
-        SizerMenu.Add("1280x720 Centre", Adjust_1280_720_Centre)
-        SizerMenu.Add("1920x1080", Adjust_1920_1080)
-        SizerMenu.Add("1920x1080 Centre", Adjust_1920_1080_Centre)
-        SizerMenu.Show()
+    }
+    catch Error as err
+    {
+        MsgBox err.Message, "Error"
     }
 }
 
