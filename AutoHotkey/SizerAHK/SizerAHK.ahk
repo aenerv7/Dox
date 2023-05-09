@@ -10,6 +10,7 @@ taskBarHeight := 48
 
 return
 
+; 居中
 #!C::
 {
     try
@@ -33,6 +34,7 @@ return
     }
 }
 
+; 自动调整窗口大小并居中
 #!A::
 {
     try
@@ -64,6 +66,7 @@ return
     }
 }
 
+; 按需调整窗口
 #!S::
 {
     try
