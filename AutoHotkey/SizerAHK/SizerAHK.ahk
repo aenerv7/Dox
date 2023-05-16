@@ -190,14 +190,14 @@ Adjust_Auto(Name, Index, Menu)
                 WinRestore(windowTitle)
             }
             
-            WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
+            WinGetPos(&windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle)
     
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
     
             modifiedWindowWidth := currentWidth * 3 / 4
             modifiedWindowHeight := currentHeight * 3 / 4
     
-            WinMove currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2) - (taskBarHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle
+            WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2) - (taskBarHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle)
             ; MsgBox "Monitor Size: " currentWidth " | " currentHeight "`nWindow Size: " windowWidth " | " windowHeight
         }
     }
@@ -218,12 +218,12 @@ Adjust_Centre(Name, Index, Menu)
         windowMinMax := WinGetMinMax(windowTitle)
         if(windowMinMax = 0)
         {
-            WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
+            WinGetPos(&windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle)
             ; MsgBox "Window Pos: " windowPosY " | " windowPosX " -- Size: " windowWidth " | " windowHeight
             
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
     
-            WinMove currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2) - (taskBarHeight / 2), , , windowTitle
+            WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2) - (taskBarHeight / 2), , , windowTitle)
         }
     }
     catch Error as err
@@ -234,17 +234,19 @@ Adjust_Centre(Name, Index, Menu)
 
 Adjust_Custom(Name, Index, Menu)
 {
+    WinGetPos(&windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle)
+
     global guiWindowResize := Gui(, guiWindowResizeTitle)
     guiWindowResize.Opt("-Resize")
     guiWindowResize.Opt("-MaximizeBox")
     guiWindowResize.Opt("-MinimizeBox")
     guiWindowResize.Opt("-SysMenu")
     guiWindowResize.Add("Text", , "Width")
-    edit_width := guiWindowResize.Add("Edit", "vEditWidth")
+    edit_width := guiWindowResize.Add("Edit", "vEditWidth w160", windowWidth)
     edit_width.Opt("+Number")
     edit_width.OnEvent("Change", CustomResizeEditNumberCheck)
     guiWindowResize.Add("Text", , "Height")
-    edit_height := guiWindowResize.Add("Edit", "vEditHeight")
+    edit_height := guiWindowResize.Add("Edit", "vEditHeight w160", windowHeight)
     edit_height.Opt("+Number")
     edit_height.OnEvent("Change", CustomResizeEditNumberCheck)
     button_resize := guiWindowResize.Add("Button", "wp y+20", "Resize")
@@ -256,10 +258,9 @@ Adjust_Custom(Name, Index, Menu)
     guiWindowResize.OnEvent("Escape", CustomResizeEscape)
     guiWindowResize.Show()
         
-    WinGetPos(&windowPosX, &windowPosY, , , windowTitle)
     WinGetPos(, , &customizeWidth, &customizeHeight, guiWindowResizeTitle)
     MonitorGetCurrent(windowPosX, windowPosY, customizeWidth, customizeHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
-    WinMove currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2) - (taskBarHeight / 2), , , guiWindowResizeTitle
+    WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2) - (taskBarHeight / 2), , , guiWindowResizeTitle)
 }
 
 CustomResizeEditNumberCheck(guiCtrlObj, info)
@@ -370,7 +371,7 @@ AdjustWindow(width, height, centre)
         }
         else
         {
-            WinMove , , width, height, windowTitle
+            WinMove(, , width, height, windowTitle)
         }
     }
     catch Error as err
