@@ -8,6 +8,10 @@ windowTitle := ""
 
 taskBarHeight := 48
 
+guiWindowResize := ""
+
+guiWindowResizeTitle := "SizerAHK Customize"
+
 darkModeEnabled := RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", 1) = 0
 
 ; Applying dark theme for Pop-up Menu & Tray Menu. 
@@ -32,8 +36,8 @@ return
         global windowTitle := WinGetTitle("A")
     
         SizerMenu := Menu()
-        SizerMenu.Add("Auto", Adjust_Auto)
-        SizerMenu.Add("Centre", Adjust_Centre)
+        SizerMenu.Add("&Auto", Adjust_Auto)
+        SizerMenu.Add("&Centre", Adjust_Centre)
         SizerMenu.Add()
         SizerMenu.Add("640x480", Adjust_640_480)
         SizerMenu.Add("640x480 Centre", Adjust_640_480_Centre)
@@ -54,8 +58,8 @@ return
         SizerMenu.Add("720x1280 Centre", Adjust_720_1280_Centre)
         SizerMenu.Add("720x1280", Adjust_720_1280)
         SizerMenu.Add("720x1280 Centre", Adjust_720_1280_Centre)
-        ; SizerMenu.Add()
-        ; SizerMenu.Add("Custom", Adjust_Custom)
+        SizerMenu.Add()
+        SizerMenu.Add("Custom", Adjust_Custom)
         SizerMenu.Show()
     }
     catch Error as err
@@ -230,15 +234,117 @@ Adjust_Centre(Name, Index, Menu)
 
 Adjust_Custom(Name, Index, Menu)
 {
-    CustomWindow := Gui(, "Custom Size")
-    CustomWindow.Opt("-Resize")
-    CustomWindow.Opt("+ToolWindow")
-    CustomWindow.Add("Text", , "Width")
-    CustomWindow.Add("Edit")
-    CustomWindow.Add("Text", , "Height")
-    CustomWindow.Add("Edit")
-    CustomWindow.Add("Checkbox", , "Centre")
-    CustomWindow.Show()
+    global guiWindowResize := Gui(, guiWindowResizeTitle)
+    guiWindowResize.Opt("-Resize")
+    guiWindowResize.Opt("-MaximizeBox")
+    guiWindowResize.Opt("-MinimizeBox")
+    guiWindowResize.Opt("-SysMenu")
+    guiWindowResize.Add("Text", , "Width")
+    edit_width := guiWindowResize.Add("Edit", "vEditWidth")
+    edit_width.Opt("+Number")
+    edit_width.OnEvent("Change", CustomResizeEditNumberCheck)
+    guiWindowResize.Add("Text", , "Height")
+    edit_height := guiWindowResize.Add("Edit", "vEditHeight")
+    edit_height.Opt("+Number")
+    edit_height.OnEvent("Change", CustomResizeEditNumberCheck)
+    button_resize := guiWindowResize.Add("Button", "wp y+20", "Resize")
+    button_resize.OnEvent("Click", CustomResizeButtonResize)
+    button_resize_centre := guiWindowResize.Add("Button", "wp", "Resize and Centre")
+    button_resize_centre.OnEvent("Click", CustomResizeButtonResizeCentre)
+    button_cancel := guiWindowResize.Add("Button", "wp", "Cancel")
+    button_cancel.OnEvent("Click", CustomResizeButtonCancel)
+    guiWindowResize.OnEvent("Escape", CustomResizeEscape)
+    guiWindowResize.Show()
+        
+    WinGetPos(&windowPosX, &windowPosY, , , windowTitle)
+    WinGetPos(, , &customizeWidth, &customizeHeight, guiWindowResizeTitle)
+    MonitorGetCurrent(windowPosX, windowPosY, customizeWidth, customizeHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
+    WinMove currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2) - (taskBarHeight / 2), , , guiWindowResizeTitle
+}
+
+CustomResizeEditNumberCheck(guiCtrlObj, info)
+{
+    local edit_checked := 0
+    edit_value := guiCtrlObj.Value
+    if(edit_value)
+    {
+        if(SubStr(edit_value, 1, 1) = '0')
+        {
+            edit_checked := edit_value + 0
+            guiCtrlObj.Value := edit_checked
+        }
+    }
+}
+
+CustomResizeButtonResize(guiCtrlObj, info)
+{
+    CustomResizeSubmitResize()
+}
+
+CustomResizeButtonResizeCentre(guiCtrlObj, info)
+{
+    CustomResizeSubmitResizeCentre()
+}
+
+CustomResizeButtonCancel(guiCtrlObj, info)
+{
+    guiWindowResize.Destroy()
+}
+
+CustomResizeEscape(guiObj)
+{
+    guiObj.Destroy()
+}
+
+#HotIf WinExist(guiWindowResizeTitle) and WinActive(guiWindowResizeTitle)
+Enter::
+{
+    focused_control_name := guiWindowResize.FocusedCtrl.Name
+    if(focused_control_name = "EditWidth" or focused_control_name = "EditHeight")
+    {
+        CustomResizeSubmitResize()
+    }
+    else
+    {
+        Send "{Enter}"
+    }
+}
+^Enter::
+{
+    focused_control_name := guiWindowResize.FocusedCtrl.Name
+    if(focused_control_name = "EditWidth" or focused_control_name = "EditHeight")
+    {
+        CustomResizeSubmitResizeCentre()
+    }
+    else
+    {
+        Send "^{Enter}"
+    }
+}
+#HotIf
+
+CustomResizeSubmitResize()
+{
+    resize_value := guiWindowResize.Submit()
+
+    if(resize_value.EditWidth and resize_value.EditHeight)
+    {
+        AdjustWindow(resize_value.EditWidth, resize_value.EditHeight, false)
+    }
+
+    guiWindowResize.Destroy()
+}
+
+CustomResizeSubmitResizeCentre()
+{
+    resize_value := guiWindowResize.Submit()
+
+    if(resize_value.EditWidth and resize_value.EditHeight)
+    {
+        AdjustWindow(resize_value.EditWidth, resize_value.EditHeight, true)
+    }
+
+    guiWindowResize.Destroy()
 }
 
 AdjustWindow(width, height, centre)
@@ -256,11 +362,11 @@ AdjustWindow(width, height, centre)
     
         if(centre == true)
         {
-            WinGetPos &windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle
+            WinGetPos(&windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle)
         
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
         
-            WinMove currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - (taskBarHeight / 2), width, height, windowTitle
+            WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - (taskBarHeight / 2), width, height, windowTitle)
         }
         else
         {
