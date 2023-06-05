@@ -29,7 +29,7 @@ Class DarkMode
 return
 
 ; 按需调整窗口
-#!Space::
+^!Space::
 {
     try
     {
@@ -69,7 +69,7 @@ return
 }
 
 ; 获取当前显示器
-MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom)
+MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
 {
     windowCenterX := windowPosX + (windowWidth / 2)
     windowCenterY := windowPosY + (windowHeight / 2)
@@ -80,6 +80,8 @@ MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWid
         currentMonitor := MonitorGet(A_Index, &left, &top, &right, &bottom)
         if(windowCenterX > left AND windowCenterX < right AND windowCenterY > top AND windowCenterY < bottom)
         {
+            currentIndex := A_Index
+
             break
         }
     }
@@ -192,12 +194,20 @@ Adjust_Auto(Name, Index, Menu)
             
             WinGetPos(&windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle)
     
-            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
+            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
     
             modifiedWindowWidth := currentWidth * 3 / 4
             modifiedWindowHeight := currentHeight * 3 / 4
     
-            WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2) - (taskBarHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle)
+            if(currentIndex > 1)
+            {
+                WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle)
+            }
+            else
+            {
+                WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2) - (taskBarHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle)
+            }
+
             ; MsgBox "Monitor Size: " currentWidth " | " currentHeight "`nWindow Size: " windowWidth " | " windowHeight
         }
     }
@@ -221,9 +231,16 @@ Adjust_Centre(Name, Index, Menu)
             WinGetPos(&windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle)
             ; MsgBox "Window Pos: " windowPosY " | " windowPosX " -- Size: " windowWidth " | " windowHeight
             
-            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
+            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
     
-            WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2) - (taskBarHeight / 2), , , windowTitle)
+            if(currentIndex > 1)
+            {
+                WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2), , , windowTitle)
+            }
+            else
+            {
+                WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2) - (taskBarHeight / 2), , , windowTitle)
+            }
         }
     }
     catch Error as err
@@ -259,8 +276,17 @@ Adjust_Custom(Name, Index, Menu)
     guiWindowResize.Show()
         
     WinGetPos(, , &customizeWidth, &customizeHeight, guiWindowResizeTitle)
-    MonitorGetCurrent(windowPosX, windowPosY, customizeWidth, customizeHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
-    WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2) - (taskBarHeight / 2), , , guiWindowResizeTitle)
+
+    MonitorGetCurrent(windowPosX, windowPosY, customizeWidth, customizeHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
+    
+    if(currentIndex > 1)
+    {
+        WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2), , , guiWindowResizeTitle)
+    }
+    else
+    {
+        WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2) - (taskBarHeight / 2), , , guiWindowResizeTitle)
+    }
 }
 
 CustomResizeEditNumberCheck(guiCtrlObj, info)
@@ -365,9 +391,16 @@ AdjustWindow(width, height, centre)
         {
             WinGetPos(&windowPosX, &windowPosY, &windowWidth, &windowHeight, windowTitle)
         
-            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBotton)
+            MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
         
-            WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - (taskBarHeight / 2), width, height, windowTitle)
+            if(currentIndex > 1)
+            {
+                WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2), width, height, windowTitle)
+            }
+            else
+            {
+                WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - (taskBarHeight / 2), width, height, windowTitle)
+            }
         }
         else
         {
