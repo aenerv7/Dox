@@ -21,13 +21,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: serif; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: Serif; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
@@ -77,33 +77,33 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Source Serif Pro'; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: Times; 
-  src: local(Times), local('LXGW Bright');
+  src: local(Times), local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: Times; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Times New Roman'; 
-  src: local('Times New Roman'), local('LXGW Bright');
+  src: local('Times New Roman'), local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 'Times New Roman'; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -258,37 +258,37 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: simsun; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: Simsun; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 宋体; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '宋体'; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 宋體; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '宋體'; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 /* 简体中文 黑体（无衬线） */
@@ -382,31 +382,31 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: PMingLiU; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 新细明体; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '新细明体'; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 新細明體; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '新細明體'; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 /* 繁体中文 黑体（无衬线） */
@@ -446,7 +446,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Yu Mincho'; 
-  src: local('LXGW Bright');
+  src: local('LXGW WenKai');
 }
 
 /* 日文 黑体（无衬线） */
