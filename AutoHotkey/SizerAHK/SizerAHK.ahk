@@ -8,6 +8,8 @@ windowTitle := ""
 
 taskBarHeight := 48
 
+screenHeightThreshold := 1080
+
 guiWindowResize := ""
 
 guiWindowResizeTitle := "SizerAHK Customize"
@@ -199,7 +201,7 @@ Adjust_Auto(Name, Index, Menu)
             modifiedWindowWidth := currentWidth * 3 / 4
             modifiedWindowHeight := currentHeight * 3 / 4
     
-            if(currentIndex > 1)
+            if(currentIndex > 1 or currentHeight < screenHeightThreshold)
             {
                 WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle)
             }
@@ -233,7 +235,7 @@ Adjust_Centre(Name, Index, Menu)
             
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
     
-            if(currentIndex > 1)
+            if(currentIndex > 1 or currentHeight < screenHeightThreshold)
             {
                 WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2), , , windowTitle)
             }
@@ -279,7 +281,7 @@ Adjust_Custom(Name, Index, Menu)
 
     MonitorGetCurrent(windowPosX, windowPosY, customizeWidth, customizeHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
     
-    if(currentIndex > 1)
+    if(currentIndex > 1 or currentHeight < screenHeightThreshold)
     {
         WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2), , , guiWindowResizeTitle)
     }
@@ -393,7 +395,7 @@ AdjustWindow(width, height, centre)
         
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
         
-            if(currentIndex > 1)
+            if(currentIndex > 1 or currentHeight < screenHeightThreshold)
             {
                 WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2), width, height, windowTitle)
             }
