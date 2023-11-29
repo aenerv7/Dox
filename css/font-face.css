@@ -74,6 +74,20 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 /* 英文 衬线 */
 
+
+@font-face
+{
+  font-family: Georgia; 
+  src: local(Georgia), local('LXGW WenKai');
+}
+
+@font-face
+{
+  font-family: Georgia; 
+  src: local('LXGW WenKai');
+  unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
+}
+
 @font-face
 {
   font-family: 'Source Serif Pro'; 
