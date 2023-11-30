@@ -21,25 +21,25 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: serif; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: Serif; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: sans-serif;
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: Sans-Serif; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
@@ -57,19 +57,19 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: standard; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: Standard; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: -webkit-standard; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 /* 英文 衬线 */
@@ -78,46 +78,46 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Georgia; 
-  src: local(Georgia), local('Dream Han Serif CN');
+  src: local(Georgia), local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: Georgia; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Source Serif Pro'; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: Times; 
-  src: local(Times), local('Dream Han Serif CN');
+  src: local(Times), local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: Times; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Times New Roman'; 
-  src: local('Times New Roman'), local('Dream Han Serif CN');
+  src: local('Times New Roman'), local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 'Times New Roman'; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -126,144 +126,144 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: -apple-system; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: -apple-system; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Microsoft YaHei'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: Helvetica; 
-  src: local(Helvetica), local('Dream Han Sans CN');
+  src: local(Helvetica), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: Helvetica; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'helvetica neue'; 
-  src: local('helvetica neue'), local('Dream Han Sans CN');
+  src: local('helvetica neue'), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'helvetica neue'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Helvetica Neue'; 
-  src: local('Helvetica Neue'), local('Dream Han Sans CN');
+  src: local('Helvetica Neue'), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Helvetica Neue'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'lucida grande'; 
-  src: local('lucida grande'), local('Dream Han Sans CN');
+  src: local('lucida grande'), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'lucida grande'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Lucida Grande'; 
-  src: local('Lucida Grande'), local('Dream Han Sans CN');
+  src: local('Lucida Grande'), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Lucida Grande'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Open Sans'; 
-  src: local('Open Sans'), local('Dream Han Sans CN');
+  src: local('Open Sans'), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Open Sans'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Segoe UI'; 
-  src: local('Segoe UI'), local('Dream Han Sans CN');
+  src: local('Segoe UI'), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Segoe UI'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Source Sans Pro'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: Tahoma; 
-  src: local(Tahoma), local('Dream Han Sans CN');
+  src: local(Tahoma), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: Tahoma; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: Verdana; 
-  src: local(Verdana), local('Dream Han Sans CN');
+  src: local(Verdana), local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: Verdana; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -272,37 +272,37 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: simsun; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: Simsun; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 宋体; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '宋体'; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 宋體; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '宋體'; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 /* 简体中文 黑体（无衬线） */
@@ -310,25 +310,25 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Heiti SC'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Hiragino Sans GB'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Microsoft Yahei'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Microsoft YaHei'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
@@ -340,55 +340,55 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'PingFang SC'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: simhei; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: Simhei; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: STHeiti; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'WenQuanYi Micro Hei'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 黑体; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: '黑体'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 华文黑体; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: '华文黑体'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 /* 繁体中文 宋体（衬线） */
@@ -396,31 +396,31 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: PMingLiU; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 新细明体; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '新细明体'; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: 新細明體; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 @font-face
 {
   font-family: '新細明體'; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 /* 繁体中文 黑体（无衬线） */
@@ -428,13 +428,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Microsoft Jhenghei'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Microsoft JhengHei'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
@@ -446,13 +446,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'PingFang HK'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'PingFang TC'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 /* 日文 宋体（衬线） */
@@ -460,7 +460,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Yu Mincho'; 
-  src: local('Dream Han Serif CN');
+  src: local('LXGW WenKai');
 }
 
 /* 日文 黑体（无衬线） */
@@ -468,55 +468,55 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Hiragino Sans'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: Meiryo;
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Meiryo';
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'Meiryo UI'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'MS PGothic';
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: 'ＭＳ Ｐゴシック';
-  src: local('Dream Han Sans CN'), local('ＭＳ Ｐゴシック');
+  src: local('LXGW Neo XiHei'), local('ＭＳ Ｐゴシック');
 }
 
 @font-face
 {
   font-family: 'Yu Gothic'; 
-  src: local('Dream Han Sans CN'), local('Yu Gothic');
+  src: local('LXGW Neo XiHei'), local('Yu Gothic');
 }
 
 @font-face
 {
   font-family: 'Yu Gothic UI'; 
-  src: local('Dream Han Sans CN'), local('Yu Gothic UI');
+  src: local('LXGW Neo XiHei'), local('Yu Gothic UI');
 }
 
 @font-face
 {
   font-family: 'ヒラギノ角ゴ Pro';
-  src: local('Dream Han Sans CN'), local('ヒラギノ角ゴ Pro');
+  src: local('LXGW Neo XiHei'), local('ヒラギノ角ゴ Pro');
 }
 
 /* 等宽 */
@@ -530,7 +530,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Consolas; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -543,7 +543,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Courier; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -556,7 +556,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Courier New'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -569,7 +569,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: FantasqueSansMonoRegular; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -582,7 +582,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'lucida console'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -595,7 +595,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 'Lucida Console'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
@@ -688,13 +688,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: 瀹嬩綋; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 @font-face
 {
   font-family: '瀹嬩綋'; 
-  src: local('Dream Han Sans CN');
+  src: local('LXGW Neo XiHei');
 }
 
 /* 元素修改 */
