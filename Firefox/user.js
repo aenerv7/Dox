@@ -7,7 +7,7 @@ user_pref("browser.search.widget.inNavBar", true);
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.urlbar.trimURLs", false);
 user_pref("dom.security.https_only_mode_ever_enabled", true);
-user_pref("extensions.pocket.enabled", true);
+user_pref("extensions.pocket.enabled", false);
 user_pref("font.language.group", "zh-CN");
 user_pref("font.name-list.cursive.ar", "LXGW WenKai");
 user_pref("font.name-list.cursive.el", "LXGW WenKai");
