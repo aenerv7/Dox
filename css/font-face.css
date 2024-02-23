@@ -45,13 +45,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: monospace; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: Monospace; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
@@ -515,163 +515,163 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 @font-face
 {
   font-family: Consolas; 
-  src: local(Consolas), local('Maple Mono SC NF');
+  src: local(Consolas), local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: Consolas;
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: Courier; 
-  src: local(Courier), local('Maple Mono SC NF');
+  src: local(Courier), local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: Courier;
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Courier New'; 
-  src: local('Courier New'), local('Maple Mono SC NF');
+  src: local('Courier New'), local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 'Courier New';
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: FantasqueSansMonoRegular; 
-  src: local(FantasqueSansMonoRegular), local('Maple Mono SC NF');
+  src: local(FantasqueSansMonoRegular), local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: FantasqueSansMonoRegular;
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'lucida console'; 
-  src: local('lucida console'), local('Maple Mono SC NF');
+  src: local('lucida console'), local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 'lucida console';
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: 'Lucida Console'; 
-  src: local('Lucida Console'), local('Maple Mono SC NF');
+  src: local('Lucida Console'), local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 'Lucida Console';
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
   unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007; 
 }
 
 @font-face
 {
   font-family: MingLiU; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: MingLiU-ExtB; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: MingLiU_HKSCS; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: MingLiU_HKSCS-ExtB; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: nsimsun; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: NSimsun; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 细明体; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: '细明体'; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 細明體; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: '細明體'; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 新宋体; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: '新宋体'; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: 新宋體; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 @font-face
 {
   font-family: '新宋體'; 
-  src: local('Maple Mono SC NF');
+  src: local('Sarasa Mono SC Nerd Font');
 }
 
 /* 特殊 */
@@ -692,6 +692,6 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 /*
 textarea
 {
-  font-family: 'Maple Mono SC NF'; 
+  font-family: 'Sarasa Mono SC Nerd Font'; 
 }
 */
