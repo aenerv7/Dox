@@ -31,7 +31,7 @@ Class DarkMode
 return
 
 ; 按需调整窗口
-^!Space::
++!Space::
 {
     try
     {
