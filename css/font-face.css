@@ -18,17 +18,26 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 /* 标准字体 */
 
-/*
+@font-face {
+    font-family: standard;
+    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+}
+
+@font-face {
+    font-family: Standard;
+    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+}
+
 @font-face
 {
   font-family: serif;
-  src: local('LXGW WenKai');
+  src: local('LXGW Neo ZhiSong');
 }
 
 @font-face
 {
   font-family: Serif;
-  src: local('LXGW WenKai');
+  src: local('LXGW Neo ZhiSong');
 }
 
 @font-face
@@ -54,7 +63,6 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
   font-family: Monospace;
   src: local('Maple Mono NF CN'), local('Cascadia Mono'), local('SF Mono');
 }
-*/
 
 @font-face {
     font-family: cursive;
@@ -67,13 +75,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 }
 
 @font-face {
-    font-family: standard;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    font-family: fantasy;
+    src: local('Yozai');
 }
 
 @font-face {
-    font-family: Standard;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    font-family: Fantasy;
+    src: local('Yozai');
 }
 
 @font-face {
