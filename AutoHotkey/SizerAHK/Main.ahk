@@ -12,7 +12,14 @@ screenHeightThreshold := 1080
 
 guiWindowResize := ""
 
-guiWindowResizeTitle := "SizerAHK Customize"
+if (A_Language == 0804)
+{
+    guiWindowResizeTitle := "自定义"
+}
+else
+{
+    guiWindowResizeTitle := "Customize"
+}
 
 darkModeEnabled := RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", 1) = 0
 
@@ -38,35 +45,82 @@ return
         global windowTitle := WinGetTitle("A")
     
         SizerMenu := Menu()
-        SizerMenu.Add("&Auto", Adjust_Auto)
-        SizerMenu.Add("&Centre", Adjust_Centre)
-        SizerMenu.Add()
-        SizerMenu.Add("640x480", Adjust_640_480)
-        SizerMenu.Add("640x480 Centre", Adjust_640_480_Centre)
-        SizerMenu.Add("854x480", Adjust_854_480)
-        SizerMenu.Add("854x480 Centre", Adjust_854_480_Centre)
-        SizerMenu.Add("1024x768", Adjust_1024_768)
-        SizerMenu.Add("1024x768 Centre", Adjust_1024_768_Centre)
-        SizerMenu.Add("1280x720", Adjust_1280_720)
-        SizerMenu.Add("1280x720 Centre", Adjust_1280_720_Centre)
-        SizerMenu.Add("1600x900", Adjust_1600_900)
-        SizerMenu.Add("1600x900 Centre", Adjust_1600_900_Centre)
-        SizerMenu.Add("1920x1080", Adjust_1920_1080)
-        SizerMenu.Add("1920x1080 Centre", Adjust_1920_1080_Centre)
-        SizerMenu.Add()
-        SizerMenu.Add("480X854", Adjust_480_854)
-        SizerMenu.Add("480X854 Centre", Adjust_480_854_Centre)
-        SizerMenu.Add("720x1280", Adjust_720_1280)
-        SizerMenu.Add("720x1280 Centre", Adjust_720_1280_Centre)
-        SizerMenu.Add("720x1280", Adjust_720_1280)
-        SizerMenu.Add("720x1280 Centre", Adjust_720_1280_Centre)
-        SizerMenu.Add()
-        SizerMenu.Add("Custom", Adjust_Custom)
-        SizerMenu.Show()
+        if (A_Language == 0804)
+        {
+            SizerMenu.Add("自动（&A）", Adjust_Auto)
+            SizerMenu.Add("居中（&C）", Adjust_Centre)
+            SizerMenu.Add()
+            SizerMenu.Add("640x480", Adjust_MenuHandler)
+            SizerMenu.Add("640x480（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("1024x768", Adjust_MenuHandler)
+            SizerMenu.Add("1024x768（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("1280x720", Adjust_MenuHandler)
+            SizerMenu.Add("1280x720（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("1280x800", Adjust_MenuHandler)
+            SizerMenu.Add("1280x8000（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("1600x900", Adjust_MenuHandler)
+            SizerMenu.Add("1600x900（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("1600x1000", Adjust_MenuHandler)
+            SizerMenu.Add("1600x1000（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1080", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1080（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1200", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1200（居中）", Adjust_MenuHandler)
+            SizerMenu.Add()
+            SizerMenu.Add("480X854", Adjust_MenuHandler)
+            SizerMenu.Add("480X854（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("720x1280", Adjust_MenuHandler)
+            SizerMenu.Add("720x1280（居中）", Adjust_MenuHandler)
+            SizerMenu.Add("800x1280", Adjust_MenuHandler)
+            SizerMenu.Add("800x1280（居中）", Adjust_MenuHandler)
+            SizerMenu.Add()
+            SizerMenu.Add("自定义（&M）", Adjust_Custom)
+            SizerMenu.Show()
+        }
+        else
+        {
+            SizerMenu := Menu()
+            SizerMenu.Add("&Auto", Adjust_Auto)
+            SizerMenu.Add("&Centre", Adjust_Centre)
+            SizerMenu.Add()
+            SizerMenu.Add("640x480", Adjust_MenuHandler)
+            SizerMenu.Add("640x480 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("1024x768", Adjust_MenuHandler)
+            SizerMenu.Add("1024x768 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("1280x720", Adjust_MenuHandler)
+            SizerMenu.Add("1280x720 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("1280x800", Adjust_MenuHandler)
+            SizerMenu.Add("1280x8000 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("1600x900", Adjust_MenuHandler)
+            SizerMenu.Add("1600x900 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("1600x1000", Adjust_MenuHandler)
+            SizerMenu.Add("1600x1000 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1080", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1080 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1200", Adjust_MenuHandler)
+            SizerMenu.Add("1920x1200 Centre", Adjust_MenuHandler)
+            SizerMenu.Add()
+            SizerMenu.Add("480X854", Adjust_MenuHandler)
+            SizerMenu.Add("480X854 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("720x1280", Adjust_MenuHandler)
+            SizerMenu.Add("720x1280 Centre", Adjust_MenuHandler)
+            SizerMenu.Add("800x1280", Adjust_MenuHandler)
+            SizerMenu.Add("800x1280 Centre", Adjust_MenuHandler)
+            SizerMenu.Add()
+            SizerMenu.Add("Custo&m", Adjust_Custom)
+            SizerMenu.Show()
+        }
     }
     catch Error as err
     {
-        MsgBox err.Message, "Error"
+        if (A_Language == 0804)
+        {
+            MsgBox err.Message, "错误"
+        }
+        else
+        {
+            MsgBox err.Message, "Error"
+        }
     }
 }
 
@@ -96,86 +150,6 @@ MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWid
     currentBottom := bottom
     
     ; MsgBox "Monitor Size: " currentWidth " | " currentHeight
-}
-
-Adjust_640_480(Name, Index, Menu)
-{
-    AdjustWindow(640, 480, false)
-}
-
-Adjust_640_480_Centre(Name, Index, Menu)
-{
-    AdjustWindow(640, 480, true)
-}
-
-Adjust_854_480(Name, Index, Menu)
-{
-    AdjustWindow(854, 480, false)
-}
-
-Adjust_854_480_Centre(Name, Index, Menu)
-{
-    AdjustWindow(854, 480, true)
-}
-
-Adjust_1024_768(Name, Index, Menu)
-{
-    AdjustWindow(1024, 768, false)
-}
-
-Adjust_1024_768_Centre(Name, Index, Menu)
-{
-    AdjustWindow(1024, 768, true)
-}
-
-Adjust_1280_720(Name, Index, Menu)
-{
-    AdjustWindow(1280, 720, false)
-}
-
-Adjust_1280_720_Centre(Name, Index, Menu)
-{
-    AdjustWindow(1280, 720, true)
-}
-
-Adjust_1600_900(Name, Index, Menu)
-{
-    AdjustWindow(1600, 900, false)
-}
-
-Adjust_1600_900_Centre(Name, Index, Menu)
-{
-    AdjustWindow(1600, 900, true)
-}
-
-Adjust_1920_1080(Name, Index, Menu)
-{
-    AdjustWindow(1920, 1080, false)
-}
-
-Adjust_1920_1080_Centre(Name, Index, Menu)
-{
-    AdjustWindow(1920, 1080, true)
-}
-
-Adjust_480_854(Name, Index, Menu)
-{
-    AdjustWindow(480, 854, false)
-}
-
-Adjust_480_854_Centre(Name, Index, Menu)
-{
-    AdjustWindow(480, 854, true)
-}
-
-Adjust_720_1280(Name, Index, Menu)
-{
-    AdjustWindow(720, 1280, false)
-}
-
-Adjust_720_1280_Centre(Name, Index, Menu)
-{
-    AdjustWindow(720, 1280, true)
 }
 
 ; 自动调整窗口大小并居中
@@ -215,7 +189,14 @@ Adjust_Auto(Name, Index, Menu)
     }
     catch Error as err
     {
-        MsgBox err.Message, "Error"
+        if (A_Language == 0804)
+        {
+            MsgBox err.Message, "错误"
+        }
+        else
+        {
+            MsgBox err.Message, "Error"
+        }
     }
 }
 
@@ -247,7 +228,64 @@ Adjust_Centre(Name, Index, Menu)
     }
     catch Error as err
     {
-        MsgBox err.Message, "Error"
+        if (A_Language == 0804)
+        {
+            MsgBox err.Message, "错误"
+        }
+        else
+        {
+            MsgBox err.Message, "Eroor"
+        }
+    }
+}
+
+Adjust_MenuHandler(Name, Index, Menu)
+{
+    switch Index {
+        case 3:
+            AdjustWindow(640, 480, false)
+        case 4:
+            AdjustWindow(640, 480, true)
+        case 5:
+            AdjustWindow(1024, 768, false)
+        case 6:
+            AdjustWindow(1024, 768, true)
+        case 7:
+            AdjustWindow(1280, 720, false)
+        case 8:
+            AdjustWindow(1280, 720, true)
+        case 9:
+            AdjustWindow(1280, 800, false)
+        case 10:
+            AdjustWindow(1280, 800, true)
+        case 11:
+            AdjustWindow(1600, 900, false)
+        case 12:
+            AdjustWindow(1600, 900, true)
+        case 13:
+            AdjustWindow(1600, 1000, false)
+        case 14:
+            AdjustWindow(1600, 1000, true)
+        case 15:
+            AdjustWindow(1920, 1080, false)
+        case 16:
+            AdjustWindow(1920, 1080, true)
+        case 17:
+            AdjustWindow(1920, 1200, false)
+        case 18:
+            AdjustWindow(1920, 1200, true)
+        case 20:
+            AdjustWindow(480, 854, false)
+        case 21:
+            AdjustWindow(480, 854, true)
+        case 22:
+            AdjustWindow(720, 1280, false)
+        case 23:
+            AdjustWindow(720, 1280, true)
+        case 24:
+            AdjustWindow(800, 1280, false)
+        case 25:
+            AdjustWindow(800, 1280, true)
     }
 }
 
@@ -268,11 +306,32 @@ Adjust_Custom(Name, Index, Menu)
     edit_height := guiWindowResize.Add("Edit", "vEditHeight w160", windowHeight)
     edit_height.Opt("+Number")
     edit_height.OnEvent("Change", CustomResizeEditNumberCheck)
-    button_resize := guiWindowResize.Add("Button", "wp y+20", "Resize")
+    if (A_Language == 0804)
+    {
+        button_resize := guiWindowResize.Add("Button", "wp y+20", "调整尺寸")
+    }
+    else
+    {
+        button_resize := guiWindowResize.Add("Button", "wp y+20", "Resize")
+    }
     button_resize.OnEvent("Click", CustomResizeButtonResize)
-    button_resize_centre := guiWindowResize.Add("Button", "wp", "Resize and Centre")
+    if (A_Language == 0804)
+    {
+        button_resize_centre := guiWindowResize.Add("Button", "wp", "调整尺寸并居中")
+    }
+    else
+    {
+        button_resize_centre := guiWindowResize.Add("Button", "wp", "Resize and Centre")
+    }
     button_resize_centre.OnEvent("Click", CustomResizeButtonResizeCentre)
-    button_cancel := guiWindowResize.Add("Button", "wp", "Cancel")
+    if (A_Language == 0804)
+    {
+        button_cancel := guiWindowResize.Add("Button", "wp", "取消")
+    }
+    else
+    {
+        button_cancel := guiWindowResize.Add("Button", "wp", "Cancel")
+    }
     button_cancel.OnEvent("Click", CustomResizeButtonCancel)
     guiWindowResize.OnEvent("Escape", CustomResizeEscape)
     guiWindowResize.Show()
@@ -411,6 +470,13 @@ AdjustWindow(width, height, centre)
     }
     catch Error as err
     {
-        MsgBox err.Message, "Error"
+        if (A_Language == 0804)
+        {
+            MsgBox err.Message, "错误"
+        }
+        else
+        {
+            MsgBox err.Message, "Error"
+        }
     }
 }
