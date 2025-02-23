@@ -241,50 +241,53 @@ Adjust_Centre(Name, Index, Menu)
 
 Adjust_MenuHandler(Name, Index, Menu)
 {
+    ; Index starts from 1
     switch Index {
-        case 3:
-            AdjustWindow(640, 480, false)
+        ; 水平 Horizontal
         case 4:
-            AdjustWindow(640, 480, true)
+            AdjustWindow(640, 480, false)
         case 5:
-            AdjustWindow(1024, 768, false)
+            AdjustWindow(640, 480, true)
         case 6:
-            AdjustWindow(1024, 768, true)
+            AdjustWindow(1024, 768, false)
         case 7:
-            AdjustWindow(1280, 720, false)
+            AdjustWindow(1024, 768, true)
         case 8:
-            AdjustWindow(1280, 720, true)
+            AdjustWindow(1280, 720, false)
         case 9:
-            AdjustWindow(1280, 800, false)
+            AdjustWindow(1280, 720, true)
         case 10:
-            AdjustWindow(1280, 800, true)
+            AdjustWindow(1280, 800, false)
         case 11:
-            AdjustWindow(1600, 900, false)
+            AdjustWindow(1280, 800, true)
         case 12:
-            AdjustWindow(1600, 900, true)
+            AdjustWindow(1600, 900, false)
         case 13:
-            AdjustWindow(1600, 1000, false)
+            AdjustWindow(1600, 900, true)
         case 14:
-            AdjustWindow(1600, 1000, true)
+            AdjustWindow(1600, 1000, false)
         case 15:
-            AdjustWindow(1920, 1080, false)
+            AdjustWindow(1600, 1000, true)
         case 16:
-            AdjustWindow(1920, 1080, true)
+            AdjustWindow(1920, 1080, false)
         case 17:
-            AdjustWindow(1920, 1200, false)
+            AdjustWindow(1920, 1080, true)
         case 18:
+            AdjustWindow(1920, 1200, false)
+        case 19:
             AdjustWindow(1920, 1200, true)
-        case 20:
-            AdjustWindow(480, 854, false)
+        ; 垂直 Vertical
         case 21:
-            AdjustWindow(480, 854, true)
+            AdjustWindow(480, 854, false)
         case 22:
-            AdjustWindow(720, 1280, false)
+            AdjustWindow(480, 854, true)
         case 23:
-            AdjustWindow(720, 1280, true)
+            AdjustWindow(720, 1280, false)
         case 24:
-            AdjustWindow(800, 1280, false)
+            AdjustWindow(720, 1280, true)
         case 25:
+            AdjustWindow(800, 1280, false)
+        case 26:
             AdjustWindow(800, 1280, true)
     }
 }
