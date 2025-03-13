@@ -20,36 +20,36 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: standard;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: Standard;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face
 {
   font-family: serif;
-  src: local('LXGW Neo ZhiSong');
+  src: local('Source Han Serif CN');
 }
 
 @font-face
 {
   font-family: Serif;
-  src: local('LXGW Neo ZhiSong');
+  src: local('Source Han Serif CN');
 }
 
 @font-face
 {
   font-family: sans-serif;
-  src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face
 {
   font-family: Sans-Serif;
-  src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+  src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face
@@ -86,41 +86,41 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: -webkit-standard;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 /* 英文 衬线 */
 
 @font-face {
     font-family: Georgia;
-    src: local(Georgia), local('LXGW Neo ZhiSong');
+    src: local(Georgia), local('Source Han Serif CN');
 }
 
 @font-face {
     font-family: Georgia;
-    src: local('LXGW Neo ZhiSong');
+    src: local('Source Han Serif CN');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: Times;
-    src: local(Times), local('LXGW Neo ZhiSong');
+    src: local(Times), local('Source Han Serif CN');
 }
 
 @font-face {
     font-family: Times;
-    src: local('LXGW Neo ZhiSong');
+    src: local('Source Han Serif CN');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: 'Times New Roman';
-    src: local('Times New Roman'), local('LXGW Neo ZhiSong');
+    src: local('Times New Roman'), local('Source Han Serif CN');
 }
 
 @font-face {
     font-family: 'Times New Roman';
-    src: local('LXGW Neo ZhiSong');
+    src: local('Source Han Serif CN');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
@@ -128,324 +128,112 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: -apple-system;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: -apple-system;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: Helvetica;
-    src: local(Helvetica), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local(Helvetica), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: Helvetica;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: 'helvetica neue';
-    src: local('helvetica neue'), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('helvetica neue'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: 'helvetica neue';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: 'Helvetica Neue';
-    src: local('Helvetica Neue'), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Helvetica Neue'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: 'Helvetica Neue';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: 'lucida grande';
-    src: local('lucida grande'), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('lucida grande'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: 'lucida grande';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: 'Lucida Grande';
-    src: local('Lucida Grande'), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Lucida Grande'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: 'Lucida Grande';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: 'Open Sans';
-    src: local('Open Sans'), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Open Sans'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: 'Open Sans';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: 'Segoe UI';
-    src: local('Segoe UI'), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Segoe UI'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: 'Segoe UI';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: Tahoma;
-    src: local(Tahoma), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local(Tahoma), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: Tahoma;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: Verdana;
-    src: local(Verdana), local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local(Verdana), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: Verdana;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
-}
-
-/* 简体中文 宋体（衬线） */
-
-@font-face {
-    font-family: simsun;
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: Simsun;
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: 宋体;
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: '宋体';
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: 宋體;
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: '宋體';
-    src: local('LXGW Neo ZhiSong');
-}
-
-/* 简体中文 黑体（无衬线） */
-
-@font-face {
-    font-family: 'Heiti SC';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Hiragino Sans GB';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Microsoft Yahei';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Microsoft YaHei';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Microsoft YaHei UI';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'PingFang SC';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: simhei;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: Simhei;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: STHeiti;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'WenQuanYi Micro Hei';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 黑体;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: '黑体';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 华文黑体;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: '华文黑体';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-/* 繁体中文 宋体（衬线） */
-
-@font-face {
-    font-family: PMingLiU;
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: 新细明体;
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: '新细明体';
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: 新細明體;
-    src: local('LXGW Neo ZhiSong');
-}
-
-@font-face {
-    font-family: '新細明體';
-    src: local('LXGW Neo ZhiSong');
-}
-
-/* 繁体中文 黑体（无衬线） */
-
-@font-face {
-    font-family: 'Microsoft Jhenghei';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Microsoft JhengHei';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Microsoft JhengHei UI';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'PingFang HK';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'PingFang TC';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-/* 日文 宋体（衬线） */
-
-@font-face {
-    font-family: 'Yu Mincho';
-    src: local('LXGW Neo ZhiSong');
-}
-
-/* 日文 黑体（无衬线） */
-
-@font-face {
-    font-family: 'Hiragino Sans';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: Meiryo;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Meiryo';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Meiryo UI';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'MS PGothic';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'ＭＳ Ｐゴシック';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Yu Gothic';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'Yu Gothic UI';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
-}
-
-@font-face {
-    font-family: 'ヒラギノ角ゴ Pro';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
 }
 
 /* 等宽 */
@@ -457,7 +245,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: Consolas;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
@@ -468,7 +256,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: Courier;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
@@ -479,7 +267,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: 'Courier New';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
@@ -490,7 +278,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: FantasqueSansMonoRegular;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
@@ -501,7 +289,7 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: 'lucida console';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
@@ -512,13 +300,13 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: 'Lucida Console';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
     unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B734, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2F00-2FD5, U+2E80-2EF3, U+F900-FAD9, U+2F800-2FA1D, U+E815-E86F, U+E400-E5E8, U+E600-E6CF, U+31C0-31E3, U+2FF0-2FFB, U+3105-312F, U+31A0-31BA, U+3007;
 }
 
 @font-face {
     font-family: MingLiU;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
@@ -612,12 +400,12 @@ unicode-range: U+4E00-9FA5, U+9FA6-9FEF, U+3400-4DB5, U+20000-2A6D6, U+2A700-2B7
 
 @font-face {
     font-family: 瀹嬩綋;
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 @font-face {
     font-family: '瀹嬩綋';
-    src: local('LXGW Neo Xihei'), local('Microsoft YaHei'), local('PingFang SC');
+    src: local('Microsoft YaHei'), local('PingFang SC');
 }
 
 /* 元素修改 */
