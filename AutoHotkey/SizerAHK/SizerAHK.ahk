@@ -14,11 +14,11 @@ guiWindowResize := ""
 
 if (A_Language == 0804)
 {
-    guiWindowResizeTitle := "自定义"
+    guiWindowResizeTitle := "SizerAHK 自定义"
 }
 else
 {
-    guiWindowResizeTitle := "Customize"
+    guiWindowResizeTitle := "SizerAHK Customize"
 }
 
 darkModeEnabled := RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", 1) = 0
