@@ -12,14 +12,7 @@ screenHeightThreshold := 1080
 
 guiWindowResize := ""
 
-if (A_Language == 0804)
-{
-    guiWindowResizeTitle := "SizerAHK 自定义"
-}
-else
-{
-    guiWindowResizeTitle := "SizerAHK Customize"
-}
+guiWindowResizeTitle := "SizerAHK 自定义"
 
 darkModeEnabled := RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", 1) = 0
 
