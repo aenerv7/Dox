@@ -8,8 +8,8 @@
 // @grant GM_addStyle
 // @run-at document-start
 // @match *://*/*
-// @downloadURL https://update.greasyfork.org/scripts/399547/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js
-// @updateURL https://update.greasyfork.org/scripts/399547/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.meta.js
+// @downloadURL https://github.com/aenerv7/Dox/raw/refs/heads/master/UserScript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js
+// @updateURL https://github.com/aenerv7/Dox/raw/refs/heads/master/UserScript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js
 // ==/UserScript==
 
 (function() {
