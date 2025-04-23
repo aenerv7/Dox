@@ -5,6 +5,8 @@
 // @author       anonymous
 // @match        https://vimm.net/vault/*
 // @from         https://www.reddit.com/r/Roms/comments/1hcckqw/comment/m9f0p68/
+// @downloadURL  https://github.com/aenerv7/Dox/raw/refs/heads/master/Userscript/Re-add%20Download%20Button%20Vimm's%20Lair.user.js
+// @updateURL    https://github.com/aenerv7/Dox/raw/refs/heads/master/Userscript/Re-add%20Download%20Button%20Vimm's%20Lair.user.js
 // ==/UserScript==
 
 (function() {
