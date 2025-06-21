@@ -272,7 +272,7 @@
 
     @font-face {
         font-family: FantasqueSansMonoRegular;
-        src: local(FantasqueSansMonoRegular), local('JetBrains Maple Mono'), local('SF Mono');
+        src: local(FantasqueSansMonoRegular), local('Maple Mono NF CN'), local('SF Mono');
     }
 
     @font-face {
