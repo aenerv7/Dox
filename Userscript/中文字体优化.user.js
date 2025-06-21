@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name 中文字体优化
 // @namespace https://github.com/aenerv7/Dox
-// @version 5.3
+// @version 5.4
 // @description 优化中文字体的显示
 // @author AENERV7
 // @license CC-BY-NC-ND-4.0
