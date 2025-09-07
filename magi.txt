@@ -1,6 +1,6 @@
-! Version: 2
+! Version: 3
 ! Title: MAGI AdGuard Exception List
-! Last modified: 2025/09/07 23:50 +0800
+! Last modified: 2025/09/08 01:12 +0800
 ! Expires: 7 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
 
@@ -9,6 +9,9 @@
 @@||gog.com^$important,document
 @@||live.com^$important,document
 @@||microsoft.com^$important,document
+@@||microsoftonline.com^$important,document
+@@||office.com^$important,document
+@@||onedrive.com^$important,document
 @@||steamcommunity.com^$important,document
 @@||steamcontent.com.com^$important,document
 @@||steamgames.com^$important,document
