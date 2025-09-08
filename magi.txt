@@ -1,9 +1,12 @@
-! Version: 3
+! Version: 4
 ! Title: MAGI AdGuard Exception List
-! Last modified: 2025/09/08 01:12 +0800
+! Last modified: 2025/09/08 11:13 +0800
 ! Expires: 7 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
 
+! .app
+@@||usevia.app^$important,document
+! .com
 @@||apple.com^$important,document
 @@||github.com^$important,document
 @@||gog.com^$important,document
@@ -16,12 +19,24 @@
 @@||steamcontent.com.com^$important,document
 @@||steamgames.com^$important,document
 @@||steampowered.com^$important,document
-@@||steamstatic.com.com^$important,document
-@@||steamusercontent.com.com^$important,document
+@@||steamstatic.com^$important,document
+@@||steamusercontent.com^$important,document
+! .io
 @@||itch.io^$important,document
+! .link
 @@||ddtw.link^$important,document
+! .net
 @@||akamaihd.net^$important,document
+@@||jandan.net^$important,document
 @@||steamgames.net^$important,document
 @@||zdic.net^$important,document
-@@||hltv.org^$important,document
+! .org
 @@||wikipedia.org^$important,document
+@@||hub.rapoo.cn^$important,document
+! Websites
+z701.com###main-content > div.container > div.card.bg-light:nth-child(2) > div.card-body.p-3.d-flex.flex-row:first-child
+z701.com###main-content > div.container > div.card.bg-light:nth-child(2) > div:last-child > a.btn.btn-sm.btn-light.fs--1
+089m.com###main-content > div.container:first-child > div.content:first-child > div.card.bg-light.mb-3:nth-child(5) > div.card-body.p-3.d-flex.flex-row:first-child
+089m.com###main-content > div.container:first-child > div.content:first-child > div.card.bg-light.mb-3:nth-child(5) > div:last-child > a.btn.btn-sm.btn-light.fs--1
+089m.com###main-content > div.container > div.card.bg-light:nth-child(2) > div.card-body.p-3.d-flex.flex-row:first-child
+089m.com###main-content > div.container > div.card.bg-light:nth-child(2) > div:last-child > a.btn.btn-sm.btn-light.fs--1
