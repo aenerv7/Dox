@@ -1,6 +1,6 @@
-! Version: 4
-! Title: MAGI AdGuard Exception List
-! Last modified: 2025/09/08 11:13 +0800
+! Version: 5
+! Title: MAGI AdGuard List
+! Last modified: 2025/09/08 11:14 +0800
 ! Expires: 7 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
 
