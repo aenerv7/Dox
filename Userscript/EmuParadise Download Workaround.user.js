@@ -6,6 +6,8 @@
 // @match        https://www.emuparadise.me/*/*/*
 // @require      http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js
 // @grant        none
+// @downloadURL  https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/EmuParadise%20Download%20Workaround.user.js
+// @updateURL    https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/EmuParadise%20Download%20Workaround.user.js
 // ==/UserScript==
 
 (function() {
