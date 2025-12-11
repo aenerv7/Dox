@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name 中文字体优化
 // @namespace https://github.com/aenerv7/Dox
-// @version 5.4
+// @version 5.5
 // @description 优化中文字体的显示
+// @icon https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.png
 // @author AENERV7
 // @license CC-BY-NC-ND-4.0
 // @grant GM_addStyle
@@ -54,13 +55,13 @@
     @font-face
     {
     font-family: monospace;
-    src: local('Maple Mono NF CN');
+    src: local('Maple Mono Normal NF CN');
     }
 
     @font-face
     {
     font-family: Monospace;
-    src: local('Maple Mono NF CN');
+    src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
@@ -239,7 +240,7 @@
 
     @font-face {
         font-family: Consolas;
-        src: local(Consolas), local('Maple Mono NF CN');
+        src: local(Consolas), local('Maple Mono Normal NF CN');
     }
 
     @font-face {
@@ -250,7 +251,7 @@
 
     @font-face {
         font-family: Courier;
-        src: local(Courier), local('Maple Mono NF CN');
+        src: local(Courier), local('Maple Mono Normal NF CN');
     }
 
     @font-face {
@@ -261,7 +262,7 @@
 
     @font-face {
         font-family: 'Courier New';
-        src: local('Courier New'), local('Maple Mono NF CN');
+        src: local('Courier New'), local('Maple Mono Normal NF CN');
     }
 
     @font-face {
@@ -272,7 +273,7 @@
 
     @font-face {
         font-family: FantasqueSansMonoRegular;
-        src: local(FantasqueSansMonoRegular), local('Maple Mono NF CN'), local('SF Mono');
+        src: local(FantasqueSansMonoRegular), local('JetBrains Maple Mono'), local('SF Mono');
     }
 
     @font-face {
@@ -283,7 +284,7 @@
 
     @font-face {
         font-family: 'lucida console';
-        src: local('lucida console'), local('Maple Mono NF CN');
+        src: local('lucida console'), local('Maple Mono Normal NF CN');
     }
 
     @font-face {
@@ -294,7 +295,7 @@
 
     @font-face {
         font-family: 'Lucida Console';
-        src: local('Lucida Console'), local('Maple Mono NF CN');
+        src: local('Lucida Console'), local('Maple Mono Normal NF CN');
     }
 
     @font-face {
@@ -310,67 +311,67 @@
 
     @font-face {
         font-family: MingLiU-ExtB;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: MingLiU_HKSCS;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: MingLiU_HKSCS-ExtB;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: nsimsun;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: NSimsun;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: 细明体;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: '细明体';
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: 細明體;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: '細明體';
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: 新宋体;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: '新宋体';
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: 新宋體;
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     @font-face {
         font-family: '新宋體';
-        src: local('Maple Mono NF CN');
+        src: local('Maple Mono Normal NF CN');
     }
 
     /* 特殊 */
