@@ -1,6 +1,6 @@
-! Version: 7
+! Version: 8
 ! Title: MAGI AdGuard List
-! Last modified: 2025/09/10 16:25 +0800
+! Last modified: 2026/01/19 11:08:30 +0800
 ! Expires: 7 days (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
 
@@ -10,6 +10,7 @@
 @@||ubisoft.com.cn^$important,document
 ! .com
 @@||apple.com^$important,document
+@@||inoreader.com^$important,document
 @@||github.com^$important,document
 @@||gog.com^$important,document
 @@||landiannews.com^$important,document
@@ -37,6 +38,8 @@
 ! .org
 @@||wikipedia.org^$important,document
 @@||hub.rapoo.cn^$important,document
+! .site
+@@||ddtw.site^$important,document
 ! Websites
 z701.com###main-content > div.container > div.card.bg-light:nth-child(2) > div.card-body.p-3.d-flex.flex-row:first-child
 z701.com###main-content > div.container > div.card.bg-light:nth-child(2) > div:last-child > a.btn.btn-sm.btn-light.fs--1
