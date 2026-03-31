@@ -5,6 +5,7 @@
 A_IconTip := "SizerAHK"
 
 windowTitle := ""
+windowHwnd := ""
 
 taskBarHeight := 48
 
@@ -72,7 +73,8 @@ return
 {
     try
     {
-        global windowTitle := WinGetTitle("A")
+        global windowHwnd := WinGetID("A")
+        global windowTitle := "ahk_id " . windowHwnd
     
         SizerMenu := Menu()
         if (A_Language == 0804)
@@ -166,8 +168,6 @@ Adjust_Auto(Name, Index, Menu)
 {
     try
     {
-        global windowTitle := WinGetTitle("A")
-    
         windowMinMax := WinGetMinMax(windowTitle)
         if(windowMinMax != -1)
         {
@@ -208,8 +208,6 @@ Adjust_Centre(Name, Index, Menu)
 {
     try
     {
-        global windowTitle := WinGetTitle("A")
-    
         windowMinMax := WinGetMinMax(windowTitle)
         if(windowMinMax = 0)
         {
