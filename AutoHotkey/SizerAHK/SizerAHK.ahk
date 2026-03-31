@@ -8,7 +8,44 @@ windowTitle := ""
 
 taskBarHeight := 48
 
-screenHeightThreshold := 1080
+; 获取任务栏偏移量
+; 主显示器：判断任务栏是否自动隐藏，自动隐藏则不偏移，否则偏移任务栏高度
+; 副显示器：判断是否在所有显示器上显示任务栏，显示则偏移，否则不偏移
+GetTaskbarOffset(monitorIndex)
+{
+    global taskBarHeight
+
+    if (monitorIndex = 1)
+    {
+        ; 主显示器：读取 StuckRects3 判断任务栏是否自动隐藏
+        ; Settings 字节偏移 8 的值：03 = 自动隐藏开启，02 = 自动隐藏关闭
+        try
+        {
+            settingsData := RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3", "Settings")
+            ; RegRead 返回的 REG_BINARY 是十六进制字符串，每字节 2 个字符
+            ; 偏移 8 对应字符位置 17-18（1-indexed）
+            autoHideByte := SubStr(settingsData, 17, 2)
+            if (autoHideByte = "03")
+            {
+                return 0
+            }
+        }
+        return taskBarHeight / 2
+    }
+    else
+    {
+        ; 副显示器：判断是否在所有显示器上显示任务栏
+        try
+        {
+            mmTaskbarEnabled := RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "MMTaskbarEnabled", 0)
+            if (mmTaskbarEnabled = 1)
+            {
+                return taskBarHeight / 2
+            }
+        }
+        return 0
+    }
+}
 
 guiWindowResize := ""
 
@@ -146,14 +183,8 @@ Adjust_Auto(Name, Index, Menu)
             modifiedWindowWidth := currentWidth * 3 / 4
             modifiedWindowHeight := currentHeight * 3 / 4
     
-            if(currentIndex > 1 or currentHeight < screenHeightThreshold)
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle)
-            }
-            else
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2) - (taskBarHeight / 2), modifiedWindowWidth, modifiedWindowHeight, windowTitle)
-            }
+            tbOffset := GetTaskbarOffset(currentIndex)
+            WinMove(currentLeft + (currentWidth / 2) - (modifiedWindowWidth / 2), currentTop + (currentHeight / 2) - (modifiedWindowHeight / 2) - tbOffset, modifiedWindowWidth, modifiedWindowHeight, windowTitle)
 
             ; MsgBox "Monitor Size: " currentWidth " | " currentHeight "`nWindow Size: " windowWidth " | " windowHeight
         }
@@ -187,14 +218,8 @@ Adjust_Centre(Name, Index, Menu)
             
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
     
-            if(currentIndex > 1 or currentHeight < screenHeightThreshold)
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2), , , windowTitle)
-            }
-            else
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2) - (taskBarHeight / 2), , , windowTitle)
-            }
+            tbOffset := GetTaskbarOffset(currentIndex)
+            WinMove(currentLeft + (currentWidth / 2) - (windowWidth / 2), currentTop + (currentHeight / 2) - (windowHeight / 2) - tbOffset, , , windowTitle)
         }
     }
     catch Error as err
@@ -326,14 +351,8 @@ Adjust_Custom(Name, Index, Menu)
 
     MonitorGetCurrent(windowPosX, windowPosY, customizeWidth, customizeHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
     
-    if(currentIndex > 1 or currentHeight < screenHeightThreshold)
-    {
-        WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2), , , guiWindowResizeTitle)
-    }
-    else
-    {
-        WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2) - (taskBarHeight / 2), , , guiWindowResizeTitle)
-    }
+    tbOffset := GetTaskbarOffset(currentIndex)
+    WinMove(currentLeft + (currentWidth / 2) - (customizeWidth / 2), currentTop + (currentHeight / 2) - (customizeHeight / 2) - tbOffset, , , guiWindowResizeTitle)
 }
 
 CustomResizeEditNumberCheck(guiCtrlObj, info)
@@ -440,14 +459,8 @@ AdjustWindowCentre(width, height, centre)
         
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
         
-            if(currentIndex > 1 or currentHeight < screenHeightThreshold)
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2), width, height, windowTitle)
-            }
-            else
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - (taskBarHeight / 2), width, height, windowTitle)
-            }
+            tbOffset := GetTaskbarOffset(currentIndex)
+            WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - tbOffset, width, height, windowTitle)
         }
         else
         {
@@ -488,14 +501,8 @@ AdjustWindow(width, height)
         
             MonitorGetCurrent(windowPosX, windowPosY, windowWidth, windowHeight, &currentWidth, &currentHeight, &currentLeft, &currentTop, &currentRight, &currentBottom, &currentIndex)
         
-            if(currentIndex > 1 or currentHeight < screenHeightThreshold)
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2), width, height, windowTitle)
-            }
-            else
-            {
-                WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - (taskBarHeight / 2), width, height, windowTitle)
-            }
+            tbOffset := GetTaskbarOffset(currentIndex)
+            WinMove(currentLeft + (currentWidth / 2) - (width / 2), currentTop + (currentHeight / 2) - (height / 2) - tbOffset, width, height, windowTitle)
         }
         else
         {
