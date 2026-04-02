@@ -11,6 +11,7 @@
 ! .com
 @@||apple.com^$important,document
 @@||inoreader.com^$important,document
+@@||flightradar24.com$important,document
 @@||github.com^$important,document
 @@||gamer520.com^$important,document
 @@||gog.com^$important,document
@@ -27,6 +28,8 @@
 @@||steamstatic.com^$important,document
 @@||steamusercontent.com^$important,document
 @@||ubisoft.com^$important,document
+@@||passport.vivo.com^$important,document
+@@||passport.weibo.com^$important,document
 ! .io
 @@||itch.io^$important,document
 ! .link
