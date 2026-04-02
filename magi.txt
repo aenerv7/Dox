@@ -1,6 +1,6 @@
-! Version: 10
+! Version: 11
 ! Title: MAGI AdGuard List
-! Last modified: 2026/03/31 20:11:12 +0800
+! Last modified: 2026/04/02 15:41:10 +0800
 ! Expires: 1 day (update frequency)
 ! Homepage: https://github.com/aenerv7/Dox
 
