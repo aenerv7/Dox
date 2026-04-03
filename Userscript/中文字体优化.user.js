@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name 中文字体优化
 // @namespace https://github.com/aenerv7/Dox
-// @version 5.6
+// @version 5.7
 // @description 优化中文字体的显示
 // @icon https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.png
 // @author AENERV7
@@ -30,12 +30,12 @@
 
     @font-face {
         font-family: serif;
-        src: local('Noto Serif SC');
+        src: local('Noto Serif SC'), local('Songti SC');
     }
 
     @font-face {
         font-family: Serif;
-        src: local('Noto Serif SC');
+        src: local('Noto Serif SC'), local('Songti SC');
     }
 
     @font-face {
@@ -87,34 +87,34 @@
 
     @font-face {
         font-family: Georgia;
-        src: local(Georgia), local('Noto Serif SC');
+        src: local(Georgia), local('Noto Serif SC'), local('Songti SC');
     }
 
     @font-face {
         font-family: Georgia;
-        src: local('Noto Serif SC');
+        src: local('Noto Serif SC'), local('Songti SC');
         unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B739, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2EBF0-2F7FF, U+30000-3134A, U+31350-323AF, U+F900-FAFF, U+2F800-2FA1F, U+2F00-2FD5, U+2E80-2EFF, U+31C0-31EF, U+2FF0-2FFF, U+3000-303F, U+FF00-FFEF, U+FE10-FE1F, U+FE30-FE4F, U+3200-32FF, U+3300-33FF, U+3100-312F, U+31A0-31BF, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+4DC0-4DFF, U+A000-A48F, U+A490-A4CF, U+1D300-1D35F, U+2600-26FF, U+2700-27BF, U+2800-28FF, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+3007;
     }
 
     @font-face {
         font-family: Times;
-        src: local(Times), local('Noto Serif SC');
+        src: local(Times), local('Noto Serif SC'), local('Songti SC');
     }
 
     @font-face {
         font-family: Times;
-        src: local('Noto Serif SC');
+        src: local('Noto Serif SC'), local('Songti SC');
         unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B739, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2EBF0-2F7FF, U+30000-3134A, U+31350-323AF, U+F900-FAFF, U+2F800-2FA1F, U+2F00-2FD5, U+2E80-2EFF, U+31C0-31EF, U+2FF0-2FFF, U+3000-303F, U+FF00-FFEF, U+FE10-FE1F, U+FE30-FE4F, U+3200-32FF, U+3300-33FF, U+3100-312F, U+31A0-31BF, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+4DC0-4DFF, U+A000-A48F, U+A490-A4CF, U+1D300-1D35F, U+2600-26FF, U+2700-27BF, U+2800-28FF, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+3007;
     }
 
     @font-face {
         font-family: 'Times New Roman';
-        src: local('Times New Roman'), local('Noto Serif SC');
+        src: local('Times New Roman'), local('Noto Serif SC'), local('Songti SC');
     }
 
     @font-face {
         font-family: 'Times New Roman';
-        src: local('Noto Serif SC');
+        src: local('Noto Serif SC'), local('Songti SC');
         unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B739, U+2B740-2B81D, U+2B820-2CEA1, U+2CEB0-2EBE0, U+2EBF0-2F7FF, U+30000-3134A, U+31350-323AF, U+F900-FAFF, U+2F800-2FA1F, U+2F00-2FD5, U+2E80-2EFF, U+31C0-31EF, U+2FF0-2FFF, U+3000-303F, U+FF00-FFEF, U+FE10-FE1F, U+FE30-FE4F, U+3200-32FF, U+3300-33FF, U+3100-312F, U+31A0-31BF, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+4DC0-4DFF, U+A000-A48F, U+A490-A4CF, U+1D300-1D35F, U+2600-26FF, U+2700-27BF, U+2800-28FF, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+3007;
     }
 
