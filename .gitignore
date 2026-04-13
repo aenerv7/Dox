@@ -1,1 +1,6 @@
 AutoHotkey/Test/Test.exe
+.DS_Store
+
+# Swift
+SizerSwift/.build/
+SizerSwift/build/
