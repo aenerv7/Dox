@@ -1,0 +1,4 @@
+#include <winuser.h>
+
+// 应用程序图标（嵌入到 exe 中）
+1 ICON "logo.ico"

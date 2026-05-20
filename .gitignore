@@ -4,3 +4,10 @@ AutoHotkey/Test/Test.exe
 # Swift
 SizerSwift/.build/
 SizerSwift/build/
+
+# SizerWin
+SizerWin/SizerWin.exe
+SizerWin/SizerWin_new.exe
+SizerWin/*.obj
+SizerWin/*.res
+SizerWin/SizerWin.ini

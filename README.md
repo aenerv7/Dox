@@ -1,6 +1,6 @@
 # Dox
 
-自用网络工具与脚本合集。所有内容均为独立脚本/配置文件，无需构建，可直接使用。
+自用网络工具与脚本合集。
 
 ## 中文字体映射
 
@@ -39,6 +39,27 @@ Windows 窗口尺寸和位置调整工具。`Shift+Alt+Space` 呼出菜单。
 - 多显示器支持
 - 中英文双语 UI
 - Windows 深色模式适配
+
+## SizerWin
+
+SizerAHK 的原生 Windows 移植版本，使用纯 C + Win32 API 实现，编译为独立 exe，不依赖任何运行时。适用于 AutoHotKey 被游戏反作弊拦截的场景。
+
+功能与 SizerAHK 一致：`Shift+Alt+Space` 呼出菜单。
+
+- 预设分辨率 / 自动调整（3/4 屏幕）/ 居中 / 自定义尺寸
+- 多显示器支持，任务栏偏移智能检测
+- 中英文双语 UI
+- Windows 深色模式适配（菜单、对话框、自绘圆角按钮和输入框）
+- 预设分辨率通过 `SizerWin.ini` 配置，实时生效无需重启
+
+### 构建
+
+在 Visual Studio Developer Command Prompt 中运行：
+
+```bat
+cd SizerWin
+build.bat
+```
 
 ## CSS
 
