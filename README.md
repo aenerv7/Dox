@@ -61,6 +61,26 @@ cd SizerWin
 build.bat
 ```
 
+## SizerSwift
+
+SizerAHK 的 macOS 原生移植版本，使用 Swift 编写，编译为独立 `.app`。
+
+- `⌥⌘C` — 居中当前窗口（保持尺寸）
+- `⌃⌥⌘C` — 调整到屏幕 75% 并居中
+- 菜单栏常驻图标，无 Dock 图标
+- 支持开机自启动（基于 `SMAppService`）
+- 多语言：英语、繁体中文、简体中文
+- 标准窗口通过 Accessibility API 直接操作；不暴露 AX 窗口的应用（如 Game Porting Toolkit 游戏）通过模拟鼠标拖拽标题栏移动
+
+### 构建
+
+```bash
+cd SizerSwift
+swift build -c release
+```
+
+手动打包为 `.app` bundle 后部署到 `/Applications`，需执行 `xattr -cr` 清除隔离属性。不使用 codesign 签名以避免辅助功能权限失效。
+
 ## CSS
 
 - `font-face.css` — 跨平台中文字体适配（见上方说明）
