@@ -14,6 +14,10 @@ Dox/
 ├── AutoHotkey/          # Windows 自动化脚本 (AutoHotkey v2)
 │   ├── SizerAHK/        # 窗口尺寸/位置调整工具（活跃）
 │   └── Test/            # AHK 测试/实验脚本（非活跃）
+├── SizerSwift/          # macOS 原生窗口居中工具 (Swift)
+│   ├── Sources/main.swift
+│   ├── Package.swift
+│   └── AppIcon.icns
 ├── css/                 # CSS 样式表
 │   ├── font-face.css    # 跨平台中文字体适配（核心资产）
 │   └── vscode.css       # VS Code 外观自定义
@@ -31,6 +35,7 @@ Dox/
 ## 技术栈与语言
 
 - AutoHotkey v2 (`.ahk`) — Windows 桌面自动化
+- Swift (`.swift`) — macOS 原生应用 (Swift Package Manager)
 - JavaScript (`.js`) — 用户脚本 (Userscript) 和 Stash 磁贴
 - CSS (`.css`) — 字体映射和 VS Code 样式
 - AdGuard 过滤语法 (`.txt`) — 广告屏蔽规则
@@ -106,7 +111,7 @@ U+2700-27BF, U+2800-28FF, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+3007
 - Userscript 的 `@version` 字段需在内容变更时手动递增
 - Userscript 的 `@downloadURL` / `@updateURL` 中的中文文件名使用 URL 编码（`%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96`）
 
-### SizerAHK 窗口管理器
+### SizerAHK 窗口管理器 (Windows)
 - 基于 AutoHotkey v2，快捷键 `Shift+Alt+Space` 呼出菜单
 - 支持预设分辨率、自动调整（3/4 屏幕）、居中、自定义尺寸
 - 支持多显示器检测，居中时根据任务栏状态智能偏移：
@@ -114,6 +119,52 @@ U+2700-27BF, U+2800-28FF, U+E400-E5E8, U+E600-E6CF, U+E815-E86F, U+3007
   - 副显示器：读取 `MMTaskbarEnabled` 判断是否在所有显示器上显示任务栏，显示则抬升，否则绝对居中
 - 支持中英文双语 UI（通过 `A_Language == 0804` 判断）
 - 支持 Windows 深色模式
+
+### SizerSwift 窗口管理器 (macOS)
+
+SizerAHK 的 macOS 原生移植版本，使用 Swift 编写，编译为独立 `.app`。
+
+#### 功能
+- `⌥⌘C` — 居中当前窗口（保持尺寸）
+- `⌃⌥⌘C` — 调整到屏幕 75% 并居中（等价于 SizerAHK 的「自动」）
+- 菜单栏常驻图标（使用 SizerAHK 同款 logo），无 Dock 图标
+- 支持开机自启动（基于 `SMAppService`）
+- 多语言：英语、繁体中文、简体中文
+
+#### 技术架构
+- **标准窗口**：通过 Accessibility API (`AXUIElement`) 直接设置窗口位置/尺寸，瞬移到位
+- **不暴露 AX 窗口的应用**（如通过 Game Porting Toolkit 运行的游戏）：
+  1. 通过 `CGWindowListCopyWindowInfo` 查询窗口位置和尺寸
+  2. 通过 `CGEvent` 模拟鼠标拖拽标题栏来移动窗口
+  3. 使用 `CGEventSource(stateID: .privateState)` 标记为程序化事件
+- **全局快捷键**：通过 `CGEvent.tapCreate` 监听键盘事件
+
+#### 构建与部署
+```bash
+cd SizerSwift
+swift build -c release
+# 手动打包 .app bundle（见下方结构）
+# 部署到 /Applications 后执行：
+xattr -cr /Applications/SizerSwift.app
+```
+
+不使用 codesign 签名，避免每次重新编译后辅助功能权限失效。
+
+#### App Bundle 结构
+```
+SizerSwift.app/
+└── Contents/
+    ├── Info.plist          # CFBundleIdentifier: com.sizerswift.app, LSUIElement: true
+    ├── MacOS/
+    │   └── SizerSwift      # 编译产物
+    └── Resources/
+        └── AppIcon.icns    # 从 SizerAHK/logo_96.png 生成
+```
+
+#### 已知限制
+- macOS Sequoia 的窗口 tiling 功能可能干扰模拟拖拽，如遇问题可在系统设置中关闭「将窗口拖移到屏幕边缘时进行拼贴」
+- 对不暴露 AX 窗口的游戏，只能移动不能调整尺寸（因为模拟拖拽右下角不可靠）
+- 首次运行或重新编译后需要在「系统设置 → 隐私与安全性 → 辅助功能」中重新授权
 
 ## Git 推送规则
 
