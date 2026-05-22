@@ -44,17 +44,26 @@ Windows 窗口尺寸和位置调整工具。`Shift+Alt+Space` 呼出菜单。
 
 SizerAHK 的原生 Windows 移植版本，使用纯 C + Win32 API 实现，编译为独立 exe，不依赖任何运行时。适用于 AutoHotKey 被游戏反作弊拦截的场景。
 
-功能与 SizerAHK 一致：`Shift+Alt+Space` 呼出菜单。
+使用 `Shift+Alt+Space` 呼出菜单。最大化和最小化窗口不会响应。
 
-- 预设分辨率 / 自动调整（3/4 屏幕）/ 居中 / 自定义尺寸
-- 多显示器支持，任务栏偏移智能检测
+- 预设分辨率 / 自动调整（当前显示器工作区 3/4）/ 居中 / 自定义尺寸
+- 多显示器支持，基于当前窗口所在显示器的工作区避开任务栏
 - 中英文双语 UI
-- Windows 深色模式适配（菜单、对话框、自绘圆角按钮和输入框）
-- 预设分辨率通过 `SizerWin.ini` 配置，实时生效无需重启
+- Windows 深色模式菜单和自定义尺寸窗口适配
+- Per-Monitor DPI awareness manifest
+- 自定义尺寸窗口使用原生 Win32 自绘圆角输入框和按钮，支持 `Tab` / `Shift+Tab` 切换焦点、`Enter` 调整、`Ctrl+Enter` 调整并居中、`Esc` 取消；窗口右上角不显示控制按钮
+- 预设分辨率通过 `SizerWin.ini` 配置，实时生效无需重启；若程序目录无读写权限，会提示并退出
 
 ### 构建
 
-在 Visual Studio Developer Command Prompt 中运行：
+PowerShell 构建脚本会自动定位 Visual Studio / Build Tools：
+
+```powershell
+cd SizerWin
+.\build.ps1
+```
+
+也可在 Visual Studio Developer Command Prompt 中运行传统批处理：
 
 ```bat
 cd SizerWin

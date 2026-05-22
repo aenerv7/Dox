@@ -6,7 +6,7 @@ REM 在 "Developer Command Prompt for VS" 中运行
 rc /nologo SizerWin.rc
 if %ERRORLEVEL% NEQ 0 goto :fail
 
-cl /O2 /W4 /Fe:SizerWin.exe SizerWin.c SizerWin.res /link /SUBSYSTEM:WINDOWS user32.lib shell32.lib advapi32.lib kernel32.lib gdi32.lib dwmapi.lib
+cl /O2 /utf-8 /W4 /Fe:SizerWin.exe SizerWin.c SizerWin.res /link /SUBSYSTEM:WINDOWS user32.lib shell32.lib advapi32.lib kernel32.lib gdi32.lib dwmapi.lib comctl32.lib
 if %ERRORLEVEL% NEQ 0 goto :fail
 
 echo.
