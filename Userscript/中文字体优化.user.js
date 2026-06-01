@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name 中文字体优化
 // @namespace https://github.com/aenerv7/Dox
-// @version 5.8
+// @version 5.10
 // @description 优化中文字体的显示
 // @icon https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.png
 // @author AENERV7
@@ -16,37 +16,47 @@
 (function () {
     let css = `
 
-    /* 标准字体 */
+    /* 语言默认字体 */
 
-    @font-face {
-        font-family: standard;
-        src: local('PingFang SC'), local('Noto Sans SC');
+    :root {
+        --dox-default-sans-serif-font: 'SF Pro';
+        --dox-default-serif-font: 'New York';
+        --dox-default-monospace-font: 'Maple Mono Normal NF CN';
     }
 
-    @font-face {
-        font-family: Standard;
-        src: local('PingFang SC'), local('Noto Sans SC');
+    html,
+    body,
+    [lang] {
+        font-family: var(--dox-default-sans-serif-font), sans-serif;
     }
 
-    @font-face {
-        font-family: serif;
-        src: local('Songti SC'), local('Noto Serif SC');
+    :lang(zh),
+    :lang(zh-Hans),
+    :lang(zh-CN),
+    :lang(zh-SG),
+    :lang(ja),
+    :lang(ko) {
+        --dox-default-sans-serif-font: 'PingFang SC';
+        --dox-default-serif-font: 'Songti SC';
     }
 
-    @font-face {
-        font-family: Serif;
-        src: local('Songti SC'), local('Noto Serif SC');
+    :lang(zh-Hant),
+    :lang(zh-TW),
+    :lang(zh-HK),
+    :lang(zh-MO) {
+        --dox-default-sans-serif-font: 'PingFang TC';
+        --dox-default-serif-font: 'Songti TC';
     }
 
-    @font-face {
-        font-family: sans-serif;
-        src: local('PingFang SC'), local('Noto Sans SC');
+    pre,
+    code,
+    kbd,
+    samp,
+    textarea {
+        font-family: var(--dox-default-monospace-font), monospace;
     }
 
-    @font-face {
-        font-family: Sans-Serif;
-        src: local('PingFang SC'), local('Noto Sans SC');
-    }
+    /* 补充通用字体 */
 
     @font-face {
         font-family: monospace;
@@ -76,11 +86,6 @@
     @font-face {
         font-family: Fantasy;
         src: local('Yozai');
-    }
-
-    @font-face {
-        font-family: -webkit-standard;
-        src: local('PingFang SC'), local('Noto Sans SC');
     }
 
     /* 英文 衬线 */
