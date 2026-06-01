@@ -1,0 +1,5 @@
+#include <windows.h>
+#include "resource.h"
+
+1 RT_MANIFEST "CapsLockOSD.manifest"
+IDI_APP_ICON ICON "app.ico"

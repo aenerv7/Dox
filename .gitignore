@@ -11,3 +11,8 @@ SizerWin/SizerWin_new.exe
 SizerWin/*.obj
 SizerWin/*.res
 SizerWin/SizerWin.ini
+
+# CapsLockOSD
+CapsLockOSD/CapsLockOSD.exe
+CapsLockOSD/*.obj
+CapsLockOSD/*.res

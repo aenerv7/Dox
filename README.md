@@ -70,6 +70,38 @@ cd SizerWin
 build.bat
 ```
 
+## CapsLockOSD
+
+Windows 原生 Caps Lock 屏幕提示工具，视觉按 Logitech Options 的 Caps Lock On/Off 提示比例复刻：屏幕偏下位置的半透明灰色圆角 OSD、白色 `A/a` 图标和状态文本。实现使用 C++、Win32 API 和系统自带 GDI+，不依赖第三方库或运行时。
+
+- 轮询 Caps Lock 开关状态，切换时自动显示提示
+- OSD 置顶、无焦点、点击穿透，不打断当前输入焦点
+- 多显示器支持，显示在当前前台窗口所在屏幕约 90% 垂直位置
+- 背景透明度为 `155/255`，文字和图标保持不透明
+- Caps Lock 开启显示大写 `A`，关闭显示小写 `a`
+- Per-Monitor DPI awareness，高 DPI 下按比例缩放
+- 状态文本跟随系统 UI 语言，支持简体中文、繁体中文和英文
+- 不包含托盘图标和内置开机自启动；需要自启动时可自行通过任务计划程序配置
+- 单实例运行，重复启动会直接退出
+- 启动时会清理旧版本可能留下的 `HKCU\...\Run\Dox CapsLockOSD`
+- 详见 `CapsLockOSD/README.md`
+
+### 构建
+
+PowerShell 构建脚本会自动定位 Visual Studio / Build Tools：
+
+```powershell
+cd CapsLockOSD
+.\build.ps1
+```
+
+也可在 Visual Studio Developer Command Prompt 中运行传统批处理：
+
+```bat
+cd CapsLockOSD
+build.bat
+```
+
 ## SizerSwift
 
 SizerAHK 的 macOS 原生移植版本，使用 Swift 编写，编译为独立 `.app`。
