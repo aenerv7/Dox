@@ -13,6 +13,7 @@
 #include <objidl.h>
 #include <propidl.h>
 #include <gdiplus.h>
+#include <wchar.h>
 #include "resource.h"
 
 #pragma comment(lib, "user32.lib")
@@ -36,13 +37,21 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define OSD_CLASS_NAME L"DoxCapsLockOSDOverlayWindow"
 #define MUTEX_NAME L"Local\\DoxCapsLockOSD"
 #define RUN_VALUE_NAME L"Dox CapsLockOSD"
+#define CONFIG_FILE_NAME L"CapsLockOSD.ini"
 
 #define TIMER_POLL 1
 #define TIMER_HIDE 2
+#define TIMER_RAISE 3
 
 #define OSD_VERTICAL_POSITION_PERCENT 90
-#define OSD_BACKGROUND_ALPHA 155
 #define OSD_WINDOW_ALPHA 255
+#define OSD_SIZE_PERCENT 75
+#define OSD_RAISE_INTERVAL_MS 33
+#define OSD_RAISE_TICKS 12
+#define DEFAULT_BACKGROUND_ALPHA 100
+#define DEFAULT_DISPLAY_DURATION_MS 1000
+#define MIN_DISPLAY_DURATION_MS 100
+#define MAX_DISPLAY_DURATION_MS 10000
 
 typedef enum {
     OSD_LANG_EN,
@@ -58,6 +67,9 @@ static HICON g_classIcon = NULL;
 static HICON g_classSmallIcon = NULL;
 static BOOL g_lastCapsState = FALSE;
 static BOOL g_haveCapsState = FALSE;
+static int g_osdRaiseTicks = 0;
+static int g_backgroundAlpha = DEFAULT_BACKGROUND_ALPHA;
+static UINT g_displayDurationMs = DEFAULT_DISPLAY_DURATION_MS;
 static OsdLanguage g_language = OSD_LANG_EN;
 
 static int ScaleForDpi(int value, UINT dpi)
@@ -68,6 +80,16 @@ static int ScaleForDpi(int value, UINT dpi)
 static REAL ScaleForDpiF(REAL value, UINT dpi)
 {
     return value * (REAL)dpi / 96.0f;
+}
+
+static int ScaleOsdForDpi(int value, UINT dpi)
+{
+    return MulDiv(ScaleForDpi(value, dpi), OSD_SIZE_PERCENT, 100);
+}
+
+static REAL ScaleOsdForDpiF(REAL value, UINT dpi)
+{
+    return ScaleForDpiF(value, dpi) * (REAL)OSD_SIZE_PERCENT / 100.0f;
 }
 
 static void EnableDpiAwareness(void)
@@ -107,6 +129,72 @@ static UINT GetMonitorDpiValue(HMONITOR monitor)
     if (screenDc)
         ReleaseDC(NULL, screenDc);
     return dpi ? dpi : 96;
+}
+
+static int ClampInt(int value, int minValue, int maxValue)
+{
+    if (value < minValue)
+        return minValue;
+    if (value > maxValue)
+        return maxValue;
+    return value;
+}
+
+static BOOL GetConfigPath(WCHAR path[MAX_PATH])
+{
+    DWORD length = GetModuleFileNameW(NULL, path, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH)
+        return FALSE;
+
+    WCHAR *slash = wcsrchr(path, L'\\');
+    if (!slash)
+        return FALSE;
+
+    size_t remaining = MAX_PATH - (size_t)(slash - path + 1);
+    if (remaining < (size_t)lstrlenW(CONFIG_FILE_NAME) + 1)
+        return FALSE;
+
+    lstrcpyW(slash + 1, CONFIG_FILE_NAME);
+    return TRUE;
+}
+
+static BOOL GenerateConfigFile(LPCWSTR path)
+{
+    HANDLE file = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_NEW, 0, NULL);
+    if (file == INVALID_HANDLE_VALUE)
+        return FALSE;
+
+    const char *content =
+        "; CapsLockOSD configuration\r\n"
+        "; BackgroundAlpha: 0-255. 0 is fully transparent, 255 is fully opaque.\r\n"
+        "; DisplayDurationMs: OSD display duration in milliseconds.\r\n"
+        "\r\n"
+        "[OSD]\r\n"
+        "BackgroundAlpha=100\r\n"
+        "DisplayDurationMs=1000\r\n";
+
+    DWORD written = 0;
+    BOOL ok = WriteFile(file, content, (DWORD)lstrlenA(content), &written, NULL);
+    CloseHandle(file);
+    return ok;
+}
+
+static void LoadConfig(void)
+{
+    WCHAR path[MAX_PATH] = {0};
+    if (!GetConfigPath(path))
+        return;
+
+    if (GetFileAttributesW(path) == INVALID_FILE_ATTRIBUTES)
+        GenerateConfigFile(path);
+
+    int alpha = (int)GetPrivateProfileIntW(L"OSD", L"BackgroundAlpha",
+                                           DEFAULT_BACKGROUND_ALPHA, path);
+    int duration = (int)GetPrivateProfileIntW(L"OSD", L"DisplayDurationMs",
+                                              DEFAULT_DISPLAY_DURATION_MS, path);
+
+    g_backgroundAlpha = ClampInt(alpha, 0, 255);
+    g_displayDurationMs = (UINT)ClampInt(duration, MIN_DISPLAY_DURATION_MS, MAX_DISPLAY_DURATION_MS);
 }
 
 static BOOL GetCapsLockState(void)
@@ -234,46 +322,36 @@ static void DrawOsdToLayeredWindow(HWND hwnd, BOOL capsOn, UINT dpi, int x, int 
         graphics.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
         graphics.Clear(Color(0, 0, 0, 0));
 
-        const REAL cornerRadius = ScaleForDpiF(12.0f, dpi);
+        const REAL cornerRadius = ScaleOsdForDpiF(12.0f, dpi);
         RectF backgroundRect(0.0f, 0.0f, (REAL)width, (REAL)height);
         GraphicsPath backgroundPath;
         AddRoundedRectangle(&backgroundPath, backgroundRect, cornerRadius);
 
-        SolidBrush backgroundBrush(Color(OSD_BACKGROUND_ALPHA, 126, 126, 126));
+        SolidBrush backgroundBrush(Color((BYTE)g_backgroundAlpha, 126, 126, 126));
         graphics.FillPath(&backgroundBrush, &backgroundPath);
 
-        const REAL iconSize = ScaleForDpiF(52.0f, dpi);
-        const REAL iconLeft = ((REAL)width - iconSize) / 2.0f;
-        const REAL iconTop = ScaleForDpiF(37.0f, dpi);
-        RectF iconRect(iconLeft, iconTop, iconSize, iconSize);
-
-        GraphicsPath iconPath;
-        AddRoundedRectangle(&iconPath, iconRect, ScaleForDpiF(3.0f, dpi));
-        Pen iconPen(Color(255, 255, 255, 255), ScaleForDpiF(4.0f, dpi));
-        graphics.DrawPath(&iconPen, &iconPath);
-
         FontFamily iconFamily(L"Arial");
-        Font iconFont(&iconFamily, ScaleForDpiF(47.0f, dpi), FontStyleBold, UnitPixel);
+        Font iconFont(&iconFamily, ScaleOsdForDpiF(72.0f, dpi), FontStyleBold, UnitPixel);
         SolidBrush whiteBrush(Color(255, 255, 255, 255));
         StringFormat iconFormat;
         iconFormat.SetAlignment(StringAlignmentCenter);
         iconFormat.SetLineAlignment(StringAlignmentCenter);
         iconFormat.SetFormatFlags(StringFormatFlagsNoWrap);
 
-        RectF iconTextRect(iconRect.X - ScaleForDpiF(1.0f, dpi),
-                           iconRect.Y - ScaleForDpiF(2.0f, dpi),
-                           iconRect.Width,
-                           iconRect.Height + ScaleForDpiF(4.0f, dpi));
+        RectF iconTextRect(0.0f,
+                           ScaleOsdForDpiF(8.0f, dpi),
+                           (REAL)width,
+                           ScaleOsdForDpiF(84.0f, dpi));
         graphics.DrawString(capsOn ? L"A" : L"a", -1, &iconFont, iconTextRect, &iconFormat, &whiteBrush);
 
         FontFamily textFamily(GetTextFontFace());
-        Font textFont(&textFamily, ScaleForDpiF(24.0f, dpi), FontStyleRegular, UnitPixel);
+        Font textFont(&textFamily, ScaleOsdForDpiF(24.0f, dpi), FontStyleRegular, UnitPixel);
         StringFormat textFormat;
         textFormat.SetAlignment(StringAlignmentCenter);
         textFormat.SetLineAlignment(StringAlignmentNear);
         textFormat.SetFormatFlags(StringFormatFlagsNoWrap);
 
-        RectF textRect(0.0f, ScaleForDpiF(126.0f, dpi), (REAL)width, ScaleForDpiF(36.0f, dpi));
+        RectF textRect(0.0f, ScaleOsdForDpiF(105.0f, dpi), (REAL)width, ScaleOsdForDpiF(34.0f, dpi));
         graphics.DrawString(GetCapsText(capsOn), -1, &textFont, textRect, &textFormat, &whiteBrush);
     }
 
@@ -315,6 +393,15 @@ static BOOL EnsureOsdWindow(void)
     return g_osdHwnd != NULL;
 }
 
+static void ReassertOsdTopmost(void)
+{
+    if (!g_osdHwnd || !IsWindowVisible(g_osdHwnd))
+        return;
+
+    SetWindowPos(g_osdHwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+}
+
 static void ShowCapsOsd(BOOL capsOn)
 {
     if (!EnsureOsdWindow())
@@ -327,8 +414,8 @@ static void ShowCapsOsd(BOOL capsOn)
         return;
 
     UINT dpi = GetMonitorDpiValue(monitor);
-    int width = ScaleForDpi(276, dpi);
-    int height = ScaleForDpi(171, dpi);
+    int width = ScaleOsdForDpi(276, dpi);
+    int height = ScaleOsdForDpi(145, dpi);
     RECT rc = monitorInfo.rcMonitor;
     int x = rc.left + ((rc.right - rc.left) - width) / 2;
     int freeHeight = (rc.bottom - rc.top) - height;
@@ -338,15 +425,22 @@ static void ShowCapsOsd(BOOL capsOn)
     ShowWindow(g_osdHwnd, SW_SHOWNOACTIVATE);
     SetWindowPos(g_osdHwnd, HWND_TOPMOST, x, y, width, height,
                  SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    ReassertOsdTopmost();
+
+    g_osdRaiseTicks = OSD_RAISE_TICKS;
+    SetTimer(g_mainHwnd, TIMER_RAISE, OSD_RAISE_INTERVAL_MS, NULL);
 
     KillTimer(g_mainHwnd, TIMER_HIDE);
-    SetTimer(g_mainHwnd, TIMER_HIDE, 1200, NULL);
+    SetTimer(g_mainHwnd, TIMER_HIDE, g_displayDurationMs, NULL);
 }
 
 static void HideOsd(void)
 {
     if (g_osdHwnd)
         ShowWindow(g_osdHwnd, SW_HIDE);
+    g_osdRaiseTicks = 0;
+    if (g_mainHwnd)
+        KillTimer(g_mainHwnd, TIMER_RAISE);
 }
 
 static void RemoveLegacyStartupRegistration(void)
@@ -401,11 +495,25 @@ static LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT message, WPARAM wParam, L
             HideOsd();
             return 0;
         }
+        if (wParam == TIMER_RAISE)
+        {
+            if (g_osdRaiseTicks > 0)
+            {
+                ReassertOsdTopmost();
+                g_osdRaiseTicks--;
+            }
+            else
+            {
+                KillTimer(hwnd, TIMER_RAISE);
+            }
+            return 0;
+        }
         break;
 
     case WM_DESTROY:
         KillTimer(hwnd, TIMER_POLL);
         KillTimer(hwnd, TIMER_HIDE);
+        KillTimer(hwnd, TIMER_RAISE);
         if (g_osdHwnd)
         {
             DestroyWindow(g_osdHwnd);
@@ -461,6 +569,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     g_instance = hInstance;
     EnableDpiAwareness();
     g_language = DetectLanguage();
+    LoadConfig();
     RemoveLegacyStartupRegistration();
 
     GdiplusStartupInput gdiplusInput;
