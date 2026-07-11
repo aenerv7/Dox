@@ -72,13 +72,13 @@ build.bat
 
 ## CapsLockOSD
 
-Windows 原生 Caps Lock 屏幕提示工具，视觉按 Logitech Options 的 Caps Lock On/Off 提示比例复刻：屏幕偏下位置的半透明灰色圆角 OSD、白色 `A/a` 图标和状态文本。实现使用 C++、Win32 API 和系统自带 GDI+，不依赖第三方库或运行时。
+Windows 原生 Caps Lock 屏幕提示工具，视觉按 Logitech Options 的 Caps Lock On/Off 提示比例复刻：屏幕偏下位置的半透明黑色圆角 OSD、白色 `A/a` 图标和状态文本。实现使用 C++、Win32 API 和系统自带 GDI+，不依赖第三方库或运行时。
 
 - 轮询 Caps Lock 开关状态，切换时自动显示提示
 - OSD 置顶、无焦点、点击穿透，不打断当前输入焦点
 - OSD 显示初期会短时间重申 topmost 层级，改善无边框全屏/伪全屏窗口抢回 z-order 的情况
 - 多显示器支持，显示在当前前台窗口所在屏幕约 90% 垂直位置
-- 背景透明度默认 `100/255`，整体尺寸为初始复刻尺寸的 `75%`，文字和图标保持不透明
+- 背景透明度默认 `155/255`，整体尺寸为初始复刻尺寸的 `75%`，文字和图标保持不透明
 - Caps Lock 开启显示大写 `A`，关闭显示小写 `a`
 - Per-Monitor DPI awareness，高 DPI 下按比例缩放
 - 状态文本跟随系统 UI 语言，支持简体中文、繁体中文和英文

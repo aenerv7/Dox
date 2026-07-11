@@ -6,7 +6,7 @@ CapsLockOSD 是一个 Windows 原生 Caps Lock 屏幕提示工具，用 Win32 AP
 
 - 仅在 Caps Lock 状态切换时显示 OSD。
 - OSD 显示在当前前台窗口所在屏幕约 90% 垂直位置。
-- 背景为半透明灰色圆角矩形，默认透明度为 `100/255`。
+- 背景为半透明纯黑圆角矩形，默认透明度为 `155/255`。
 - 整体尺寸为初始 Logitech Options 风格复刻尺寸的 `75%`。
 - Caps Lock 开启时图标显示大写 `A`，关闭时显示小写 `a`。
 - 文字和图标保持不透明，保证可读性。
@@ -32,11 +32,11 @@ CapsLockOSD 是一个 Windows 原生 Caps Lock 屏幕提示工具，用 Win32 AP
 ; DisplayDurationMs: OSD display duration in milliseconds.
 
 [OSD]
-BackgroundAlpha=100
+BackgroundAlpha=155
 DisplayDurationMs=1000
 ```
 
-- `BackgroundAlpha` 控制 OSD 灰色背景透明度，范围 `0-255`，默认 `100`。
+- `BackgroundAlpha` 控制 OSD 黑色背景透明度，范围 `0-255`，默认 `155`。
 - `DisplayDurationMs` 控制提示显示时长，单位毫秒，默认 `1000`。程序会将该值限制在 `100-10000` 之间。
 
 ## 自启动

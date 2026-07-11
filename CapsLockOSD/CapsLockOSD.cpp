@@ -48,7 +48,7 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define OSD_SIZE_PERCENT 75
 #define OSD_RAISE_INTERVAL_MS 33
 #define OSD_RAISE_TICKS 12
-#define DEFAULT_BACKGROUND_ALPHA 100
+#define DEFAULT_BACKGROUND_ALPHA 155
 #define DEFAULT_DISPLAY_DURATION_MS 1000
 #define MIN_DISPLAY_DURATION_MS 100
 #define MAX_DISPLAY_DURATION_MS 10000
@@ -170,7 +170,7 @@ static BOOL GenerateConfigFile(LPCWSTR path)
         "; DisplayDurationMs: OSD display duration in milliseconds.\r\n"
         "\r\n"
         "[OSD]\r\n"
-        "BackgroundAlpha=100\r\n"
+        "BackgroundAlpha=155\r\n"
         "DisplayDurationMs=1000\r\n";
 
     DWORD written = 0;
@@ -327,7 +327,7 @@ static void DrawOsdToLayeredWindow(HWND hwnd, BOOL capsOn, UINT dpi, int x, int 
         GraphicsPath backgroundPath;
         AddRoundedRectangle(&backgroundPath, backgroundRect, cornerRadius);
 
-        SolidBrush backgroundBrush(Color((BYTE)g_backgroundAlpha, 126, 126, 126));
+        SolidBrush backgroundBrush(Color((BYTE)g_backgroundAlpha, 0, 0, 0));
         graphics.FillPath(&backgroundBrush, &backgroundPath);
 
         FontFamily iconFamily(L"Arial");
