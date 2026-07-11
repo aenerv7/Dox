@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dwmapi.h>
+#include <tlhelp32.h>
 
 #pragma comment(lib, "dwmapi.lib")
 
@@ -26,6 +27,9 @@
 #endif
 
 #define HOTKEY_ID_MENU 1
+#define SIZERWIN_MUTEX_NAME L"Global\\SizerWin_SingleInstance"
+#define SIZERWIN_LEGACY_MUTEX_NAME L"SizerWin_SingleInstance"
+#define SIZERWIN_DEFAULT_EXE_NAME L"SizerWin.exe"
 
 #ifndef WM_DPICHANGED
 #define WM_DPICHANGED 0x02E0
@@ -57,7 +61,9 @@
 
 #define IDM_AUTO        1001
 #define IDM_CENTRE      1002
-#define IDM_CUSTOM      1003
+#define IDM_CENTRE_H    1003
+#define IDM_CENTRE_V    1004
+#define IDM_CUSTOM      1005
 #define IDM_PRESET_BASE 2000  // 预设分辨率菜单项从此 ID 开始
 
 #define IDC_WIDTH_EDIT         3001
@@ -90,6 +96,13 @@ static HINSTANCE g_hInstance = NULL;
 static BOOL g_isChinese = FALSE;
 static BOOL g_darkMode = FALSE;
 static BOOL g_customDialogOpen = FALSE;
+
+typedef struct {
+    DWORD processId;
+    DWORD sessionId;
+    BOOL hasSessionId;
+    BOOL sameSession;
+} ProcessConflict;
 
 // 暗色模式颜色
 #define DARK_BG_COLOR     RGB(32, 32, 32)
@@ -231,6 +244,193 @@ static void DrawRoundedRect(HDC hdc, RECT rc, int radius, COLORREF fill, COLORRE
     SelectObject(hdc, oldBrush);
     DeleteObject(pen);
     DeleteObject(brush);
+}
+
+static BOOL TryGetInteractiveWindowStation(BOOL *interactive)
+{
+    HWINSTA station = GetProcessWindowStation();
+    USEROBJECTFLAGS flags = {0};
+    DWORD needed = 0;
+
+    if (!interactive || !station)
+        return FALSE;
+
+    if (!GetUserObjectInformationW(station, UOI_FLAGS, &flags, sizeof(flags), &needed))
+        return FALSE;
+
+    *interactive = (flags.dwFlags & WSF_VISIBLE) != 0;
+    return TRUE;
+}
+
+static void ShowStartupMessage(LPCWSTR message, UINT flags)
+{
+    BOOL interactive = TRUE;
+    if (TryGetInteractiveWindowStation(&interactive) && !interactive)
+        return;
+
+    MessageBoxW(NULL, message, L"SizerWin", flags | MB_OK | MB_SETFOREGROUND);
+}
+
+static LPCWSTR PathBaseName(LPCWSTR path)
+{
+    LPCWSTR slash = path ? wcsrchr(path, L'\\') : NULL;
+    return slash ? slash + 1 : path;
+}
+
+static void GetCurrentExecutableName(WCHAR name[MAX_PATH])
+{
+    WCHAR path[MAX_PATH];
+    DWORD len = GetModuleFileNameW(NULL, path, MAX_PATH);
+
+    if (len == 0 || len >= MAX_PATH)
+    {
+        StringCchCopyW(name, MAX_PATH, SIZERWIN_DEFAULT_EXE_NAME);
+        return;
+    }
+
+    StringCchCopyW(name, MAX_PATH, PathBaseName(path));
+}
+
+static BOOL FindRunningSizerWinProcess(ProcessConflict *conflict)
+{
+    DWORD currentPid = GetCurrentProcessId();
+    DWORD currentSessionId = 0;
+    BOOL hasCurrentSessionId = ProcessIdToSessionId(currentPid, &currentSessionId);
+    WCHAR currentExeName[MAX_PATH];
+    HANDLE snapshot;
+    PROCESSENTRY32W pe;
+
+    if (conflict)
+        ZeroMemory(conflict, sizeof(*conflict));
+
+    GetCurrentExecutableName(currentExeName);
+
+    snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return FALSE;
+
+    ZeroMemory(&pe, sizeof(pe));
+    pe.dwSize = sizeof(pe);
+    if (!Process32FirstW(snapshot, &pe))
+    {
+        CloseHandle(snapshot);
+        return FALSE;
+    }
+
+    do
+    {
+        BOOL sameCurrentName;
+        BOOL sameDefaultName;
+
+        if (pe.th32ProcessID == currentPid)
+            continue;
+
+        sameCurrentName = (lstrcmpiW(pe.szExeFile, currentExeName) == 0);
+        sameDefaultName = (lstrcmpiW(pe.szExeFile, SIZERWIN_DEFAULT_EXE_NAME) == 0);
+        if (!sameCurrentName && !sameDefaultName)
+            continue;
+
+        if (conflict)
+        {
+            DWORD sessionId = 0;
+
+            conflict->processId = pe.th32ProcessID;
+            if (ProcessIdToSessionId(pe.th32ProcessID, &sessionId))
+            {
+                conflict->sessionId = sessionId;
+                conflict->hasSessionId = TRUE;
+                conflict->sameSession = hasCurrentSessionId && sessionId == currentSessionId;
+            }
+        }
+
+        CloseHandle(snapshot);
+        return TRUE;
+    } while (Process32NextW(snapshot, &pe));
+
+    CloseHandle(snapshot);
+    return FALSE;
+}
+
+static void ShowProcessConflictMessage(const ProcessConflict *conflict)
+{
+    WCHAR message[1024];
+    WCHAR sessionText[96];
+
+    if (!conflict)
+    {
+        StringCchCopyW(message, 1024, g_isChinese
+            ? L"检测到另一个 SizerWin 实例正在运行。\r\n\r\n"
+              L"SizerWin 只允许一个进程运行。若快捷键无效，请检查是否由任务计划程序在非交互会话中启动，并结束该进程后重新启动。"
+            : L"Another SizerWin instance is already running.\r\n\r\n"
+              L"SizerWin allows only one process. If the hotkey does not work, check whether Task Scheduler started it in a non-interactive session, end that process, and start SizerWin again.");
+        ShowStartupMessage(message, MB_ICONWARNING);
+        return;
+    }
+
+    if (conflict->hasSessionId)
+    {
+        StringCchPrintfW(sessionText, 96,
+            g_isChinese ? L"%lu (%ls)" : L"%lu (%ls)",
+            conflict->sessionId,
+            g_isChinese
+                ? (conflict->sameSession ? L"当前会话" : L"其他会话")
+                : (conflict->sameSession ? L"current session" : L"other session"));
+    }
+    else
+    {
+        StringCchCopyW(sessionText, 96, g_isChinese ? L"无法读取" : L"unavailable");
+    }
+
+    StringCchPrintfW(message, 1024, g_isChinese
+        ? L"检测到另一个 SizerWin 进程正在运行。\r\n\r\n"
+          L"PID: %lu\r\n"
+          L"会话: %ls\r\n\r\n"
+          L"SizerWin 只允许一个进程运行。请先结束现有进程后再启动。若它来自任务计划程序，请将任务改为“仅当用户登录时运行”。"
+        : L"Another SizerWin process is already running.\r\n\r\n"
+          L"PID: %lu\r\n"
+          L"Session: %ls\r\n\r\n"
+          L"SizerWin allows only one process. End the existing process before starting it again. If it was launched by Task Scheduler, configure the task to run only when the user is logged on.",
+        conflict->processId, sessionText);
+    ShowStartupMessage(message, MB_ICONWARNING);
+}
+
+static void ShowSingleInstanceError(DWORD err)
+{
+    WCHAR message[512];
+
+    StringCchPrintfW(message, 512, g_isChinese
+        ? L"无法创建 SizerWin 单实例检测对象。\r\n\r\n错误代码: %lu\r\n\r\nSizerWin 将退出。"
+        : L"Unable to create the SizerWin single-instance guard.\r\n\r\nError code: %lu\r\n\r\nSizerWin will exit.",
+        err);
+    ShowStartupMessage(message, MB_ICONERROR);
+}
+
+static HANDLE AcquireSingleInstanceMutex(LPCWSTR name)
+{
+    HANDLE mutexHandle;
+    DWORD err;
+
+    SetLastError(ERROR_SUCCESS);
+    mutexHandle = CreateMutexW(NULL, TRUE, name);
+    err = GetLastError();
+
+    if (!mutexHandle)
+    {
+        if (err == ERROR_ACCESS_DENIED)
+            ShowProcessConflictMessage(NULL);
+        else
+            ShowSingleInstanceError(err);
+        return NULL;
+    }
+
+    if (err == ERROR_ALREADY_EXISTS)
+    {
+        CloseHandle(mutexHandle);
+        ShowProcessConflictMessage(NULL);
+        return NULL;
+    }
+
+    return mutexHandle;
 }
 
 // 加载默认预设
@@ -547,6 +747,40 @@ static void DoCentre(void)
     int nx = workArea.left + (workW / 2) - (ww / 2);
     int ny = workArea.top + (workH / 2) - (wh / 2);
     SetWindowPos(g_targetHwnd, NULL, nx, ny, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+static void DoCentreHorizontal(void)
+{
+    WINDOWPLACEMENT wp = { sizeof(wp) };
+    if (!g_targetHwnd || !IsWindow(g_targetHwnd)) return;
+    GetWindowPlacement(g_targetHwnd, &wp);
+    if (wp.showCmd != SW_SHOWNORMAL) return;
+
+    RECT rc;
+    GetWindowRect(g_targetHwnd, &rc);
+    int ww = rc.right - rc.left;
+    RECT workArea;
+    if (!GetWindowWorkArea(g_targetHwnd, &workArea)) return;
+    int workW = workArea.right - workArea.left;
+    int nx = workArea.left + (workW / 2) - (ww / 2);
+    SetWindowPos(g_targetHwnd, NULL, nx, rc.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+static void DoCentreVertical(void)
+{
+    WINDOWPLACEMENT wp = { sizeof(wp) };
+    if (!g_targetHwnd || !IsWindow(g_targetHwnd)) return;
+    GetWindowPlacement(g_targetHwnd, &wp);
+    if (wp.showCmd != SW_SHOWNORMAL) return;
+
+    RECT rc;
+    GetWindowRect(g_targetHwnd, &rc);
+    int wh = rc.bottom - rc.top;
+    RECT workArea;
+    if (!GetWindowWorkArea(g_targetHwnd, &workArea)) return;
+    int workH = workArea.bottom - workArea.top;
+    int ny = workArea.top + (workH / 2) - (wh / 2);
+    SetWindowPos(g_targetHwnd, NULL, rc.left, ny, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 static void LayoutEditFrameChild(HWND frame, HWND edit, int dpi)
@@ -1332,11 +1566,15 @@ static void ShowSizerMenu(void)
     {
         AppendMenuW(hMenu, MF_STRING, IDM_AUTO, L"\x81EA\x52A8(&A)");
         AppendMenuW(hMenu, MF_STRING, IDM_CENTRE, L"\x5C45\x4E2D(&C)");
+        AppendMenuW(hMenu, MF_STRING, IDM_CENTRE_H, L"\x6C34\x5E73\x5C45\x4E2D(&H)");
+        AppendMenuW(hMenu, MF_STRING, IDM_CENTRE_V, L"\x5782\x76F4\x5C45\x4E2D(&V)");
     }
     else
     {
         AppendMenuW(hMenu, MF_STRING, IDM_AUTO, L"&Auto");
         AppendMenuW(hMenu, MF_STRING, IDM_CENTRE, L"&Centre");
+        AppendMenuW(hMenu, MF_STRING, IDM_CENTRE_H, L"&Horizontal Centre");
+        AppendMenuW(hMenu, MF_STRING, IDM_CENTRE_V, L"&Vertical Centre");
     }
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
 
@@ -1369,9 +1607,11 @@ static void ShowSizerMenu(void)
     BOOL ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     switch (cmd)
     {
-    case IDM_AUTO:   DoAuto(); break;
-    case IDM_CENTRE: DoCentre(); break;
-    case IDM_CUSTOM: ShowCustomDialog(); break;
+    case IDM_AUTO:     DoAuto(); break;
+    case IDM_CENTRE:   DoCentre(); break;
+    case IDM_CENTRE_H: DoCentreHorizontal(); break;
+    case IDM_CENTRE_V: DoCentreVertical(); break;
+    case IDM_CUSTOM:   ShowCustomDialog(); break;
     default:
         if (cmd >= IDM_PRESET_BASE && cmd < IDM_PRESET_BASE + g_presets.count)
         {
@@ -1404,23 +1644,44 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
 {
     (void)hPrev; (void)lpCmd; (void)nShow;
+    HANDLE hMutex;
+    HANDLE hLegacyMutex;
+    ProcessConflict conflict;
+    BOOL interactive = TRUE;
+    LANGID langId;
+
     g_hInstance = hInstance;
 
-    HANDLE hMutex = CreateMutexW(NULL, TRUE, L"SizerWin_SingleInstance");
-    if (GetLastError() == ERROR_ALREADY_EXISTS)
+    langId = GetUserDefaultUILanguage();
+    g_isChinese = (PRIMARYLANGID(langId) == LANG_CHINESE);
+
+    if (TryGetInteractiveWindowStation(&interactive) && !interactive)
+        return 1;
+
+    hMutex = AcquireSingleInstanceMutex(SIZERWIN_MUTEX_NAME);
+    if (!hMutex)
+        return 0;
+
+    if (FindRunningSizerWinProcess(&conflict))
     {
+        ShowProcessConflictMessage(&conflict);
         CloseHandle(hMutex);
         return 0;
     }
 
-    LANGID langId = GetUserDefaultUILanguage();
-    g_isChinese = (PRIMARYLANGID(langId) == LANG_CHINESE);
+    hLegacyMutex = AcquireSingleInstanceMutex(SIZERWIN_LEGACY_MUTEX_NAME);
+    if (!hLegacyMutex)
+    {
+        CloseHandle(hMutex);
+        return 0;
+    }
 
     INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_STANDARD_CLASSES };
     InitCommonControlsEx(&icc);
 
     if (!LoadConfig())
     {
+        CloseHandle(hLegacyMutex);
         CloseHandle(hMutex);
         return 1;
     }
@@ -1463,6 +1724,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPWSTR lpCmd, int nSho
         0, 0, 0, 0, 0, HWND_MESSAGE, NULL, hInstance, NULL);
     if (!g_hwndMain)
     {
+        CloseHandle(hLegacyMutex);
         CloseHandle(hMutex);
         return 1;
     }
@@ -1475,6 +1737,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPWSTR lpCmd, int nSho
                 : L"Failed to register hotkey. It may be in use by another program.",
             L"SizerWin", MB_ICONERROR);
         DestroyWindow(g_hwndMain);
+        CloseHandle(hLegacyMutex);
         CloseHandle(hMutex);
         return 1;
     }
@@ -1486,6 +1749,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPWSTR lpCmd, int nSho
         DispatchMessageW(&msg);
     }
 
+    CloseHandle(hLegacyMutex);
     CloseHandle(hMutex);
     return (int)msg.wParam;
 }
