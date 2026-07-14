@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Sort Bookmarks",
+  "version": "1.2.1",
+  "description": "自动整理“书签菜单”和“其他书签”中的内容：以分隔线为边界分段，每段先将文件夹按标题 A-Z 排序，再将书签按标题、URL A-Z 排序；排序区分大小写和重音，并递归处理所有子文件夹。",
+  "author": "aenerv7",
+  "homepage_url": "https://github.com/aenerv7/Dox/tree/main/Firefox/AutoSortBookmarks",
+  "permissions": [
+    "alarms",
+    "bookmarks",
+    "storage"
+  ],
+  "background": {
+    "scripts": [
+      "sorter.js",
+      "background.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      },
+      "id": "auto-sort-bookmarks@dox.local",
+      "strict_min_version": "142.0"
+    }
+  }
+}
