@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "Auto Sort Bookmarks",
+    "description": "The extension name."
+  },
+  "extensionDescription": {
+    "message": "Automatically sorts the Bookmarks Menu and Other Bookmarks by title and URL, with folders first and separator-aware sections.",
+    "description": "A short description of the extension."
+  }
+}

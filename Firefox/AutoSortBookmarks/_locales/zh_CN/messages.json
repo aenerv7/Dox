@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "Auto Sort Bookmarks",
+    "description": "扩展名称。"
+  },
+  "extensionDescription": {
+    "message": "自动整理“书签菜单”和“其他书签”：以分隔线分段，文件夹置顶并按标题排序，书签按标题和 URL 排序。",
+    "description": "扩展的简短说明。"
+  }
+}
