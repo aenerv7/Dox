@@ -96,7 +96,8 @@ int wmain() {
 
     if (!IsClassicTooltipThemeClassList(L"TOOLTIP") ||
         !IsClassicTooltipThemeClassList(L"Explorer::Tooltip") ||
-        IsClassicTooltipThemeClassList(L"MENU")) {
+        IsClassicTooltipThemeClassList(L"MENU") ||
+        IsClassicTooltipThemeClassList(L"NotATooltipStyle")) {
         std::wcerr << L"FAIL (classic tooltip theme class)\n";
         ++failed;
     }
