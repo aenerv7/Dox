@@ -1,0 +1,4 @@
+[submodule "Windhawk/windhawk-mods"]
+	path = Windhawk/windhawk-mods
+	url = https://github.com/aenerv7/windhawk-mods.git
+	branch = main
