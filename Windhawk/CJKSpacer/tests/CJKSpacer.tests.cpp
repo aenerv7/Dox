@@ -117,6 +117,38 @@ int wmain() {
         ++failed;
     }
 
+    HMENU testMenu = CreatePopupMenu();
+    if (!testMenu ||
+        !AppendMenuW(testMenu, MF_STRING, 100, L"网易UU远程")) {
+        std::wcerr << L"FAIL (classic popup test setup)\n";
+        ++failed;
+    } else {
+        MENUITEMINFOW replacement = {};
+        replacement.cbSize = sizeof(replacement);
+        replacement.fMask = MIIM_STRING;
+        replacement.dwTypeData =
+            const_cast<wchar_t*>(L"网易 UU 远程");
+        if (!SetMenuItemInfoW(testMenu, 0, TRUE, &replacement)) {
+            std::wcerr << L"FAIL (classic popup rewrite setup)\n";
+            ++failed;
+        } else {
+            g_classicPopupRootMenu = testMenu;
+            RememberRewrittenMenuItem(
+                testMenu, 0, L"网易UU远程", L"网易 UU 远程");
+            RestoreRewrittenMenuItems(testMenu);
+
+            std::wstring restored;
+            if (!ReadMenuItemText(testMenu, 0, &restored) ||
+                restored != L"网易UU远程" ||
+                FindMenuItemIndex(testMenu, 100, false) != 0) {
+                std::wcerr << L"FAIL (classic popup immediate restore)\n";
+                ++failed;
+            }
+            g_classicPopupRootMenu = nullptr;
+        }
+        DestroyMenu(testMenu);
+    }
+
     constexpr uintptr_t fakeTooltipThemeCount = 32;
     for (uintptr_t value = 1; value <= fakeTooltipThemeCount; ++value) {
         TrackClassicTooltipTheme(reinterpret_cast<HTHEME>(value));
