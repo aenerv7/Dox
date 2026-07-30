@@ -31,12 +31,15 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 6. 如果菜单没有立即变化，在任务管理器中重新启动“Windows 资源管理器”，
    或者注销后重新登录。
 
-建议先保持默认设置：
+建议先保持稳定路径的默认设置：
 
 - `classicMenus = true`
 - `classicTooltips = true`
-- `modernUiText = true`
+- `modernUiText = false`
 - `characterMode = unicode`
+
+如果需要处理 Windows 11 新版 XAML 右键菜单和 Tooltip，再手动启用
+`modernUiText`。该路径属于实验性功能。
 
 ## 实现范围
 
@@ -79,7 +82,8 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 - 经典菜单在显示前改写的字符串会被记录，并在 popup 关闭时立即尽量恢复；
   如果其他组件已再次修改同一菜单项，则保留其新值。卸载模组时还会清理尚未
   完成的记录。
-- 遇到现代 UI 兼容问题时先关闭 `modernUiText`，经典菜单路径仍可独立使用。
+- 启用 `modernUiText` 后如果遇到现代 UI 兼容问题，请重新关闭；经典菜单和
+  Tooltip 路径仍可独立使用。
 - 如果旧式 Tooltip 出现尺寸或绘制问题，可以单独关闭 `classicTooltips`。
 - 修改功能开关后，Windhawk 会重新加载模组，只安装仍启用功能所需的 Hook。
 - 模组默认把所有 Unicode 字母和数字视为非 CJK“单词字符”。如果只希望处理

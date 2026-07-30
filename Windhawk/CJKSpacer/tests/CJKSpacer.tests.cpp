@@ -50,6 +50,11 @@ int wmain() {
     };
 
     int failed = 0;
+    if (g_modernUiText.load()) {
+        std::wcerr << L"FAIL (modern UI must default to opt-in)\n";
+        ++failed;
+    }
+
     for (const auto& [input, expected] : cases) {
         const std::wstring actual = AddCjkSpacing(input);
         if (actual != expected) {
@@ -127,6 +132,26 @@ int wmain() {
         ++failed;
     }
 
+    {
+        std::lock_guard<std::mutex> guard(
+            g_trackedModernWindowsMutex);
+        g_trackedModernWindows.clear();
+        g_trackedModernWindows.emplace(
+            reinterpret_cast<HWND>(1),
+            TrackedModernWindow{1, ModernWindowKind::Popup});
+        g_trackedModernWindows.emplace(
+            reinterpret_cast<HWND>(2),
+            TrackedModernWindow{
+                1, ModernWindowKind::TaskbarThumbnail});
+        UpdateTrackedModernWindowCountsLocked();
+    }
+    if (g_trackedModernWindowCount.load() != 2 ||
+        g_trackedModernPopupCount.load() != 1) {
+        std::wcerr << L"FAIL (modern popup-only fast-path count)\n";
+        ++failed;
+    }
+    ClearTrackedModernWindows();
+
     HMENU testMenu = CreatePopupMenu();
     if (!testMenu ||
         !AppendMenuW(testMenu, MF_STRING, 100, L"网易UU远程")) {
@@ -175,6 +200,59 @@ int wmain() {
             g_classicPopupRootMenu = nullptr;
         }
         DestroyMenu(testMenu);
+    }
+
+    HMENU popupInsertMenu = CreatePopupMenu();
+    HMENU insertedSubMenu = CreatePopupMenu();
+    if (!popupInsertMenu || !insertedSubMenu ||
+        !AppendMenuW(
+            popupInsertMenu, MF_STRING, 200, L"Anchor")) {
+        std::wcerr << L"FAIL (MF_POPUP test setup)\n";
+        ++failed;
+    } else {
+        g_originalInsertMenuW = InsertMenuW;
+        g_classicPopupRootMenu = popupInsertMenu;
+        g_classicPopupMenuDepth = 1;
+        const BOOL inserted = InsertMenuWHook(
+            popupInsertMenu, 200, MF_BYCOMMAND | MF_POPUP,
+            reinterpret_cast<UINT_PTR>(insertedSubMenu),
+            L"测试App");
+        g_classicPopupMenuDepth = 0;
+
+        std::wstring spacedPopupText;
+        const int insertedIndex = FindMenuItemIndexByText(
+            popupInsertMenu, L"测试 App");
+        if (!inserted || insertedIndex < 0 ||
+            !ReadMenuItemText(
+                popupInsertMenu,
+                static_cast<UINT>(insertedIndex),
+                &spacedPopupText) ||
+            spacedPopupText != L"测试 App") {
+            std::wcerr << L"FAIL (MF_POPUP rewrite recording)\n";
+            ++failed;
+        }
+
+        RestoreRewrittenMenuItems(popupInsertMenu);
+        std::wstring restoredPopupText;
+        const int restoredIndex = FindMenuItemIndexByText(
+            popupInsertMenu, L"测试App");
+        if (restoredIndex < 0 ||
+            !ReadMenuItemText(
+                popupInsertMenu,
+                static_cast<UINT>(restoredIndex),
+                &restoredPopupText) ||
+            restoredPopupText != L"测试App") {
+            std::wcerr << L"FAIL (MF_POPUP restore)\n";
+            ++failed;
+        }
+
+        g_classicPopupRootMenu = nullptr;
+        g_originalInsertMenuW = nullptr;
+    }
+    if (popupInsertMenu) {
+        DestroyMenu(popupInsertMenu);
+    } else if (insertedSubMenu) {
+        DestroyMenu(insertedSubMenu);
     }
 
     constexpr uintptr_t fakeTooltipThemeCount = 32;
