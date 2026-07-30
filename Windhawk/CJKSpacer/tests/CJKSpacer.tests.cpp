@@ -104,6 +104,16 @@ int wmain() {
         ++failed;
     }
 
+    if (!IsClassicTooltipTextPart(TTP_STANDARD) ||
+        !IsClassicTooltipTextPart(TTP_STANDARDTITLE) ||
+        !IsClassicTooltipTextPart(TTP_BALLOON) ||
+        !IsClassicTooltipTextPart(TTP_BALLOONTITLE) ||
+        IsClassicTooltipTextPart(TTP_CLOSE) ||
+        IsClassicTooltipTextPart(TTP_BALLOONSTEM)) {
+        std::wcerr << L"FAIL (classic tooltip text parts)\n";
+        ++failed;
+    }
+
     if (ClassifyModernWindowClassName(L"Xaml_WindowedPopupClass") !=
             ModernWindowKind::Popup ||
         ClassifyModernWindowClassName(
@@ -135,13 +145,31 @@ int wmain() {
             g_classicPopupRootMenu = testMenu;
             RememberRewrittenMenuItem(
                 testMenu, 0, L"网易UU远程", L"网易 UU 远程");
+
+            if (!InsertMenuW(
+                    testMenu, 0, MF_BYPOSITION | MF_STRING,
+                    101, L"测试 App")) {
+                std::wcerr << L"FAIL (classic popup index shift setup)\n";
+                ++failed;
+            } else {
+                RememberRewrittenMenuItem(
+                    testMenu, 0, L"测试App", L"测试 App");
+            }
+
             RestoreRewrittenMenuItems(testMenu);
 
-            std::wstring restored;
-            if (!ReadMenuItemText(testMenu, 0, &restored) ||
-                restored != L"网易UU远程" ||
-                FindMenuItemIndex(testMenu, 100, false) != 0) {
-                std::wcerr << L"FAIL (classic popup immediate restore)\n";
+            std::wstring restoredInserted;
+            std::wstring restoredShifted;
+            if (!ReadMenuItemText(
+                    testMenu, 0, &restoredInserted) ||
+                restoredInserted != L"测试App" ||
+                !ReadMenuItemText(
+                    testMenu, 1, &restoredShifted) ||
+                restoredShifted != L"网易UU远程" ||
+                FindMenuItemIndex(testMenu, 100, false) != 1 ||
+                FindMenuItemIndex(
+                    testMenu, static_cast<UINT>(-1), true) != 1) {
+                std::wcerr << L"FAIL (classic popup shifted restore)\n";
                 ++failed;
             }
             g_classicPopupRootMenu = nullptr;

@@ -49,8 +49,9 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
   `GetThemeTextExtent` 处理文字测量，并通过 `DrawThemeText` /
   `DrawThemeTextEx` 处理绘制。这覆盖网易 UU 远程等第三方通知区域图标使用
   的旧式 Tooltip，同时不会影响无关 GDI 文本。此路径仅覆盖通过 `uxtheme`
-  绘制的主题化 Tooltip；经典/基本主题下直接使用 `DrawTextW` 绘制的 Tooltip
-  不在处理范围内。
+  绘制的主题化 Tooltip；在已运行的 Explorer 中启用模组时，也会发现已有
+  Tooltip 控件的主题句柄。经典/基本主题下直接使用 `DrawTextW` 绘制的
+  Tooltip 不在处理范围内。
 - Windows 11 XAML 界面：识别新版右键菜单和鼠标 Tooltip 使用的 popup
   窗口类，并只在同一 UI 线程上拦截 DirectWrite 文本布局。任务栏缩略图、
   与缩略图关联的 XAML popup，以及鼠标位于缩略图表面时的布局会被全局排除。
