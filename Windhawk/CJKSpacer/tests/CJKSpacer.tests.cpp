@@ -43,6 +43,8 @@ int wmain() {
         {L"々A", L"々 A"},
         {L"〇VS", L"〇 VS"},
         {L"ｶﾞA", L"ｶﾞ A"},
+        {L"項目・Item", L"項目・Item"},
+        {L"項目゠Item", L"項目゠Item"},
         {L"中文ＡＢＣ", L"中文ＡＢＣ"},
         {L"０中文", L"０中文"},
     };
@@ -106,7 +108,7 @@ int wmain() {
             ModernWindowKind::Popup ||
         ClassifyModernWindowClassName(
             L"Microsoft.UI.Content.PopupWindowSiteBridge") !=
-            ModernWindowKind::Popup ||
+            ModernWindowKind::Other ||
         ClassifyModernWindowClassName(L"TaskListThumbnailWnd") !=
             ModernWindowKind::TaskbarThumbnail ||
         ClassifyModernWindowClassName(L"Shell_TrayWnd") !=
@@ -115,14 +117,21 @@ int wmain() {
         ++failed;
     }
 
-    HTHEME fakeTooltipTheme = reinterpret_cast<HTHEME>(1);
-    TrackClassicTooltipTheme(fakeTooltipTheme);
-    if (!IsTrackedClassicTooltipTheme(fakeTooltipTheme)) {
-        std::wcerr << L"FAIL (classic tooltip theme tracking)\n";
-        ++failed;
+    constexpr uintptr_t fakeTooltipThemeCount = 32;
+    for (uintptr_t value = 1; value <= fakeTooltipThemeCount; ++value) {
+        TrackClassicTooltipTheme(reinterpret_cast<HTHEME>(value));
     }
-    UntrackClassicTooltipTheme(fakeTooltipTheme);
-    if (IsTrackedClassicTooltipTheme(fakeTooltipTheme)) {
+    for (uintptr_t value = 1; value <= fakeTooltipThemeCount; ++value) {
+        const HTHEME theme = reinterpret_cast<HTHEME>(value);
+        if (!IsTrackedClassicTooltipTheme(theme)) {
+            std::wcerr << L"FAIL (classic tooltip theme tracking)\n";
+            ++failed;
+            break;
+        }
+    }
+    ClearTrackedClassicTooltipThemes();
+    if (g_classicTooltipThemeCount.load() != 0 ||
+        IsTrackedClassicTooltipTheme(reinterpret_cast<HTHEME>(1))) {
         std::wcerr << L"FAIL (classic tooltip theme cleanup)\n";
         ++failed;
     }
