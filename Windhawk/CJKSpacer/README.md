@@ -49,7 +49,7 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
   的旧式 Tooltip，同时不会影响无关 GDI 文本。
 - Windows 11 XAML/WinUI 弹出界面：识别 Explorer 使用的 popup 窗口类，
   并只在同一 UI 线程上拦截 DirectWrite 文本布局。此实验性路径包括新版
-  菜单、Tooltip 和其他飞出面板。
+  菜单、Tooltip 和其他飞出面板，但明确排除任务栏缩略图预览窗口。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。DirectWrite
   路径只改变显示文字；经典路径会修改 `HMENU` 保存的文字，因此辅助技术读取
   到的经典菜单文本也会包含新增空格。

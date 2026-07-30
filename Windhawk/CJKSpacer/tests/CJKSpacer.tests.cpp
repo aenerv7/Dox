@@ -102,6 +102,19 @@ int wmain() {
         ++failed;
     }
 
+    if (ClassifyModernWindowClassName(L"Xaml_WindowedPopupClass") !=
+            ModernWindowKind::Popup ||
+        ClassifyModernWindowClassName(
+            L"Microsoft.UI.Content.PopupWindowSiteBridge") !=
+            ModernWindowKind::Popup ||
+        ClassifyModernWindowClassName(L"TaskListThumbnailWnd") !=
+            ModernWindowKind::TaskbarThumbnail ||
+        ClassifyModernWindowClassName(L"Shell_TrayWnd") !=
+            ModernWindowKind::Other) {
+        std::wcerr << L"FAIL (modern window classification)\n";
+        ++failed;
+    }
+
     HTHEME fakeTooltipTheme = reinterpret_cast<HTHEME>(1);
     TrackClassicTooltipTheme(fakeTooltipTheme);
     if (!IsTrackedClassicTooltipTheme(fakeTooltipTheme)) {
