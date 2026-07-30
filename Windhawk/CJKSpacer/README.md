@@ -11,6 +11,16 @@
 打开(&O)            → 打开(&O)
 ```
 
+## 效果截图
+
+启用前：
+
+![启用 CJK Spacer 前](./Before.png)
+
+启用后：
+
+![启用 CJK Spacer 后](./After.png)
+
 ## 安装
 
 1. 安装并启动 Windhawk。
