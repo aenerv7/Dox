@@ -46,14 +46,21 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 - 经典 Tooltip：跟踪为 `TOOLTIP` 类打开的 Windows 主题句柄，通过
   `GetThemeTextExtent` 处理文字测量，并通过 `DrawThemeText` /
   `DrawThemeTextEx` 处理绘制。这覆盖网易 UU 远程等第三方通知区域图标使用
-  的旧式 Tooltip，同时不会影响无关 GDI 文本。
+  的旧式 Tooltip，同时不会影响无关 GDI 文本。此路径仅覆盖通过 `uxtheme`
+  绘制的主题化 Tooltip；经典/基本主题下直接使用 `DrawTextW` 绘制的 Tooltip
+  不在处理范围内。
 - Windows 11 XAML 弹出界面：识别 Explorer 使用的 popup 窗口类，
   并只在同一 UI 线程上拦截 DirectWrite 文本布局。此实验性路径包括新版
-  菜单、Tooltip 和其他飞出面板，但明确排除任务栏缩略图预览窗口。
+  菜单、Tooltip 和其他飞出面板。被跟踪的 popup 可见时，同一 UI 线程上
+  布局的其他 XAML 文本也可能被处理；其他 Explorer 线程不受影响。任务栏
+  缩略图预览窗口被明确排除。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。DirectWrite
   路径只改变显示文字；经典路径会修改 `HMENU` 保存的文字，因此辅助技术读取
   到的经典菜单文本也会包含新增空格。文件名本身不会改变，但它出现在经典菜单
   中时，显示文字也可能被加入空格。
+- “开始”、搜索以及部分飞出面板由 `StartMenuExperienceHost.exe`、
+  `SearchHost.exe` 或 `ShellExperienceHost.exe` 托管，不属于本模组的
+  `explorer.exe` 注入范围。
 
 ## 已知限制
 
@@ -67,6 +74,7 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
   恢复；如果其他组件已再次修改同一菜单项，则保留其新值。
 - 遇到现代 UI 兼容问题时先关闭 `modernUiText`，经典菜单路径仍可独立使用。
 - 如果旧式 Tooltip 出现尺寸或绘制问题，可以单独关闭 `classicTooltips`。
+- 修改功能开关后，Windhawk 会重新加载模组，只安装仍启用功能所需的 Hook。
 - 模组默认把所有 Unicode 字母和数字视为非 CJK“单词字符”。如果只希望处理
   `A-Z`、`a-z` 和 `0-9`，将 `characterMode` 改为 `ascii`。
 - 全角拉丁字母和数字已有表意文字宽度，在 Unicode 模式下也不会额外插入空格。
