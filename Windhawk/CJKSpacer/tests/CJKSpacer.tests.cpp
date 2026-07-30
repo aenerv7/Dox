@@ -28,6 +28,7 @@ int wmain() {
     const std::vector<std::pair<std::wstring, std::wstring>> cases = {
         {L"使用VS Code打开", L"使用 VS Code 打开"},
         {L"压缩为ZIP文件", L"压缩为 ZIP 文件"},
+        {L"网易UU远程", L"网易 UU 远程"},
         {L"使用 VS Code 打开", L"使用 VS Code 打开"},
         {L"打开(&O)", L"打开(&O)"},
         {L"打开&Open", L"打开 &Open"},
@@ -81,6 +82,34 @@ int wmain() {
     if (!ContainsCjkCodePoint(L"ABC中文") ||
         ContainsCjkCodePoint(L"ABC123")) {
         std::wcerr << L"FAIL (CJK pre-scan)\n";
+        ++failed;
+    }
+
+    std::wstring classicTooltipText;
+    if (!BuildSpacedClassicTooltipText(
+            L"网易UU远程", -1, DT_NOPREFIX,
+            &classicTooltipText) ||
+        classicTooltipText != L"网易 UU 远程") {
+        std::wcerr << L"FAIL (classic tooltip text)\n";
+        ++failed;
+    }
+
+    if (!IsClassicTooltipThemeClassList(L"TOOLTIP") ||
+        !IsClassicTooltipThemeClassList(L"Explorer::Tooltip") ||
+        IsClassicTooltipThemeClassList(L"MENU")) {
+        std::wcerr << L"FAIL (classic tooltip theme class)\n";
+        ++failed;
+    }
+
+    HTHEME fakeTooltipTheme = reinterpret_cast<HTHEME>(1);
+    TrackClassicTooltipTheme(fakeTooltipTheme);
+    if (!IsTrackedClassicTooltipTheme(fakeTooltipTheme)) {
+        std::wcerr << L"FAIL (classic tooltip theme tracking)\n";
+        ++failed;
+    }
+    UntrackClassicTooltipTheme(fakeTooltipTheme);
+    if (IsTrackedClassicTooltipTheme(fakeTooltipTheme)) {
+        std::wcerr << L"FAIL (classic tooltip theme cleanup)\n";
         ++failed;
     }
 

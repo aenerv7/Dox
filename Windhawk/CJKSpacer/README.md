@@ -34,6 +34,7 @@
 建议先保持默认设置：
 
 - `classicMenus = true`
+- `classicTooltips = true`
 - `modernUiText = true`
 - `characterMode = unicode`
 
@@ -42,6 +43,10 @@
 - 经典菜单：在 `HMENU` 显示前处理已有菜单项，并拦截运行时新增或修改的
   Unicode 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、桌面、
   任务栏、托盘和跳转列表菜单。
+- 经典 Tooltip：跟踪为 `TOOLTIP` 类打开的 Windows 主题句柄，仅处理通过
+  `DrawThemeText` / `DrawThemeTextEx` 完成的文字测量与绘制。这覆盖网易
+  UU 远程等第三方通知区域图标使用的旧式 Tooltip，同时不会影响无关 GDI
+  文本。
 - Windows 11 新版菜单和 Tooltip：在 XAML/WinUI popup 显示时，通过
   UI Automation 控件类型仅识别菜单和 Tooltip；普通飞出面板不会开启处理。
   识别成功后，仅在对应 popup 存活期间拦截 DirectWrite 文本布局。
@@ -60,6 +65,7 @@
 - 经典菜单对象可能被 Explorer 重用；关闭模组后，已经写入菜单对象的空格可能
   保留到 Explorer 重启。
 - 遇到现代 UI 兼容问题时先关闭 `modernUiText`，经典菜单路径仍可独立使用。
+- 如果旧式 Tooltip 出现尺寸或绘制问题，可以单独关闭 `classicTooltips`。
 - 模组默认把所有 Unicode 字母和数字视为非 CJK“单词字符”。如果只希望处理
   `A-Z`、`a-z` 和 `0-9`，将 `characterMode` 改为 `ascii`。
 - 全角拉丁字母和数字已有表意文字宽度，在 Unicode 模式下也不会额外插入空格。
@@ -71,6 +77,7 @@
 1. 在模组的“高级”（Advanced）页面启用 Windhawk 调试日志。
 2. 打开“显示日志输出”，再复现一次问题。
 3. 查看是否出现 `Applied CJK spacing`，以及 `Tracking modern menu popup`
-   或 `Tracking modern tooltip popup`。
+   / `Tracking modern tooltip popup`；经典 Tooltip 会显示
+   `Tracking classic Win32 tooltip theme` 和 `classic tooltip/...`。
 
 完成排查后关闭 Windhawk 调试日志，避免产生不必要的输出。
