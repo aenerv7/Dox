@@ -39,6 +39,11 @@ int wmain() {
         {L"\U00020000A", L"\U00020000 A"},
         {L"A\U00020000", L"A \U00020000"},
         {L"漢\uFE0FA", L"漢\uFE0F A"},
+        {L"々A", L"々 A"},
+        {L"〇VS", L"〇 VS"},
+        {L"ｶﾞA", L"ｶﾞ A"},
+        {L"中文ＡＢＣ", L"中文ＡＢＣ"},
+        {L"０中文", L"０中文"},
     };
 
     int failed = 0;
@@ -63,6 +68,19 @@ int wmain() {
     if (AddCjkSpacing(L"中文éclair") != L"中文éclair" ||
         AddCjkSpacing(L"中文ABC") != L"中文 ABC") {
         std::wcerr << L"FAIL (ASCII character mode)\n";
+        ++failed;
+    }
+
+    g_unicodeLettersAndDigits.store(true);
+    if (AddCjkSpacing(L"中文&Test", false) != L"中文&Test" ||
+        AddCjkSpacing(L"中文&Test", true) != L"中文 &Test") {
+        std::wcerr << L"FAIL (DirectWrite ampersand handling)\n";
+        ++failed;
+    }
+
+    if (!ContainsCjkCodePoint(L"ABC中文") ||
+        ContainsCjkCodePoint(L"ABC123")) {
+        std::wcerr << L"FAIL (CJK pre-scan)\n";
         ++failed;
     }
 
