@@ -7,7 +7,9 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 Windows 11 的主资源管理器和桌面右键菜单属于新版 XAML 界面，默认关闭的
 `modernUiText` 不会处理它们；如需处理，请手动启用该选项。经典路径仍会处理
 “显示更多选项”打开的传统 Win32 菜单。现代路径使用独占的 XAML Diagnostics
-连接，可能与其他同类定制工具冲突。
+连接名，可能与其他同类定制工具冲突；Taskbar Styler 或 File Explorer Styler
+等工具可能已经使用或阻止这些连接。也就是说，首次安装后如果不手动启用
+`modernUiText`，新版 Windows 11 菜单不会被处理。
 
 ```text
 使用VS Code打开     → 使用 VS Code 打开
@@ -45,7 +47,7 @@ Windows 11 的主资源管理器和桌面右键菜单属于新版 XAML 界面，
 
 如果需要处理 Windows 11 新版 XAML 右键菜单和 Tooltip，再手动启用
 `modernUiText`。它依赖 XAML Diagnostics，因此仍默认关闭，以避免和其他
-同样使用 XAML Diagnostics 的定制工具争用同一连接，例如
+同样使用 XAML Diagnostics 的定制工具争用同一连接名，例如
 Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 使用提醒模式时，启用本模组可能会显示其 XAML Diagnostics 竞争确认对话框。
 
@@ -53,7 +55,7 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 
 - 经典菜单：只在 `TrackPopupMenu` / `TrackPopupMenuEx` 正在显示 popup
   菜单时处理 `HMENU`，包括显示前已有的菜单项，以及菜单打开期间动态新增或
-  修改的 Unicode 和 ANSI 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、
+  修改的 Unicode 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、
   桌面、任务栏和跳转列表右键菜单；第三方通知区域图标进程自己显示的右键
   菜单不在注入范围内。菜单关闭后会立即恢复原文，不再
   提前或持续改写尚未显示的普通菜单。经典菜单栏和窗口系统菜单不经过这些
