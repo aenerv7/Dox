@@ -120,15 +120,6 @@ int wmain() {
         ++failed;
     }
 
-    if (!IsModernPopupClassName(L"Xaml_WindowedPopupClass") ||
-        !IsModernPopupClassName(
-            L"Microsoft.UI.Content.PopupWindowSiteBridge") ||
-        IsModernPopupClassName(L"TaskListThumbnailWnd") ||
-        IsModernPopupClassName(L"Shell_TrayWnd")) {
-        std::wcerr << L"FAIL (modern window classification)\n";
-        ++failed;
-    }
-
     if (!IsModernMenuSourceType(
             L"Windows.UI.Xaml.Controls.MenuFlyoutItem") ||
         !IsModernMenuSourceType(
@@ -145,90 +136,51 @@ int wmain() {
         ++failed;
     }
 
-    struct PopupTestState final : ModernTextStateBase {
-        explicit PopupTestState(HWND popupWindow)
-            : popupWindow(popupWindow) {}
+    if (!IsXamlDiagnosticsTriggerModule(
+            L"C:\\Windows\\System32\\Windows.UI.Xaml.dll") ||
+        !IsXamlDiagnosticsTriggerModule(
+            L"Microsoft.Internal.FrameworkUdk.dll") ||
+        !IsXamlDiagnosticsTriggerModule(L"CoreMessagingXP.dll") ||
+        IsXamlDiagnosticsTriggerModule(L"TaskListThumbnailWnd")) {
+        std::wcerr << L"FAIL (XAML diagnostics load trigger)\n";
+        ++failed;
+    }
 
-        void Apply(HWND newPopupWindow) override {
+    struct ElementTestState final : ModernTextStateBase {
+        void Apply() override {
             ++applyCount;
-            popupWindow = newPopupWindow;
         }
 
-        void Restore(bool clearOwnership) override {
+        void Restore() override {
             ++restoreCount;
-            if (clearOwnership) {
-                popupWindow = nullptr;
-            }
         }
 
-        HWND PopupWindow() const override {
-            return popupWindow;
-        }
-
-        HWND popupWindow;
         int applyCount = 0;
         int restoreCount = 0;
     };
 
-    const HWND firstPopup = reinterpret_cast<HWND>(1);
-    const HWND secondPopup = reinterpret_cast<HWND>(2);
-    const HWND thirdPopup = reinterpret_cast<HWND>(3);
-    const ModernElementKey firstKey{
+    const ModernElementKey elementKey{
         reinterpret_cast<void*>(1), 1};
-    const ModernElementKey secondKey{
-        reinterpret_cast<void*>(2), 2};
-    const ModernElementKey pendingKey{
-        reinterpret_cast<void*>(3), 3};
-    auto firstPopupState =
-        std::make_shared<PopupTestState>(firstPopup);
-    auto secondPopupState =
-        std::make_shared<PopupTestState>(secondPopup);
-    auto pendingState =
-        std::make_shared<PopupTestState>(nullptr);
-    auto& modernThreadState = *g_modernTextStatesForThread;
-    modernThreadState.states.clear();
-    modernThreadState.pending.clear();
-    modernThreadState.ownedByPopup.clear();
-    modernThreadState.states.emplace(firstKey, firstPopupState);
-    modernThreadState.states.emplace(secondKey, secondPopupState);
-    modernThreadState.states.emplace(pendingKey, pendingState);
-    modernThreadState.ownedByPopup[firstPopup].insert(firstKey);
-    modernThreadState.ownedByPopup[secondPopup].insert(secondKey);
-    modernThreadState.pending.insert(pendingKey);
-
-    ApplyModernTextStatesForPopup(thirdPopup);
-    if (firstPopupState->applyCount != 0 ||
-        secondPopupState->applyCount != 0 ||
-        pendingState->applyCount != 1 ||
-        pendingState->PopupWindow() != thirdPopup ||
-        !modernThreadState.pending.empty() ||
-        !modernThreadState.ownedByPopup[thirdPopup].contains(
-            pendingKey)) {
-        std::wcerr << L"FAIL (modern XAML pending ownership)\n";
+    auto elementState = std::make_shared<ElementTestState>();
+    ModernThreadState modernThreadState;
+    modernThreadState.states.emplace(elementKey, elementState);
+    elementState->Apply();
+    RemoveModernTextState(modernThreadState, elementKey);
+    if (elementState->applyCount != 1 ||
+        elementState->restoreCount != 1 ||
+        !modernThreadState.states.empty()) {
+        std::wcerr << L"FAIL (modern XAML element lifecycle)\n";
         ++failed;
     }
 
-    RestoreModernTextStatesForPopup(firstPopup, false);
-    if (firstPopupState->restoreCount != 1 ||
-        firstPopupState->PopupWindow() != firstPopup ||
-        secondPopupState->restoreCount != 0 ||
-        secondPopupState->PopupWindow() != secondPopup) {
-        std::wcerr << L"FAIL (modern XAML popup hide restore)\n";
+    uint64_t currentThreadCreationTime;
+    if (!GetThreadCreationTime(
+            GetCurrentThread(), &currentThreadCreationTime) ||
+        !IsRegisteredThreadAlive(
+            GetCurrentThreadId(), currentThreadCreationTime)) {
+        std::wcerr << L"FAIL (modern XAML thread fingerprint)\n";
         ++failed;
     }
-
-    RestoreModernTextStatesForPopup(firstPopup, true);
-    if (firstPopupState->restoreCount != 2 ||
-        firstPopupState->PopupWindow() ||
-        !modernThreadState.pending.contains(firstKey) ||
-        modernThreadState.ownedByPopup.contains(firstPopup)) {
-        std::wcerr << L"FAIL (modern XAML popup destroy cleanup)\n";
-        ++failed;
-    }
-
-    modernThreadState.states.clear();
-    modernThreadState.pending.clear();
-    modernThreadState.ownedByPopup.clear();
 
     HMENU testMenu = CreatePopupMenu();
     if (!testMenu ||

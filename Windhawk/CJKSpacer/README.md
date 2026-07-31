@@ -40,7 +40,8 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 
 如果需要处理 Windows 11 新版 XAML 右键菜单和 Tooltip，再手动启用
 `modernUiText`。它依赖 XAML Diagnostics，因此仍默认关闭，以避免和其他
-同样使用 XAML Diagnostics 的定制工具争用同一连接。
+同样使用 XAML Diagnostics 的定制工具争用同一连接，例如
+Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。
 
 ## 实现范围
 
@@ -64,19 +65,22 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
   `ToolTip.Content`，但仅限属性本身保存的普通本地字符串；Binding、Style
   和其他表达式会被跳过，因此不会覆盖数据绑定或呈现层 `TextBlock` 的模板
   绑定。普通 XAML 文本和任务栏缩略图不属于这些源控件。
-- XAML popup 的可见集合由 `EVENT_OBJECT_SHOW`、`EVENT_OBJECT_HIDE` 和
-  `EVENT_OBJECT_DESTROY` 维护。新发现且尚未显示的源先进入 pending 集合，
-  popup SHOW 后才转为该 HWND 的 owned 集合；隐藏时只恢复该 popup 的源并
-  保留归属，销毁时才清除归属。隐藏一个 Tooltip 不会改写或恢复同线程中其他
-  菜单的缓存源。
+- 现代路径不猜测 XAML 源属于哪个 popup。XAML Diagnostics 报告受支持的源
+  元素进入视觉树时立即处理，元素离开视觉树时恢复；禁用或更新模组时也会
+  恢复仍在跟踪的值。这避免了缓存、隐藏或复用的 popup 把源错误归给随后显示
+  的菜单或 Tooltip。
 - XAML 元素状态按 UI 线程分别保存。禁用或更新模组时，恢复和释放操作会同步
   派发到各元素所属线程；无法到达的线程不会从错误线程执行属性恢复，其中仅含
-  弱引用的状态会随所属线程退出正常释放。XAML Diagnostics 初始化也在专用
-  工作线程完成，不阻塞正在显示 popup 的 Shell UI 线程。
+  弱引用的状态会随所属线程退出正常释放。线程登记使用线程创建时间识别 ID
+  复用，并在显式登记和卸载快照时清理死线程，不在线程局部对象析构期间获取
+  全局互斥锁。
+- XAML Diagnostics 在模组初始化完成后连接；如果相关 XAML DLL 稍后加载，
+  `LoadLibraryExW` Hook 会再次尝试连接。只有 TAP 实际创建了视觉树 watcher
+  才会把连接记为成功，因此被其他工具拦截但返回 `S_OK` 不会造成假成功。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。现代路径临时
-  修改目标 XAML 源属性并随所属 popup 恢复；经典路径会修改 `HMENU` 保存的
-  文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。文件名本身不会
-  改变，但它出现在经典菜单中时，显示文字也可能被加入空格。
+  修改目标 XAML 源属性并在源离开视觉树或模组卸载时恢复；经典路径会修改
+  `HMENU` 保存的文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。
+  文件名本身不会改变，但它出现在经典菜单中时，显示文字也可能被加入空格。
 - “开始”、搜索以及部分飞出面板由 `StartMenuExperienceHost.exe`、
   `SearchHost.exe` 或 `ShellExperienceHost.exe` 托管，不属于本模组的
   `explorer.exe` 注入范围。
@@ -84,11 +88,11 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 ## 已知限制
 
 - Windows 没有公开的全局菜单文字过滤 API。新版弹出界面实现可能随 Windows
-  更新而改变；如果不再使用受支持的 popup 类或 XAML 控件层级，可能漏掉部分
-  文字。
+  更新而改变；如果不再使用受支持的 XAML 源控件类型，可能漏掉部分文字。
 - XAML Diagnostics 的每个 XAML 连接只能有一个消费者。UWPSpy、其他
-  Diagnostics 型 Windhawk 模组或调试工具已占用连接时，现代路径可能无法
-  初始化；经典菜单和 Tooltip 路径不受影响。
+  Diagnostics 型 Windhawk 模组（包括 Windows 11 Taskbar Styler 和
+  Windows 11 File Explorer Styler）或调试工具已占用连接时，现代路径可能
+  无法初始化；经典菜单和 Tooltip 路径不受影响。
 - 现代路径只处理带 `Text` 属性的标准 XAML 菜单项，以及内容可解包为字符串
   且属性值是普通本地字符串的 Tooltip。由 Binding、Style 或模板提供的值，
   以及自定义绘制、RichTextBlock、图片或任意自定义内容不在处理范围内。
