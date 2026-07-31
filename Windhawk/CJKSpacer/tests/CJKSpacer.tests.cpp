@@ -21,6 +21,8 @@ int wmain() {
         {L"文件...", L"文件..."},
         {L"你好，world", L"你好，world"},
         {L"カナABC", L"カナ ABC"},
+        {L"ひらがなABC", L"ひらがな ABC"},
+        {L"ﾃｽﾄABC", L"ﾃｽﾄ ABC"},
         {L"한글123", L"한글 123"},
         {L"中文éclair", L"中文 éclair"},
         {L"\U00020000A", L"\U00020000 A"},
@@ -388,6 +390,22 @@ int wmain() {
             ++failed;
             break;
         }
+    }
+    const HTHEME mixedReferenceTheme =
+        reinterpret_cast<HTHEME>(fakeTooltipThemeCount + 1);
+    TrackClassicTooltipTheme(mixedReferenceTheme, nullptr);
+    if (IsTrackedClassicTooltipTheme(mixedReferenceTheme)) {
+        std::wcerr << L"FAIL (non-window tooltip theme target)\n";
+        ++failed;
+    }
+    TrackClassicTooltipTheme(mixedReferenceTheme, tooltipWindow);
+    if (!IsTrackedClassicTooltipTheme(mixedReferenceTheme) ||
+        !UntrackClassicTooltipTheme(mixedReferenceTheme) ||
+        !IsTrackedClassicTooltipTheme(mixedReferenceTheme) ||
+        !UntrackClassicTooltipTheme(mixedReferenceTheme) ||
+        IsTrackedClassicTooltipTheme(mixedReferenceTheme)) {
+        std::wcerr << L"FAIL (mixed classic tooltip theme references)\n";
+        ++failed;
     }
     const HTHEME trackedTheme = reinterpret_cast<HTHEME>(1);
     TrackClassicTooltipTheme(trackedTheme, secondTooltipWindow);

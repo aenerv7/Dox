@@ -131,6 +131,7 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 - 模组默认把所有 Unicode 字母和数字视为非 CJK“单词字符”。如果只希望处理
   `A-Z`、`a-z` 和 `0-9`，将 `characterMode` 改为 `ascii`。
 - 全角拉丁字母和数字已有表意文字宽度，在 Unicode 模式下也不会额外插入空格。
+- 平假名、全角片假名和半角片假名都按 CJK 字符处理，用于边界检测。
 
 ## 排查
 
