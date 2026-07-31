@@ -146,6 +146,17 @@ int wmain() {
         ++failed;
     }
 
+    HMODULE retainedModule = AcquireCurrentModuleReference();
+    HMODULE kernelBaseModule = GetModuleHandleW(L"kernelbase.dll");
+    if (!retainedModule || !kernelBaseModule ||
+        !GetProcAddress(kernelBaseModule, "LoadLibraryExW")) {
+        std::wcerr << L"FAIL (XAML diagnostics module loading)\n";
+        ++failed;
+    }
+    if (retainedModule) {
+        FreeLibrary(retainedModule);
+    }
+
     struct ElementTestState final : ModernTextStateBase {
         void Apply() override {
             ++applyCount;
