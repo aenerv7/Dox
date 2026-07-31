@@ -7,7 +7,7 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 Windows 11 的主资源管理器和桌面右键菜单属于新版 XAML 界面，默认关闭的
 `modernUiText` 不会处理它们；如需处理，请手动启用该选项。经典路径仍会处理
 “显示更多选项”打开的传统 Win32 菜单。现代路径使用独占的 XAML Diagnostics
-连接名，可能与其他同类定制工具冲突；Taskbar Styler 或 File Explorer Styler
+连接名，现代路径属于尽力而为，可能与其他同类定制工具冲突；Taskbar Styler 或 File Explorer Styler
 等工具可能已经使用或阻止这些连接。也就是说，首次安装后如果不手动启用
 `modernUiText`，新版 Windows 11 菜单不会被处理。
 
@@ -91,7 +91,8 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 - XAML Diagnostics 在模组初始化完成后异步连接；如果相关 XAML DLL 稍后
   加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只调度 single-flight
   连接任务，并保留任务运行期间到达的后续请求。WUX/MUX 连接状态分别跟踪，
-  断线后只重试对应连接。任务通过显式 DLL 引用和
+  断线后只重试对应连接；如果连接被阻止或其他原因失败，宿主窗口创建不会
+  无限重试，只有新的 XAML DLL 加载或已有连接断开才会再次尝试。任务通过显式 DLL 引用和
   `FreeLibraryAndExitThread` 保证线程不会执行已卸载的模组代码，也不会在
   Windows Loader Lock 路径内执行 COM 激活。只有 TAP 实际创建了视觉树
   watcher 才会把连接记为成功，因此被其他工具拦截但返回 `S_OK` 不会造成假
