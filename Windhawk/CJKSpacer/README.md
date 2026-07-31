@@ -4,6 +4,11 @@
 Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半角空格；已有
 空格、标点、经典菜单助记键标记和快捷键说明保持不变。
 
+Windows 11 的主资源管理器和桌面右键菜单属于新版 XAML 界面，默认关闭的
+`modernUiText` 不会处理它们；如需处理，请手动启用该选项。经典路径仍会处理
+“显示更多选项”打开的传统 Win32 菜单。现代路径使用独占的 XAML Diagnostics
+连接，可能与其他同类定制工具冲突。
+
 ```text
 使用VS Code打开     → 使用 VS Code 打开
 压缩为ZIP文件       → 压缩为 ZIP 文件
@@ -48,7 +53,8 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。
 - 经典菜单：只在 `TrackPopupMenu` / `TrackPopupMenuEx` 正在显示 popup
   菜单时处理 `HMENU`，包括显示前已有的菜单项，以及菜单打开期间动态新增或
   修改的 Unicode 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、
-  桌面、任务栏、托盘和跳转列表右键菜单；菜单关闭后会立即恢复原文，不再
+  桌面、任务栏和跳转列表右键菜单；第三方通知区域图标进程自己显示的右键
+  菜单不在注入范围内。菜单关闭后会立即恢复原文，不再
   提前或持续改写尚未显示的普通菜单。
 - 经典 Tooltip：跟踪为 `TOOLTIP` 类打开的 Windows 主题句柄，通过
   `GetThemeTextExtent` 处理文字测量，并通过 `DrawThemeText` /

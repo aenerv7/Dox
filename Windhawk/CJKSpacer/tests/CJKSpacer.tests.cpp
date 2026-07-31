@@ -1,4 +1,3 @@
-#include <cstdarg>
 #include <iostream>
 #include <string>
 #include <utility>
@@ -6,22 +5,8 @@
 
 #include <windows.h>
 
-void Wh_Log(PCWSTR, ...) {}
-
-BOOL Wh_SetFunctionHook(void*, void*, void**) {
-    return TRUE;
-}
-
-int Wh_GetIntSetting(PCWSTR) {
-    return 1;
-}
-
-PCWSTR Wh_GetStringSetting(PCWSTR) {
-    return L"unicode";
-}
-
-void Wh_FreeStringSetting(PCWSTR) {}
-
+#define WH_MOD
+#define WH_EDITING
 #define WH_MOD_ID L"cjk-spacer-test"
 #include "../CJKSpacer.wh.cpp"
 
@@ -158,27 +143,33 @@ int wmain() {
     }
 
     struct ElementTestState final : ModernTextStateBase {
-        void Apply() override {
-            ++applyCount;
+        ElementTestState(int* applyCount, int* restoreCount)
+            : applyCount(applyCount), restoreCount(restoreCount) {}
+
+        bool Apply() override {
+            ++*applyCount;
+            return true;
         }
 
         void Restore() override {
-            ++restoreCount;
+            ++*restoreCount;
         }
 
-        int applyCount = 0;
-        int restoreCount = 0;
+        int* applyCount;
+        int* restoreCount;
     };
 
     const ModernElementKey elementKey{
         reinterpret_cast<void*>(1), 1};
-    auto elementState = std::make_shared<ElementTestState>();
+    int applyCount = 0;
+    int restoreCount = 0;
+    auto elementState = std::make_unique<ElementTestState>(
+        &applyCount, &restoreCount);
     ModernThreadState modernThreadState;
-    modernThreadState.states.emplace(elementKey, elementState);
-    elementState->Apply();
+    modernThreadState.states.emplace(elementKey, std::move(elementState));
+    modernThreadState.states.at(elementKey)->Apply();
     RemoveModernTextState(modernThreadState, elementKey);
-    if (elementState->applyCount != 1 ||
-        elementState->restoreCount != 1 ||
+    if (applyCount != 1 || restoreCount != 1 ||
         !modernThreadState.states.empty()) {
         std::wcerr << L"FAIL (modern XAML element lifecycle)\n";
         ++failed;
