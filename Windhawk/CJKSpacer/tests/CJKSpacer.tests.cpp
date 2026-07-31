@@ -82,7 +82,7 @@ int wmain() {
     g_unicodeLettersAndDigits.store(true);
     if (AddCjkSpacing(L"中文&Test", false) != L"中文&Test" ||
         AddCjkSpacing(L"中文&Test", true) != L"中文 &Test") {
-        std::wcerr << L"FAIL (DirectWrite ampersand handling)\n";
+        std::wcerr << L"FAIL (ampersand handling)\n";
         ++failed;
     }
 
@@ -119,38 +119,26 @@ int wmain() {
         ++failed;
     }
 
-    if (ClassifyModernWindowClassName(L"Xaml_WindowedPopupClass") !=
-            ModernWindowKind::Popup ||
-        ClassifyModernWindowClassName(
-            L"Microsoft.UI.Content.PopupWindowSiteBridge") !=
-            ModernWindowKind::Other ||
-        ClassifyModernWindowClassName(L"TaskListThumbnailWnd") !=
-            ModernWindowKind::TaskbarThumbnail ||
-        ClassifyModernWindowClassName(L"Shell_TrayWnd") !=
-            ModernWindowKind::Other) {
+    if (!IsModernPopupClassName(L"Xaml_WindowedPopupClass") ||
+        !IsModernPopupClassName(
+            L"Microsoft.UI.Content.PopupWindowSiteBridge") ||
+        IsModernPopupClassName(L"TaskListThumbnailWnd") ||
+        IsModernPopupClassName(L"Shell_TrayWnd")) {
         std::wcerr << L"FAIL (modern window classification)\n";
         ++failed;
     }
 
-    {
-        std::lock_guard<std::mutex> guard(
-            g_trackedModernWindowsMutex);
-        g_trackedModernWindows.clear();
-        g_trackedModernWindows.emplace(
-            reinterpret_cast<HWND>(1),
-            TrackedModernWindow{1, ModernWindowKind::Popup});
-        g_trackedModernWindows.emplace(
-            reinterpret_cast<HWND>(2),
-            TrackedModernWindow{
-                1, ModernWindowKind::TaskbarThumbnail});
-        UpdateTrackedModernWindowCountsLocked();
-    }
-    if (g_trackedModernWindowCount.load() != 2 ||
-        g_trackedModernPopupCount.load() != 1) {
-        std::wcerr << L"FAIL (modern popup-only fast-path count)\n";
+    if (!IsTargetModernAncestorClass(
+            L"Windows.UI.Xaml.Controls.MenuFlyoutPresenter") ||
+        !IsTargetModernAncestorClass(
+            L"Microsoft.UI.Xaml.Controls.ToolTip") ||
+        IsTargetModernAncestorClass(
+            L"Windows.UI.Xaml.Controls.Grid") ||
+        IsTargetModernAncestorClass(
+            L"TaskListThumbnailWnd")) {
+        std::wcerr << L"FAIL (modern XAML target classification)\n";
         ++failed;
     }
-    ClearTrackedModernWindows();
 
     HMENU testMenu = CreatePopupMenu();
     if (!testMenu ||
@@ -267,6 +255,42 @@ int wmain() {
             break;
         }
     }
+
+    INITCOMMONCONTROLSEX commonControls = {
+        sizeof(commonControls), ICC_WIN95_CLASSES};
+    InitCommonControlsEx(&commonControls);
+    const HWND tooltipWindow = CreateWindowExW(
+        WS_EX_TOOLWINDOW, TOOLTIPS_CLASSW, nullptr, WS_POPUP,
+        0, 0, 1, 1, nullptr, nullptr, nullptr, nullptr);
+    const HWND otherWindow = CreateWindowExW(
+        WS_EX_TOOLWINDOW, L"STATIC", nullptr, WS_POPUP,
+        0, 0, 1, 1, nullptr, nullptr, nullptr, nullptr);
+    const HDC tooltipDc =
+        tooltipWindow ? GetDC(tooltipWindow) : nullptr;
+    const HDC otherDc =
+        otherWindow ? GetDC(otherWindow) : nullptr;
+    const HTHEME trackedTheme = reinterpret_cast<HTHEME>(1);
+    if (!tooltipDc ||
+        !IsClassicTooltipTarget(trackedTheme, tooltipDc) ||
+        !IsClassicTooltipTarget(trackedTheme, nullptr) ||
+        (otherDc &&
+         IsClassicTooltipTarget(trackedTheme, otherDc))) {
+        std::wcerr << L"FAIL (classic tooltip target confirmation)\n";
+        ++failed;
+    }
+    if (tooltipDc) {
+        ReleaseDC(tooltipWindow, tooltipDc);
+    }
+    if (otherDc) {
+        ReleaseDC(otherWindow, otherDc);
+    }
+    if (tooltipWindow) {
+        DestroyWindow(tooltipWindow);
+    }
+    if (otherWindow) {
+        DestroyWindow(otherWindow);
+    }
+
     ClearTrackedClassicTooltipThemes();
     if (g_classicTooltipThemeCount.load() != 0 ||
         IsTrackedClassicTooltipTheme(reinterpret_cast<HTHEME>(1))) {
