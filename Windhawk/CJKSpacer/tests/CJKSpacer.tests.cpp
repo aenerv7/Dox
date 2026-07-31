@@ -22,6 +22,7 @@ PCWSTR Wh_GetStringSetting(PCWSTR) {
 
 void Wh_FreeStringSetting(PCWSTR) {}
 
+#define WH_MOD_ID L"cjk-spacer-test"
 #include "../CJKSpacer.wh.cpp"
 
 int wmain() {
