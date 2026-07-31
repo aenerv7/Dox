@@ -63,10 +63,10 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 - 经典 Tooltip：跟踪为 `TOOLTIP` 类打开的 Windows 主题句柄，通过
   `GetThemeTextExtent` 处理文字测量，并通过 `DrawThemeText` /
   `DrawThemeTextEx` 处理绘制。这覆盖网易 UU 远程等第三方通知区域图标使用
-  的旧式 Tooltip。主题句柄会绑定到打开它的 Tooltip 窗口；绘制路径先通过
-  已跟踪的主题句柄快速过滤，如果 HDC 能映射到窗口，还必须由
-  `WindowFromDC` 确认它就是该 `tooltips_class32` 窗口，因而复用旧主题句柄
-  的其他控件不会被误改。此路径仅覆盖通过 `uxtheme`
+  的旧式 Tooltip。共享主题句柄会为每个打开它的 `tooltips_class32` 窗口保留
+  引用；绘制路径先通过已跟踪的主题句柄快速过滤，如果 HDC 能映射到窗口，
+  还必须由 `WindowFromDC` 确认它是 `tooltips_class32` 窗口，无法映射窗口的
+  缓冲 DC 则允许通过，因而复用旧主题句柄的其他控件不会被误改。此路径仅覆盖通过 `uxtheme`
   绘制的主题化 Tooltip；在已运行的 Explorer 中启用模组时，也会发现已有
   Tooltip 控件的主题句柄。经典/基本主题下直接使用 `DrawTextW` 绘制的
   Tooltip 不在处理范围内。

@@ -364,11 +364,16 @@ int wmain() {
     const HWND tooltipWindow = CreateWindowExW(
         WS_EX_TOOLWINDOW, TOOLTIPS_CLASSW, nullptr, WS_POPUP,
         0, 0, 1, 1, nullptr, nullptr, nullptr, nullptr);
+    const HWND secondTooltipWindow = CreateWindowExW(
+        WS_EX_TOOLWINDOW, TOOLTIPS_CLASSW, nullptr, WS_POPUP,
+        0, 0, 1, 1, nullptr, nullptr, nullptr, nullptr);
     const HWND otherWindow = CreateWindowExW(
         WS_EX_TOOLWINDOW, L"STATIC", nullptr, WS_POPUP,
         0, 0, 1, 1, nullptr, nullptr, nullptr, nullptr);
     const HDC tooltipDc =
         tooltipWindow ? GetDC(tooltipWindow) : nullptr;
+    const HDC secondTooltipDc =
+        secondTooltipWindow ? GetDC(secondTooltipWindow) : nullptr;
     const HDC otherDc =
         otherWindow ? GetDC(otherWindow) : nullptr;
     constexpr uintptr_t fakeTooltipThemeCount = 32;
@@ -385,8 +390,16 @@ int wmain() {
         }
     }
     const HTHEME trackedTheme = reinterpret_cast<HTHEME>(1);
+    TrackClassicTooltipTheme(trackedTheme, secondTooltipWindow);
+    if (!UntrackClassicTooltipTheme(trackedTheme) ||
+        !IsTrackedClassicTooltipTheme(trackedTheme)) {
+        std::wcerr << L"FAIL (shared classic tooltip theme references)\n";
+        ++failed;
+    }
     if (!tooltipDc ||
         !IsClassicTooltipTarget(trackedTheme, tooltipDc) ||
+        (secondTooltipDc &&
+         !IsClassicTooltipTarget(trackedTheme, secondTooltipDc)) ||
         !IsClassicTooltipTarget(trackedTheme, nullptr) ||
         (otherDc &&
          IsClassicTooltipTarget(trackedTheme, otherDc))) {
@@ -396,11 +409,17 @@ int wmain() {
     if (tooltipDc) {
         ReleaseDC(tooltipWindow, tooltipDc);
     }
+    if (secondTooltipDc) {
+        ReleaseDC(secondTooltipWindow, secondTooltipDc);
+    }
     if (otherDc) {
         ReleaseDC(otherWindow, otherDc);
     }
     if (tooltipWindow) {
         DestroyWindow(tooltipWindow);
+    }
+    if (secondTooltipWindow) {
+        DestroyWindow(secondTooltipWindow);
     }
     if (otherWindow) {
         DestroyWindow(otherWindow);
