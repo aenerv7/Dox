@@ -128,17 +128,65 @@ int wmain() {
         ++failed;
     }
 
-    if (!IsTargetModernAncestorClass(
+    if (!IsModernMenuSourceType(
+            L"Windows.UI.Xaml.Controls.MenuFlyoutItem") ||
+        !IsModernMenuSourceType(
+            L"Microsoft.UI.Xaml.Controls.ToggleMenuFlyoutItem") ||
+        !IsModernMenuSourceType(
+            L"Microsoft.UI.Xaml.Controls.MenuFlyoutSubItem") ||
+        IsModernMenuSourceType(
             L"Windows.UI.Xaml.Controls.MenuFlyoutPresenter") ||
-        !IsTargetModernAncestorClass(
-            L"Microsoft.UI.Xaml.Controls.ToolTip") ||
-        IsTargetModernAncestorClass(
-            L"Windows.UI.Xaml.Controls.Grid") ||
-        IsTargetModernAncestorClass(
-            L"TaskListThumbnailWnd")) {
-        std::wcerr << L"FAIL (modern XAML target classification)\n";
+        !IsModernTooltipSourceType(
+            L"Windows.UI.Xaml.Controls.ToolTip") ||
+        IsModernTooltipSourceType(
+            L"Windows.UI.Xaml.Controls.TextBlock")) {
+        std::wcerr << L"FAIL (modern XAML source classification)\n";
         ++failed;
     }
+
+    struct PopupTestState final : ModernTextStateBase {
+        explicit PopupTestState(HWND popupWindow)
+            : popupWindow(popupWindow) {}
+
+        void Apply(HWND newPopupWindow) override {
+            popupWindow = newPopupWindow;
+        }
+
+        void Restore() override {
+            ++restoreCount;
+            popupWindow = nullptr;
+        }
+
+        HWND PopupWindow() const override {
+            return popupWindow;
+        }
+
+        HWND popupWindow;
+        int restoreCount = 0;
+    };
+
+    const HWND firstPopup = reinterpret_cast<HWND>(1);
+    const HWND secondPopup = reinterpret_cast<HWND>(2);
+    auto firstPopupState =
+        std::make_shared<PopupTestState>(firstPopup);
+    auto secondPopupState =
+        std::make_shared<PopupTestState>(secondPopup);
+    g_modernTextStatesForThread->clear();
+    g_modernTextStatesForThread->emplace(
+        ModernElementKey{reinterpret_cast<void*>(1), 1},
+        firstPopupState);
+    g_modernTextStatesForThread->emplace(
+        ModernElementKey{reinterpret_cast<void*>(2), 2},
+        secondPopupState);
+    RestoreModernTextStatesForPopup(firstPopup);
+    if (firstPopupState->restoreCount != 1 ||
+        firstPopupState->PopupWindow() ||
+        secondPopupState->restoreCount != 0 ||
+        secondPopupState->PopupWindow() != secondPopup) {
+        std::wcerr << L"FAIL (modern XAML popup ownership restore)\n";
+        ++failed;
+    }
+    g_modernTextStatesForThread->clear();
 
     HMENU testMenu = CreatePopupMenu();
     if (!testMenu ||

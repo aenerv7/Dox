@@ -52,24 +52,29 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 - 经典 Tooltip：跟踪为 `TOOLTIP` 类打开的 Windows 主题句柄，通过
   `GetThemeTextExtent` 处理文字测量，并通过 `DrawThemeText` /
   `DrawThemeTextEx` 处理绘制。这覆盖网易 UU 远程等第三方通知区域图标使用
-  的旧式 Tooltip。绘制时还通过 `WindowFromDC` 确认 HDC 实际属于
-  `tooltips_class32`；只有无法从 HDC 取得窗口时才回退到主题句柄判断，因此
-  复用同一主题句柄的其他控件不会被误改。此路径仅覆盖通过 `uxtheme` 绘制的
-  主题化 Tooltip；在已运行的 Explorer 中启用模组时，也会发现已有 Tooltip
-  控件的主题句柄。经典/基本主题下直接使用 `DrawTextW` 绘制的 Tooltip
-  不在处理范围内。
+  的旧式 Tooltip。绘制路径先通过已跟踪的主题句柄快速过滤；如果 HDC 能映射
+  到窗口，还必须由 `WindowFromDC` 确认该窗口属于 `tooltips_class32`，
+  因而复用旧主题句柄的其他控件不会被误改。此路径仅覆盖通过 `uxtheme`
+  绘制的主题化 Tooltip；在已运行的 Explorer 中启用模组时，也会发现已有
+  Tooltip 控件的主题句柄。经典/基本主题下直接使用 `DrawTextW` 绘制的
+  Tooltip 不在处理范围内。
 - Windows 11 XAML 界面：通过 XAML Diagnostics 接收视觉树变化，同时支持
-  Windows.UI.Xaml 和 Microsoft.UI.Xaml。只有祖先链中存在
-  `MenuFlyoutPresenter` 或 `ToolTip` 的 `TextBlock` 会被处理；普通 XAML
-  文本与任务栏缩略图不符合这一条件。元素 Loaded 时应用，Unloaded 时恢复。
+  Windows.UI.Xaml 和 Microsoft.UI.Xaml。现代路径修改
+  `MenuFlyoutItem.Text`、`MenuFlyoutSubItem.Text` 或字符串形式的
+  `ToolTip.Content`，不会再覆盖呈现层 `TextBlock` 的模板绑定。普通 XAML
+  文本和任务栏缩略图不属于这些源控件。
 - XAML popup 的可见集合由 `EVENT_OBJECT_SHOW`、`EVENT_OBJECT_HIDE` 和
-  `EVENT_OBJECT_DESTROY` 维护。隐藏时立即从集合移除并恢复该 UI 线程上的
-  已改文字；同一个隐藏 popup 之后被复用时，会在新的 SHOW/Loaded 周期重新
-  应用，不会留下永久句柄。
+  `EVENT_OBJECT_DESTROY` 维护。每条改写记录都关联到具体 popup HWND；隐藏
+  一个 Tooltip 不会恢复同线程中仍然打开的菜单。同一个隐藏 popup 被复用时，
+  会在新的 SHOW 周期重新应用，不会留下永久句柄。
+- XAML 元素状态按 UI 线程分别保存。禁用或更新模组时，恢复和释放操作会同步
+  派发到各元素所属线程；无法到达的线程状态会被有意保留，而不会从错误线程
+  释放 XAML 对象。XAML Diagnostics 初始化也在专用工作线程完成，不阻塞正在
+  显示 popup 的 Shell UI 线程。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。现代路径临时
-  修改目标 `TextBlock` 的显示值并在卸载时恢复；经典路径会修改 `HMENU`
-  保存的文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。文件名本身
-  不会改变，但它出现在经典菜单中时，显示文字也可能被加入空格。
+  修改目标 XAML 源属性并随所属 popup 恢复；经典路径会修改 `HMENU` 保存的
+  文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。文件名本身不会
+  改变，但它出现在经典菜单中时，显示文字也可能被加入空格。
 - “开始”、搜索以及部分飞出面板由 `StartMenuExperienceHost.exe`、
   `SearchHost.exe` 或 `ShellExperienceHost.exe` 托管，不属于本模组的
   `explorer.exe` 注入范围。
@@ -82,8 +87,9 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 - XAML Diagnostics 的每个 XAML 连接只能有一个消费者。UWPSpy、其他
   Diagnostics 型 Windhawk 模组或调试工具已占用连接时，现代路径可能无法
   初始化；经典菜单和 Tooltip 路径不受影响。
-- 现代路径只处理 `TextBlock.Text`。使用自定义绘制、RichTextBlock、图片或
-  非文本内容的菜单项/Tooltip 不在处理范围内。
+- 现代路径只处理带 `Text` 属性的标准 XAML 菜单项，以及内容可解包为字符串
+  的 Tooltip。自定义绘制、RichTextBlock、图片或任意自定义内容不在处理
+  范围内。
 - 经典菜单在显示前改写的字符串会被记录，并在 popup 关闭时立即尽量恢复；
   如果其他组件已再次修改同一菜单项，则保留其新值。卸载模组时还会清理尚未
   完成的记录。
@@ -102,7 +108,8 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 1. 在模组的“高级”（Advanced）页面启用 Windhawk 调试日志。
 2. 打开“显示日志输出”，再复现一次问题。
 3. 查看是否出现 `Connected to ... XAML diagnostics` 和
-   `Applied CJK spacing (modern XAML TextBlock)`；经典 Tooltip 会显示
+   `Applied CJK spacing (modern XAML menu source/tooltip source)`；经典
+   Tooltip 会显示
    `Tracking classic Win32 tooltip theme` 和 `classic tooltip/...`。
 
 完成排查后关闭 Windhawk 调试日志，避免产生不必要的输出。
