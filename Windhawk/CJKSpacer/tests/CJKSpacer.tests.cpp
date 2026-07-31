@@ -358,19 +358,6 @@ int wmain() {
         DestroyMenu(collisionSubMenu);
     }
 
-    constexpr uintptr_t fakeTooltipThemeCount = 32;
-    for (uintptr_t value = 1; value <= fakeTooltipThemeCount; ++value) {
-        TrackClassicTooltipTheme(reinterpret_cast<HTHEME>(value));
-    }
-    for (uintptr_t value = 1; value <= fakeTooltipThemeCount; ++value) {
-        const HTHEME theme = reinterpret_cast<HTHEME>(value);
-        if (!IsTrackedClassicTooltipTheme(theme)) {
-            std::wcerr << L"FAIL (classic tooltip theme tracking)\n";
-            ++failed;
-            break;
-        }
-    }
-
     INITCOMMONCONTROLSEX commonControls = {
         sizeof(commonControls), ICC_WIN95_CLASSES};
     InitCommonControlsEx(&commonControls);
@@ -384,6 +371,19 @@ int wmain() {
         tooltipWindow ? GetDC(tooltipWindow) : nullptr;
     const HDC otherDc =
         otherWindow ? GetDC(otherWindow) : nullptr;
+    constexpr uintptr_t fakeTooltipThemeCount = 32;
+    for (uintptr_t value = 1; value <= fakeTooltipThemeCount; ++value) {
+        TrackClassicTooltipTheme(
+            reinterpret_cast<HTHEME>(value), tooltipWindow);
+    }
+    for (uintptr_t value = 1; value <= fakeTooltipThemeCount; ++value) {
+        const HTHEME theme = reinterpret_cast<HTHEME>(value);
+        if (!IsTrackedClassicTooltipTheme(theme)) {
+            std::wcerr << L"FAIL (classic tooltip theme tracking)\n";
+            ++failed;
+            break;
+        }
+    }
     const HTHEME trackedTheme = reinterpret_cast<HTHEME>(1);
     if (!tooltipDc ||
         !IsClassicTooltipTarget(trackedTheme, tooltipDc) ||

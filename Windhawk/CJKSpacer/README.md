@@ -46,7 +46,8 @@ Windows 11 的主资源管理器和桌面右键菜单属于新版 XAML 界面，
 如果需要处理 Windows 11 新版 XAML 右键菜单和 Tooltip，再手动启用
 `modernUiText`。它依赖 XAML Diagnostics，因此仍默认关闭，以避免和其他
 同样使用 XAML Diagnostics 的定制工具争用同一连接，例如
-Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。
+Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
+使用提醒模式时，启用本模组可能会显示其 XAML Diagnostics 竞争确认对话框。
 
 ## 实现范围
 
@@ -55,13 +56,15 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。
   修改的 Unicode 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、
   桌面、任务栏和跳转列表右键菜单；第三方通知区域图标进程自己显示的右键
   菜单不在注入范围内。菜单关闭后会立即恢复原文，不再
-  提前或持续改写尚未显示的普通菜单。
+  提前或持续改写尚未显示的普通菜单。经典菜单栏和窗口系统菜单不经过这些
+  popup API，也不在处理范围内。
 - 经典 Tooltip：跟踪为 `TOOLTIP` 类打开的 Windows 主题句柄，通过
   `GetThemeTextExtent` 处理文字测量，并通过 `DrawThemeText` /
   `DrawThemeTextEx` 处理绘制。这覆盖网易 UU 远程等第三方通知区域图标使用
-  的旧式 Tooltip。绘制路径先通过已跟踪的主题句柄快速过滤；如果 HDC 能映射
-  到窗口，还必须由 `WindowFromDC` 确认该窗口属于 `tooltips_class32`，
-  因而复用旧主题句柄的其他控件不会被误改。此路径仅覆盖通过 `uxtheme`
+  的旧式 Tooltip。主题句柄会绑定到打开它的 Tooltip 窗口；绘制路径先通过
+  已跟踪的主题句柄快速过滤，如果 HDC 能映射到窗口，还必须由
+  `WindowFromDC` 确认它就是该 `tooltips_class32` 窗口，因而复用旧主题句柄
+  的其他控件不会被误改。此路径仅覆盖通过 `uxtheme`
   绘制的主题化 Tooltip；在已运行的 Explorer 中启用模组时，也会发现已有
   Tooltip 控件的主题句柄。经典/基本主题下直接使用 `DrawTextW` 绘制的
   Tooltip 不在处理范围内。
@@ -87,7 +90,8 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。
   `FreeLibraryAndExitThread` 保证线程不会执行已卸载的模组代码，也不会在
   Windows Loader Lock 路径内执行 COM 激活。只有 TAP 实际创建了视觉树
   watcher 才会把连接记为成功，因此被其他工具拦截但返回 `S_OK` 不会造成假
-  成功。
+  成功。每次重新加载都会切换现代 UI 代次，旧的分离线程和 watcher 回调会被
+  忽略，避免跨次加载复用连接状态。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。现代路径临时
   修改目标 XAML 源属性并在源离开视觉树或模组卸载时恢复；经典路径会修改
   `HMENU` 保存的文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。
@@ -110,7 +114,9 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。
 - 经典菜单在显示前改写的字符串会被记录，并在 popup 关闭时立即尽量恢复；
   如果其他组件已再次修改同一菜单项，则保留其新值。卸载模组时还会清理尚未
   完成的记录。popup 打开期间，其他通过文字匹配菜单项的模组也会读到加入空格
-  后的字符串，可能需要相应调整其匹配规则。
+  后的字符串，可能需要相应调整其匹配规则。若多个菜单项的改写后文字完全
+  相同，恢复时按文字查找可能命中第一个匹配项；转换本身是幂等的，不会叠加
+  空格。
 - 启用 `modernUiText` 后如果遇到现代 UI 兼容问题，请重新关闭；经典菜单和
   Tooltip 路径仍可独立使用。
 - 如果旧式 Tooltip 出现尺寸或绘制问题，可以单独关闭 `classicTooltips`。
