@@ -150,12 +150,15 @@ int wmain() {
             : popupWindow(popupWindow) {}
 
         void Apply(HWND newPopupWindow) override {
+            ++applyCount;
             popupWindow = newPopupWindow;
         }
 
-        void Restore() override {
+        void Restore(bool clearOwnership) override {
             ++restoreCount;
-            popupWindow = nullptr;
+            if (clearOwnership) {
+                popupWindow = nullptr;
+            }
         }
 
         HWND PopupWindow() const override {
@@ -163,31 +166,69 @@ int wmain() {
         }
 
         HWND popupWindow;
+        int applyCount = 0;
         int restoreCount = 0;
     };
 
     const HWND firstPopup = reinterpret_cast<HWND>(1);
     const HWND secondPopup = reinterpret_cast<HWND>(2);
+    const HWND thirdPopup = reinterpret_cast<HWND>(3);
+    const ModernElementKey firstKey{
+        reinterpret_cast<void*>(1), 1};
+    const ModernElementKey secondKey{
+        reinterpret_cast<void*>(2), 2};
+    const ModernElementKey pendingKey{
+        reinterpret_cast<void*>(3), 3};
     auto firstPopupState =
         std::make_shared<PopupTestState>(firstPopup);
     auto secondPopupState =
         std::make_shared<PopupTestState>(secondPopup);
-    g_modernTextStatesForThread->clear();
-    g_modernTextStatesForThread->emplace(
-        ModernElementKey{reinterpret_cast<void*>(1), 1},
-        firstPopupState);
-    g_modernTextStatesForThread->emplace(
-        ModernElementKey{reinterpret_cast<void*>(2), 2},
-        secondPopupState);
-    RestoreModernTextStatesForPopup(firstPopup);
-    if (firstPopupState->restoreCount != 1 ||
-        firstPopupState->PopupWindow() ||
-        secondPopupState->restoreCount != 0 ||
-        secondPopupState->PopupWindow() != secondPopup) {
-        std::wcerr << L"FAIL (modern XAML popup ownership restore)\n";
+    auto pendingState =
+        std::make_shared<PopupTestState>(nullptr);
+    auto& modernThreadState = *g_modernTextStatesForThread;
+    modernThreadState.states.clear();
+    modernThreadState.pending.clear();
+    modernThreadState.ownedByPopup.clear();
+    modernThreadState.states.emplace(firstKey, firstPopupState);
+    modernThreadState.states.emplace(secondKey, secondPopupState);
+    modernThreadState.states.emplace(pendingKey, pendingState);
+    modernThreadState.ownedByPopup[firstPopup].insert(firstKey);
+    modernThreadState.ownedByPopup[secondPopup].insert(secondKey);
+    modernThreadState.pending.insert(pendingKey);
+
+    ApplyModernTextStatesForPopup(thirdPopup);
+    if (firstPopupState->applyCount != 0 ||
+        secondPopupState->applyCount != 0 ||
+        pendingState->applyCount != 1 ||
+        pendingState->PopupWindow() != thirdPopup ||
+        !modernThreadState.pending.empty() ||
+        !modernThreadState.ownedByPopup[thirdPopup].contains(
+            pendingKey)) {
+        std::wcerr << L"FAIL (modern XAML pending ownership)\n";
         ++failed;
     }
-    g_modernTextStatesForThread->clear();
+
+    RestoreModernTextStatesForPopup(firstPopup, false);
+    if (firstPopupState->restoreCount != 1 ||
+        firstPopupState->PopupWindow() != firstPopup ||
+        secondPopupState->restoreCount != 0 ||
+        secondPopupState->PopupWindow() != secondPopup) {
+        std::wcerr << L"FAIL (modern XAML popup hide restore)\n";
+        ++failed;
+    }
+
+    RestoreModernTextStatesForPopup(firstPopup, true);
+    if (firstPopupState->restoreCount != 2 ||
+        firstPopupState->PopupWindow() ||
+        !modernThreadState.pending.contains(firstKey) ||
+        modernThreadState.ownedByPopup.contains(firstPopup)) {
+        std::wcerr << L"FAIL (modern XAML popup destroy cleanup)\n";
+        ++failed;
+    }
+
+    modernThreadState.states.clear();
+    modernThreadState.pending.clear();
+    modernThreadState.ownedByPopup.clear();
 
     HMENU testMenu = CreatePopupMenu();
     if (!testMenu ||
@@ -290,6 +331,77 @@ int wmain() {
         DestroyMenu(popupInsertMenu);
     } else if (insertedSubMenu) {
         DestroyMenu(insertedSubMenu);
+    }
+
+    HMENU pastEndMenu = CreatePopupMenu();
+    if (!pastEndMenu ||
+        !AppendMenuW(pastEndMenu, MF_STRING, 300, L"Anchor")) {
+        std::wcerr << L"FAIL (past-end insert test setup)\n";
+        ++failed;
+    } else {
+        g_originalInsertMenuW = InsertMenuW;
+        g_classicPopupRootMenu = pastEndMenu;
+        g_classicPopupMenuDepth = 1;
+        const BOOL inserted = InsertMenuWHook(
+            pastEndMenu, 999, MF_BYPOSITION | MF_STRING,
+            301, L"测试App");
+        g_classicPopupMenuDepth = 0;
+
+        std::wstring insertedText;
+        const int insertedIndex = GetMenuItemCount(pastEndMenu) - 1;
+        if (!inserted || insertedIndex != 1 ||
+            !ReadMenuItemText(
+                pastEndMenu,
+                static_cast<UINT>(insertedIndex),
+                &insertedText) ||
+            insertedText != L"测试 App") {
+            std::wcerr << L"FAIL (past-end insert recording)\n";
+            ++failed;
+        }
+
+        RestoreRewrittenMenuItems(pastEndMenu);
+        std::wstring restoredText;
+        if (!ReadMenuItemText(
+                pastEndMenu,
+                static_cast<UINT>(insertedIndex),
+                &restoredText) ||
+            restoredText != L"测试App") {
+            std::wcerr << L"FAIL (past-end insert restore)\n";
+            ++failed;
+        }
+
+        g_classicPopupRootMenu = nullptr;
+        g_originalInsertMenuW = nullptr;
+    }
+    if (pastEndMenu) {
+        DestroyMenu(pastEndMenu);
+    }
+
+    HMENU commandCollisionMenu = CreatePopupMenu();
+    HMENU collisionSubMenu = CreatePopupMenu();
+    if (!commandCollisionMenu || !collisionSubMenu) {
+        std::wcerr << L"FAIL (command collision test setup)\n";
+        ++failed;
+    } else {
+        const UINT collisionId = static_cast<UINT>(
+            reinterpret_cast<UINT_PTR>(collisionSubMenu));
+        if (!AppendMenuW(
+                commandCollisionMenu, MF_POPUP,
+                reinterpret_cast<UINT_PTR>(collisionSubMenu),
+                L"Submenu") ||
+            !AppendMenuW(
+                commandCollisionMenu, MF_STRING,
+                collisionId, L"Command") ||
+            FindMenuItemIndex(
+                commandCollisionMenu, collisionId, false) != 1) {
+            std::wcerr << L"FAIL (submenu command collision)\n";
+            ++failed;
+        }
+    }
+    if (commandCollisionMenu) {
+        DestroyMenu(commandCollisionMenu);
+    } else if (collisionSubMenu) {
+        DestroyMenu(collisionSubMenu);
     }
 
     constexpr uintptr_t fakeTooltipThemeCount = 32;

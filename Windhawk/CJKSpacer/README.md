@@ -61,12 +61,14 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 - Windows 11 XAML 界面：通过 XAML Diagnostics 接收视觉树变化，同时支持
   Windows.UI.Xaml 和 Microsoft.UI.Xaml。现代路径修改
   `MenuFlyoutItem.Text`、`MenuFlyoutSubItem.Text` 或字符串形式的
-  `ToolTip.Content`，不会再覆盖呈现层 `TextBlock` 的模板绑定。普通 XAML
-  文本和任务栏缩略图不属于这些源控件。
+  `ToolTip.Content`，但仅限属性本身保存的普通本地字符串；Binding、Style
+  和其他表达式会被跳过，因此不会覆盖数据绑定或呈现层 `TextBlock` 的模板
+  绑定。普通 XAML 文本和任务栏缩略图不属于这些源控件。
 - XAML popup 的可见集合由 `EVENT_OBJECT_SHOW`、`EVENT_OBJECT_HIDE` 和
-  `EVENT_OBJECT_DESTROY` 维护。每条改写记录都关联到具体 popup HWND；隐藏
-  一个 Tooltip 不会恢复同线程中仍然打开的菜单。同一个隐藏 popup 被复用时，
-  会在新的 SHOW 周期重新应用，不会留下永久句柄。
+  `EVENT_OBJECT_DESTROY` 维护。新发现且尚未显示的源先进入 pending 集合，
+  popup SHOW 后才转为该 HWND 的 owned 集合；隐藏时只恢复该 popup 的源并
+  保留归属，销毁时才清除归属。隐藏一个 Tooltip 不会改写或恢复同线程中其他
+  菜单的缓存源。
 - XAML 元素状态按 UI 线程分别保存。禁用或更新模组时，恢复和释放操作会同步
   派发到各元素所属线程；无法到达的线程不会从错误线程执行属性恢复，其中仅含
   弱引用的状态会随所属线程退出正常释放。XAML Diagnostics 初始化也在专用
@@ -88,11 +90,12 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
   Diagnostics 型 Windhawk 模组或调试工具已占用连接时，现代路径可能无法
   初始化；经典菜单和 Tooltip 路径不受影响。
 - 现代路径只处理带 `Text` 属性的标准 XAML 菜单项，以及内容可解包为字符串
-  的 Tooltip。自定义绘制、RichTextBlock、图片或任意自定义内容不在处理
-  范围内。
+  且属性值是普通本地字符串的 Tooltip。由 Binding、Style 或模板提供的值，
+  以及自定义绘制、RichTextBlock、图片或任意自定义内容不在处理范围内。
 - 经典菜单在显示前改写的字符串会被记录，并在 popup 关闭时立即尽量恢复；
   如果其他组件已再次修改同一菜单项，则保留其新值。卸载模组时还会清理尚未
-  完成的记录。
+  完成的记录。popup 打开期间，其他通过文字匹配菜单项的模组也会读到加入空格
+  后的字符串，可能需要相应调整其匹配规则。
 - 启用 `modernUiText` 后如果遇到现代 UI 兼容问题，请重新关闭；经典菜单和
   Tooltip 路径仍可独立使用。
 - 如果旧式 Tooltip 出现尺寸或绘制问题，可以单独关闭 `classicTooltips`。
