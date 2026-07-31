@@ -75,12 +75,13 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。
   复用，并在显式登记和卸载快照时清理死线程，不在线程局部对象析构期间获取
   全局互斥锁。
 - XAML Diagnostics 在模组初始化完成后异步连接；如果相关 XAML DLL 稍后
-  加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只调度一次短生命周期
-  连接任务，不会在 Windows Loader Lock 路径内执行 COM 激活。任务以
-  single-flight 方式运行并在执行期间显式保留模组 DLL 引用，因此卸载不必
-  等待它，也不会让线程继续执行已经卸载的代码。只有 TAP 实际创建了视觉树
-  watcher 才会把连接记为成功，因此被其他工具拦截但返回 `S_OK` 不会造成
-  假成功。
+  加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只调度 single-flight
+  连接任务，并保留任务运行期间到达的后续请求。WUX/MUX 连接状态分别跟踪，
+  断线后只重试对应连接。任务通过显式 DLL 引用和
+  `FreeLibraryAndExitThread` 保证线程不会执行已卸载的模组代码，也不会在
+  Windows Loader Lock 路径内执行 COM 激活。只有 TAP 实际创建了视觉树
+  watcher 才会把连接记为成功，因此被其他工具拦截但返回 `S_OK` 不会造成假
+  成功。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。现代路径临时
   修改目标 XAML 源属性并在源离开视觉树或模组卸载时恢复；经典路径会修改
   `HMENU` 保存的文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。
