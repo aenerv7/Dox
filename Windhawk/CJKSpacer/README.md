@@ -53,7 +53,7 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 
 - 经典菜单：只在 `TrackPopupMenu` / `TrackPopupMenuEx` 正在显示 popup
   菜单时处理 `HMENU`，包括显示前已有的菜单项，以及菜单打开期间动态新增或
-  修改的 Unicode 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、
+  修改的 Unicode 和 ANSI 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、
   桌面、任务栏和跳转列表右键菜单；第三方通知区域图标进程自己显示的右键
   菜单不在注入范围内。菜单关闭后会立即恢复原文，不再
   提前或持续改写尚未显示的普通菜单。经典菜单栏和窗口系统菜单不经过这些
@@ -74,6 +74,9 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   `ToolTip.Content`，但仅限属性本身保存的普通本地字符串；Binding、Style
   和其他表达式会被跳过，因此不会覆盖数据绑定或呈现层 `TextBlock` 的模板
   绑定。普通 XAML 文本和任务栏缩略图不属于这些源控件。
+- 现代路径除了监听 XAML DLL 的加载，还监听 Explorer/任务栏 XAML 宿主窗口的
+  创建作为独立触发路径。因此即使模块通过静态导入、延迟加载或更底层的加载
+  方式映射，Explorer 重启后也能重新尝试连接。
 - 现代路径不猜测 XAML 源属于哪个 popup。XAML Diagnostics 报告受支持的源
   元素进入视觉树时立即处理，元素离开视觉树时恢复；禁用或更新模组时也会
   恢复仍在跟踪的值。这避免了缓存、隐藏或复用的 popup 把源错误归给随后显示
@@ -113,8 +116,9 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   以及自定义绘制、RichTextBlock、图片或任意自定义内容不在处理范围内。
 - 经典菜单在显示前改写的字符串会被记录，并在 popup 关闭时立即尽量恢复；
   如果其他组件已再次修改同一菜单项，则保留其新值。卸载模组时还会清理尚未
-  完成的记录。popup 打开期间，其他通过文字匹配菜单项的模组也会读到加入空格
-  后的字符串，可能需要相应调整其匹配规则。若多个菜单项的改写后文字完全
+  完成的记录。popup 打开期间，其他通过文字匹配菜单项的模组（例如 Remove
+  Context Menu Items）也会读到加入空格后的字符串，可能需要相应调整其匹配规则。
+  若多个菜单项的改写后文字完全
   相同，恢复时按文字查找可能命中第一个匹配项；转换本身是幂等的，不会叠加
   空格。
 - 启用 `modernUiText` 后如果遇到现代 UI 兼容问题，请重新关闭；经典菜单和
