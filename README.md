@@ -196,9 +196,10 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 ## Batch files
 
-[`Batch files/Flatten.bat`](./Batch%20files/Flatten.bat) 用于将目标文件夹所有子目录中的文件移动到目标文件夹，并删除变空的子目录。
+[`Batch files/Flatten.bat`](./Batch%20files/Flatten.bat) 用于分别将一个或多个目标文件夹的所有子目录文件移动到各自的目标根目录，并删除变空的子目录。
 
-- 支持拖拽文件夹到脚本，或通过命令行传入路径
+- 支持一次拖拽一个或多个文件夹到脚本，或通过命令行传入多个路径
+- 多个目标会统一预检和确认，再按传入顺序分别展平；重复目标会去重，父子目标组合会被拒绝
 - 使用 `/Y` 或 `-Y` 跳过确认和结束暂停
 - 同名项目不会覆盖，原文件及其所在目录会保留
 - 操作不可撤销，脚本会拒绝处理磁盘根目录、共享根目录以及符号链接/目录联接
