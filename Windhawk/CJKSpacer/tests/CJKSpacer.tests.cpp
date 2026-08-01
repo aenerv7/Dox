@@ -236,6 +236,48 @@ int wmain() {
         DestroyMenu(testMenu);
     }
 
+    HMENU constructionMenu = nullptr;
+    g_originalCreatePopupMenu = CreatePopupMenu;
+    g_originalAppendMenuW = AppendMenuW;
+    g_originalDestroyMenu = DestroyMenu;
+    constructionMenu = CreatePopupMenuHook();
+    if (!constructionMenu) {
+        std::wcerr << L"FAIL (classic construction popup setup)\n";
+        ++failed;
+    } else {
+        g_classicPopupMenuDepth = 0;
+        g_classicPopupRootMenu = nullptr;
+        const BOOL appended = AppendMenuWHook(
+            constructionMenu, MF_STRING, 150, L"测试App");
+
+        std::wstring constructedText;
+        if (!appended ||
+            !ReadMenuItemText(constructionMenu, 0, &constructedText) ||
+            constructedText != L"测试 App") {
+            std::wcerr << L"FAIL (classic construction rewrite)\n";
+            ++failed;
+        }
+
+        AssociatePendingRewrittenMenuItems(constructionMenu);
+        RestoreRewrittenMenuItems(constructionMenu);
+
+        std::wstring restoredText;
+        if (!ReadMenuItemText(constructionMenu, 0, &restoredText) ||
+            restoredText != L"测试App") {
+            std::wcerr << L"FAIL (classic construction restore)\n";
+            ++failed;
+        }
+
+        if (!DestroyMenuHook(constructionMenu) ||
+            IsCreatedClassicPopupMenu(constructionMenu)) {
+            std::wcerr << L"FAIL (classic construction cleanup)\n";
+            ++failed;
+        }
+    }
+    g_originalCreatePopupMenu = nullptr;
+    g_originalAppendMenuW = nullptr;
+    g_originalDestroyMenu = nullptr;
+
     HMENU popupInsertMenu = CreatePopupMenu();
     HMENU insertedSubMenu = CreatePopupMenu();
     if (!popupInsertMenu || !insertedSubMenu ||

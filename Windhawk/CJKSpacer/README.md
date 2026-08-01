@@ -54,9 +54,10 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 
 ## 实现范围
 
-- 经典菜单：只在 `TrackPopupMenu` / `TrackPopupMenuEx` 正在显示 popup
-  菜单时处理 `HMENU`，包括显示前已有的菜单项，以及菜单打开期间动态新增或
-  修改的 Unicode 菜单项。这包括由 `explorer.exe` 托管的文件资源管理器、
+- 经典菜单：通过 `CreatePopupMenu` 创建的菜单会在构建期间处理，并在进入
+  `TrackPopupMenu` / `TrackPopupMenuEx` 时与本次 popup 关联，菜单关闭后恢复
+  原文；启用模组前已存在的 popup 句柄也会在显示前扫描。这包括由
+  `explorer.exe` 托管的文件资源管理器、
   桌面、任务栏和跳转列表右键菜单；第三方通知区域图标进程自己显示的右键
   菜单不在注入范围内。菜单关闭后会立即恢复原文，不再
   提前或持续改写尚未显示的普通菜单。经典菜单栏和窗口系统菜单不经过这些
