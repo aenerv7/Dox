@@ -79,9 +79,9 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   和其他表达式会被跳过，因此不会覆盖数据绑定或呈现层 `TextBlock` 的模板
   绑定。普通 XAML 文本不会被处理；任务栏缩略图内容通常不是普通本地字符串，
   因此也不会被修改。
-- 现代路径除了监听 XAML DLL 的加载，还监听 Explorer/任务栏 XAML 宿主窗口的
-  创建作为独立触发路径。因此即使模块通过静态导入、延迟加载或更底层的加载
-  方式映射，Explorer 重启后也能重新尝试连接。
+- 现代路径在模组初始化完成后处理已经加载的 XAML 模块，并监听后续 XAML DLL
+  的加载；`CoreMessagingXP.dll` 也作为 Microsoft.UI.Xaml 静态导入路径的
+  触发信号。因此无需对 Explorer 中的每次窗口创建安装进程级 Hook。
 - 现代路径不猜测 XAML 源属于哪个 popup。XAML Diagnostics 报告受支持的源
   元素进入视觉树时立即处理，元素离开视觉树时恢复；禁用或更新模组时也会
   恢复仍在跟踪的值。这避免了缓存、隐藏或复用的 popup 把源错误归给随后显示
@@ -94,13 +94,16 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 - XAML Diagnostics 在模组初始化完成后异步连接；如果相关 XAML DLL 稍后
   加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只调度 single-flight
   连接任务，并保留任务运行期间到达的后续请求。WUX/MUX 连接状态分别跟踪，
-  断线后只重试对应连接；如果连接被阻止或其他原因失败，宿主窗口创建不会
-  无限重试，只有新的 XAML DLL 加载或已有连接断开才会再次尝试。任务通过显式 DLL 引用和
+  断线后只重试对应连接；如果连接被阻止或其他原因失败，只有新的 XAML DLL
+  加载或已有连接断开才会再次尝试。任务通过显式 DLL 引用和
   `FreeLibraryAndExitThread` 保证线程不会执行已卸载的模组代码，也不会在
   Windows Loader Lock 路径内执行 COM 激活。只有 TAP 实际创建了视觉树
   watcher 才会把连接记为成功，因此被其他工具拦截但返回 `S_OK` 不会造成假
-  成功。每次重新加载都会切换现代 UI 代次，旧的分离线程和 watcher 回调会被
-  忽略，避免跨次加载复用连接状态。
+  成功。停止状态会阻止卸载期间的新回调和状态登记；分离线程持有自己的模组
+  DLL 引用，因此重新加载后不会访问新实例的连接状态。
+- 每个功能的必要 Hook 会作为完整组注册。任意菜单或 Tooltip 测量、绘制、
+  生命周期 Hook 注册失败时，模组初始化会直接失败，不会留下可能只测量不
+  绘制、只改写不恢复的半工作状态。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。现代路径临时
   修改目标 XAML 源属性并在源离开视觉树或模组卸载时恢复；经典路径会修改
   `HMENU` 保存的文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。
