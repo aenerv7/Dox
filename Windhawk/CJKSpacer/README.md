@@ -7,8 +7,9 @@ Windhawk 模组。在 CJK 字符与字母或数字直接相邻时插入一个半
 Windows 11 的主资源管理器和桌面右键菜单属于新版 XAML 界面，默认关闭的
 `modernUiText` 不会处理它们；如需处理，请手动启用该选项。经典路径仍会处理
 “显示更多选项”打开的传统 Win32 菜单。现代路径使用独占的 XAML Diagnostics
-连接名，现代路径属于尽力而为，可能与其他同类定制工具冲突；Taskbar Styler 或 File Explorer Styler
-等工具可能已经使用或阻止这些连接。也就是说，首次安装后如果不手动启用
+连接名。我们仍保留这条路径，因为它覆盖 Windows 11 的主要右键菜单；它属于
+默认关闭的尽力而为实现，可能与其他同类定制工具冲突。Taskbar Styler 或
+File Explorer Styler 等工具可能已经使用或阻止这些连接。也就是说，首次安装后如果不手动启用
 `modernUiText`，新版 Windows 11 菜单不会被处理。
 
 ```text
@@ -75,7 +76,8 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   `MenuFlyoutItem.Text`、`MenuFlyoutSubItem.Text` 或字符串形式的
   `ToolTip.Content`，但仅限属性本身保存的普通本地字符串；Binding、Style
   和其他表达式会被跳过，因此不会覆盖数据绑定或呈现层 `TextBlock` 的模板
-  绑定。普通 XAML 文本和任务栏缩略图不属于这些源控件。
+  绑定。普通 XAML 文本不会被处理；任务栏缩略图内容通常不是普通本地字符串，
+  因此也不会被修改。
 - 现代路径除了监听 XAML DLL 的加载，还监听 Explorer/任务栏 XAML 宿主窗口的
   创建作为独立触发路径。因此即使模块通过静态导入、延迟加载或更底层的加载
   方式映射，Explorer 重启后也能重新尝试连接。
@@ -124,9 +126,16 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   若多个菜单项的改写后文字完全
   相同，恢复时按文字查找可能命中第一个匹配项；转换本身是幂等的，不会叠加
   空格。
+- 本模组与 Text Replace 都会处理经典菜单 API，但 Text Replace 主要做字面量
+  替换，不能表达 CJK/非 CJK 边界规则；两者同时启用时仍可能按 Hook 顺序互相
+  观察到对方的临时菜单文字。
 - 启用 `modernUiText` 后如果遇到现代 UI 兼容问题，请重新关闭；经典菜单和
   Tooltip 路径仍可独立使用。
 - 如果旧式 Tooltip 出现尺寸或绘制问题，可以单独关闭 `classicTooltips`。
+- 如果在 popup 已显示后动态修改菜单文字，系统不一定会重新测量菜单；新增空格
+  可能导致该菜单项在极少数路径下出现截断。
+- Tooltip 的测量和绘制必须使用兼容的 DC 目标才能保持尺寸一致；若某个控件在
+  不同 DC 上完成测量和绘制，可能需要关闭 `classicTooltips`。
 - 修改功能开关后，Windhawk 会重新加载模组，只安装仍启用功能所需的 Hook。
 - 模组默认把所有 Unicode 字母和数字视为非 CJK“单词字符”。如果只希望处理
   `A-Z`、`a-z` 和 `0-9`，将 `characterMode` 改为 `ascii`。
