@@ -59,9 +59,10 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   原文；启用模组前已存在的 popup 句柄也会在显示前扫描。这包括由
   `explorer.exe` 托管的文件资源管理器、
   桌面、任务栏和跳转列表右键菜单；第三方通知区域图标进程自己显示的右键
-  菜单不在注入范围内。菜单关闭后会立即恢复原文，不再
-  提前或持续改写尚未显示的普通菜单。经典菜单栏和窗口系统菜单不经过这些
-  popup API，也不在处理范围内。
+  菜单不在注入范围内。由 `CreatePopupMenu` 创建、但由 user32 自己的菜单循环
+  显示而不经过 `TrackPopupMenu*` 的菜单栏下拉菜单，也可能在构建期被处理。
+  这类待关联记录会在菜单销毁、模组卸载，或后续 popup 活动发现其已过期时
+  尝试恢复；未通过这些 popup API 构建的窗口系统菜单不在处理范围内。
 - 经典 Tooltip：跟踪为 `TOOLTIP` 类打开的 Windows 主题句柄，通过
   `GetThemeTextExtent` 处理文字测量，并通过 `DrawThemeText` /
   `DrawThemeTextEx` 处理绘制。这覆盖网易 UU 远程等第三方通知区域图标使用
@@ -125,7 +126,8 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   以及自定义绘制、RichTextBlock、图片或任意自定义内容不在处理范围内。
 - 经典菜单在显示前改写的字符串会被记录，并在 popup 关闭时立即尽量恢复；
   如果其他组件已再次修改同一菜单项，则保留其新值。卸载模组时还会清理尚未
-  完成的记录。popup 打开期间，其他通过文字匹配菜单项的模组（例如 Remove
+  完成的记录。未进入 `TrackPopupMenu*` 的构建期记录会定期按年龄恢复并清理，
+  且待关联记录设有硬上限，避免长期存活的菜单让状态无限增长。popup 打开期间，其他通过文字匹配菜单项的模组（例如 Remove
   Context Menu Items）也会读到加入空格后的字符串，可能需要相应调整其匹配规则。
   若多个菜单项的改写后文字完全
   相同，恢复时按文字查找可能命中第一个匹配项；转换本身是幂等的，不会叠加

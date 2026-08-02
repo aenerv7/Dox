@@ -278,6 +278,47 @@ int wmain() {
     g_originalAppendMenuW = nullptr;
     g_originalDestroyMenu = nullptr;
 
+    HMENU stalePendingMenu = CreatePopupMenu();
+    HMENU cleanupTriggerMenu = CreatePopupMenu();
+    if (!stalePendingMenu || !cleanupTriggerMenu ||
+        !AppendMenuW(stalePendingMenu, MF_STRING, 160, L"测试 App") ||
+        !AppendMenuW(cleanupTriggerMenu, MF_STRING, 161,
+                     L"触发 Item")) {
+        std::wcerr << L"FAIL (stale menu cleanup setup)\n";
+        ++failed;
+    } else {
+        const ULONGLONG now = GetTickCount64();
+        {
+            std::lock_guard<std::mutex> guard(
+                g_rewrittenMenuItemsMutex);
+            g_rewrittenMenuItems.push_back(
+                {nullptr, stalePendingMenu, 0,
+                 now - kPendingRewrittenMenuLifetimeMs,
+                 L"测试App", L"测试 App"});
+            g_rewrittenMenuItemCount.store(
+                static_cast<unsigned int>(
+                    g_rewrittenMenuItems.size()));
+        }
+        g_nextRewrittenMenuCleanupTick.store(0);
+        RememberRewrittenMenuItem(
+            cleanupTriggerMenu, 0, L"触发Item", L"触发 Item");
+
+        std::wstring restoredStaleText;
+        if (!ReadMenuItemText(
+                stalePendingMenu, 0, &restoredStaleText) ||
+            restoredStaleText != L"测试App") {
+            std::wcerr << L"FAIL (stale pending menu restore)\n";
+            ++failed;
+        }
+        RestoreRewrittenMenuItems();
+    }
+    if (stalePendingMenu) {
+        DestroyMenu(stalePendingMenu);
+    }
+    if (cleanupTriggerMenu) {
+        DestroyMenu(cleanupTriggerMenu);
+    }
+
     HMENU popupInsertMenu = CreatePopupMenu();
     HMENU insertedSubMenu = CreatePopupMenu();
     if (!popupInsertMenu || !insertedSubMenu ||
