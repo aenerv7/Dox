@@ -133,15 +133,11 @@ int wmain() {
         ++failed;
     }
 
-    HMODULE retainedModule = AcquireCurrentModuleReference();
     HMODULE kernelBaseModule = GetModuleHandleW(L"kernelbase.dll");
-    if (!retainedModule || !kernelBaseModule ||
+    if (!kernelBaseModule ||
         !GetProcAddress(kernelBaseModule, "LoadLibraryExW")) {
         std::wcerr << L"FAIL (XAML diagnostics module loading)\n";
         ++failed;
-    }
-    if (retainedModule) {
-        FreeLibrary(retainedModule);
     }
 
     struct ElementTestState final : ModernTextStateBase {
@@ -184,6 +180,51 @@ int wmain() {
             GetCurrentThreadId(), currentThreadCreationTime)) {
         std::wcerr << L"FAIL (modern XAML thread fingerprint)\n";
         ++failed;
+    }
+
+    if (!InitializeModernUi()) {
+        std::wcerr << L"FAIL (managed XAML worker initialization)\n";
+        ++failed;
+    } else {
+        if (!g_xamlDiagnosticsWorkerThread) {
+            std::wcerr << L"FAIL (managed XAML worker creation)\n";
+            ++failed;
+        }
+
+        HANDLE watcherReleaseEvent =
+            CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        HANDLE watcherThread = watcherReleaseEvent
+                                   ? CreateTrackedXamlWatcherThread(
+                                         [](LPVOID parameter) -> DWORD {
+                                             WaitForSingleObject(
+                                                 static_cast<HANDLE>(parameter),
+                                                 INFINITE);
+                                             return 0;
+                                         },
+                                         watcherReleaseEvent)
+                                   : nullptr;
+        if (!watcherReleaseEvent || !watcherThread) {
+            std::wcerr << L"FAIL (tracked XAML watcher creation)\n";
+            ++failed;
+        }
+        if (watcherReleaseEvent) {
+            SetEvent(watcherReleaseEvent);
+        }
+
+        g_stoppingModernUi.store(true, std::memory_order_release);
+        StopModernXamlDiagnosticsWorker();
+        WaitForXamlWatcherThreads();
+        if (g_xamlDiagnosticsWorkerThread ||
+            g_xamlDiagnosticsWorkerWakeEvent ||
+            g_xamlDiagnosticsRequestPending.load(std::memory_order_acquire) ||
+            g_xamlWatcherThreads) {
+            std::wcerr << L"FAIL (managed XAML worker cleanup)\n";
+            ++failed;
+        }
+        if (watcherReleaseEvent) {
+            CloseHandle(watcherReleaseEvent);
+        }
+        UninitializeModernUi();
     }
 
     HMENU testMenu = CreatePopupMenu();

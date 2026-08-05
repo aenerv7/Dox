@@ -93,15 +93,15 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   复用，并在显式登记和卸载快照时清理死线程，不在线程局部对象析构期间获取
   全局互斥锁。
 - XAML Diagnostics 在模组初始化完成后异步连接；如果相关 XAML DLL 稍后
-  加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只调度 single-flight
-  连接任务，并保留任务运行期间到达的后续请求。WUX/MUX 连接状态分别跟踪，
-  断线后只重试对应连接；如果连接被阻止或其他原因失败，只有新的 XAML DLL
-  加载或已有连接断开才会再次尝试。任务通过显式 DLL 引用和
-  `FreeLibraryAndExitThread` 保证线程不会执行已卸载的模组代码，也不会在
-  Windows Loader Lock 路径内执行 COM 激活。只有 TAP 实际创建了视觉树
+  加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只唤醒受控连接工作线程，
+  并保留工作期间到达的后续请求。WUX/MUX 连接状态分别跟踪，断线后只重试对应
+  连接；如果连接被阻止或其他原因失败，只有新的 XAML DLL 加载或已有连接断开
+  才会再次尝试。工作线程不会增加模组 DLL 引用；卸载前先设置停止状态、唤醒
+  并等待连接工作线程结束，同时按句柄等待异步视觉树 watcher 初始化线程真正
+  退出。因此 Windhawk 持有的单个模块引用足以完成卸载，同时 COM 激活仍不会
+  发生在 Windows Loader Lock 路径内。只有 TAP 实际创建了视觉树
   watcher 才会把连接记为成功，因此被其他工具拦截但返回 `S_OK` 不会造成假
-  成功。停止状态会阻止卸载期间的新回调和状态登记；分离线程持有自己的模组
-  DLL 引用，因此重新加载后不会访问新实例的连接状态。
+  成功。
 - 每个功能的必要 Hook 会作为完整组注册。任意菜单或 Tooltip 测量、绘制、
   生命周期 Hook 注册失败时，模组初始化会直接失败，不会留下可能只测量不
   绘制、只改写不恢复的半工作状态。
