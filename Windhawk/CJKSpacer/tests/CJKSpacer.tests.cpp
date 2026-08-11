@@ -123,42 +123,21 @@ int wmain() {
         ++failed;
     }
 
-    g_windowsUiXamlDiagnosticsAttempted.store(
-        true, std::memory_order_release);
-    g_microsoftUiXamlDiagnosticsAttempted.store(
-        true, std::memory_order_release);
-    const XamlDiagnosticsRetry bothXamlRetries{
-        .windows = true, .microsoft = true};
-    ResetXamlDiagnosticsAttempts({.windows = true});
-    if (!bothXamlRetries.windows ||
-        !bothXamlRetries.microsoft ||
-        !bothXamlRetries ||
-        kInitialXamlDiagnosticsConnectionLimit != 10000 ||
-        kRetryXamlDiagnosticsConnectionLimit != 256 ||
-        g_windowsUiXamlDiagnosticsAttempted.load(
-            std::memory_order_acquire) ||
-        !g_microsoftUiXamlDiagnosticsAttempted.load(
-            std::memory_order_acquire)) {
-        std::wcerr << L"FAIL (XAML diagnostics retry state)\n";
-        ++failed;
-    }
-    g_microsoftUiXamlDiagnosticsAttempted.store(
-        false, std::memory_order_release);
-
-    if (!IsXamlDiagnosticsTriggerModule(
-            L"C:\\Windows\\System32\\Windows.UI.Xaml.dll") ||
-        !IsXamlDiagnosticsTriggerModule(
-            L"Microsoft.Internal.FrameworkUdk.dll") ||
-        !IsXamlDiagnosticsTriggerModule(L"CoreMessagingXP.dll") ||
-        IsXamlDiagnosticsTriggerModule(L"TaskListThumbnailWnd")) {
-        std::wcerr << L"FAIL (XAML diagnostics load trigger)\n";
-        ++failed;
-    }
-
-    HMODULE kernelBaseModule = GetModuleHandleW(L"kernelbase.dll");
-    if (!kernelBaseModule ||
-        !GetProcAddress(kernelBaseModule, "LoadLibraryExW")) {
-        std::wcerr << L"FAIL (XAML diagnostics module loading)\n";
+    if (kXamlDiagnosticsConnectionLimit != 10000 ||
+        GetModernXamlHostFlavor(
+            L"Windows.UI.Composition.DesktopWindowContentBridge") !=
+            XamlDiagnosticsFlavor::Windows ||
+        GetModernXamlHostFlavor(L"XamlExplorerHostIslandWindow") !=
+            XamlDiagnosticsFlavor::Windows ||
+        GetModernXamlHostFlavor(
+            L"XamlExplorerHostIslandWindow_WASDK") !=
+            XamlDiagnosticsFlavor::Microsoft ||
+        GetModernXamlHostFlavor(L"TaskListThumbnailWnd") !=
+            XamlDiagnosticsFlavor::None ||
+        !IsModernXamlHostClassName(
+            L"XamlExplorerHostIslandWindow_WASDK") ||
+        IsModernXamlHostClassName(L"TaskListThumbnailWnd")) {
+        std::wcerr << L"FAIL (XAML diagnostics host classification)\n";
         ++failed;
     }
 
@@ -238,7 +217,10 @@ int wmain() {
         WaitForXamlWatcherThreads();
         if (g_xamlDiagnosticsWorkerThread ||
             g_xamlDiagnosticsWorkerWakeEvent ||
-            g_xamlDiagnosticsRequestPending.load(std::memory_order_acquire) ||
+            g_windowsUiXamlDiagnosticsRequestPending.load(
+                std::memory_order_acquire) ||
+            g_microsoftUiXamlDiagnosticsRequestPending.load(
+                std::memory_order_acquire) ||
             g_xamlWatcherThreads) {
             std::wcerr << L"FAIL (managed XAML worker cleanup)\n";
             ++failed;

@@ -50,7 +50,8 @@ File Explorer Styler 等工具可能已经使用或阻止这些连接。也就�
 `modernUiText`。它依赖 XAML Diagnostics，因此仍默认关闭，以避免和其他
 同样使用 XAML Diagnostics 的定制工具争用同一连接名，例如
 Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
-使用提醒模式时，启用本模组可能会显示其 XAML Diagnostics 竞争确认对话框。
+使用提醒模式时，连接名扫描跳过已占用名称的过程中可能会显示一次或多次
+XAML Diagnostics 竞争确认对话框。
 
 ## 实现范围
 
@@ -80,9 +81,12 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   和其他表达式会被跳过，因此不会覆盖数据绑定或呈现层 `TextBlock` 的模板
   绑定。普通 XAML 文本不会被处理；任务栏缩略图内容通常不是普通本地字符串，
   因此也不会被修改。
-- 现代路径在模组初始化完成后处理已经加载的 XAML 模块，并监听后续 XAML DLL
-  的加载；`CoreMessagingXP.dll` 也作为 Microsoft.UI.Xaml 静态导入路径的
-  触发信号。因此无需对 Explorer 中的每次窗口创建安装进程级 Hook。
+- 现代路径只在 Explorer 创建受支持的 XAML Host 窗口后尝试连接。模组 Hook
+  `CreateWindowExW`、`CreateWindowInBand` 和 `CreateWindowInBandEx`，但只对
+  `Windows.UI.Composition.DesktopWindowContentBridge`、
+  `XamlExplorerHostIslandWindow` 与 `XamlExplorerHostIslandWindow_WASDK`
+  三种类名作出响应。模组初始化后的进程内窗口扫描会补充发现已经存在的顶层
+  或子 Host 窗口，并用进程 ID 排除其他程序的窗口。
 - 现代路径不猜测 XAML 源属于哪个 popup。XAML Diagnostics 报告受支持的源
   元素进入视觉树时立即处理，元素离开视觉树时恢复；禁用或更新模组时也会
   恢复仍在跟踪的值。这避免了缓存、隐藏或复用的 popup 把源错误归给随后显示
@@ -92,14 +96,12 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   弱引用的状态会随所属线程退出正常释放。线程登记使用线程创建时间识别 ID
   复用，并在显式登记和卸载快照时清理死线程，不在线程局部对象析构期间获取
   全局互斥锁。
-- XAML Diagnostics 在模组初始化完成后异步连接；如果相关 XAML DLL 稍后
-  加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只唤醒受控连接工作线程，
-  并保留工作期间到达的后续请求。Explorer 并发启动时如果 Diagnostics 端点尚未
-  就绪，模组会在约一分钟内按 1、2、5、10、20、30 秒退避重试；首次尝试保持
-  10,000 个连接名的兼容扫描，延迟重试只检查前 256 个，避免在系统启动期间重复
-  执行完整扫描。退避结束后，只在相关 XAML DLL 加载或已有连接断开时再尝试。
-  被其他 Diagnostics 工具拦截但返回成功的连接不会自动重试。连接工作在线程中
-  执行，并会在模组卸载前停止。
+- 窗口创建 Hook 只按 Windows.UI.Xaml 与 Microsoft.UI.Xaml flavor 分别唤醒
+  受控连接工作线程，不会在窗口创建调用栈里执行 COM 或 Diagnostics 初始化。
+  Host 窗口出现意味着相应 XAML Core 已经就绪，因此不再定时轮询。连接仍保留
+  10,000 个名称的兼容范围，但正常会在首个可用名称处立即停止；已有连接断开时
+  只重连对应 flavor。被其他 Diagnostics 工具拦截但返回成功的连接不会自动
+  重试。连接工作线程会在模组卸载前停止。
 - 每个功能的必要 Hook 会作为完整组注册。任意菜单或 Tooltip 测量、绘制、
   生命周期 Hook 注册失败时，模组初始化会直接失败，不会留下可能只测量不
   绘制、只改写不恢复的半工作状态。
