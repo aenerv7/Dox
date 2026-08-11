@@ -123,6 +123,28 @@ int wmain() {
         ++failed;
     }
 
+    g_windowsUiXamlDiagnosticsAttempted.store(
+        true, std::memory_order_release);
+    g_microsoftUiXamlDiagnosticsAttempted.store(
+        true, std::memory_order_release);
+    const XamlDiagnosticsRetry bothXamlRetries =
+        XamlDiagnosticsRetry::Windows |
+        XamlDiagnosticsRetry::Microsoft;
+    ResetXamlDiagnosticsAttempts(XamlDiagnosticsRetry::Windows);
+    if (!HasXamlDiagnosticsRetry(
+            bothXamlRetries, XamlDiagnosticsRetry::Windows) ||
+        !HasXamlDiagnosticsRetry(
+            bothXamlRetries, XamlDiagnosticsRetry::Microsoft) ||
+        g_windowsUiXamlDiagnosticsAttempted.load(
+            std::memory_order_acquire) ||
+        !g_microsoftUiXamlDiagnosticsAttempted.load(
+            std::memory_order_acquire)) {
+        std::wcerr << L"FAIL (XAML diagnostics retry state)\n";
+        ++failed;
+    }
+    g_microsoftUiXamlDiagnosticsAttempted.store(
+        false, std::memory_order_release);
+
     if (!IsXamlDiagnosticsTriggerModule(
             L"C:\\Windows\\System32\\Windows.UI.Xaml.dll") ||
         !IsXamlDiagnosticsTriggerModule(

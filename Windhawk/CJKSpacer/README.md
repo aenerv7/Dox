@@ -94,9 +94,11 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   全局互斥锁。
 - XAML Diagnostics 在模组初始化完成后异步连接；如果相关 XAML DLL 稍后
   加载，对 `kernelbase.dll!LoadLibraryExW` 的 Hook 只唤醒受控连接工作线程，
-  并保留工作期间到达的后续请求。WUX/MUX 连接状态分别跟踪，断线后只重试对应
-  连接；如果连接被阻止或其他原因失败，只有新的 XAML DLL 加载或已有连接断开
-  才会再次尝试。工作线程不会增加模组 DLL 引用；卸载前先设置停止状态、唤醒
+  并保留工作期间到达的后续请求。WUX/MUX 连接状态分别跟踪；Explorer 与托盘
+  程序并发自启动时返回的 `ERROR_NOT_FOUND` 会以 1、2、5、10、20、30 秒的有界
+  且可中断退避重试，断线后则只重试对应连接。被其他 Diagnostics 工具拦截但
+  返回成功的连接不会自动重试；启动退避耗尽后，只有新的 XAML DLL 加载或已有
+  连接断开才会再次尝试。工作线程不会增加模组 DLL 引用；卸载前先设置停止状态、唤醒
   并等待连接工作线程结束，同时按句柄等待异步视觉树 watcher 初始化线程真正
   退出。因此 Windhawk 持有的单个模块引用足以完成卸载，同时 COM 激活仍不会
   发生在 Windows Loader Lock 路径内。只有 TAP 实际创建了视觉树
