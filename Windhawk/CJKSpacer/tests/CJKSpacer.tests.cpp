@@ -127,14 +127,14 @@ int wmain() {
         true, std::memory_order_release);
     g_microsoftUiXamlDiagnosticsAttempted.store(
         true, std::memory_order_release);
-    const XamlDiagnosticsRetry bothXamlRetries =
-        XamlDiagnosticsRetry::Windows |
-        XamlDiagnosticsRetry::Microsoft;
-    ResetXamlDiagnosticsAttempts(XamlDiagnosticsRetry::Windows);
-    if (!HasXamlDiagnosticsRetry(
-            bothXamlRetries, XamlDiagnosticsRetry::Windows) ||
-        !HasXamlDiagnosticsRetry(
-            bothXamlRetries, XamlDiagnosticsRetry::Microsoft) ||
+    const XamlDiagnosticsRetry bothXamlRetries{
+        .windows = true, .microsoft = true};
+    ResetXamlDiagnosticsAttempts({.windows = true});
+    if (!bothXamlRetries.windows ||
+        !bothXamlRetries.microsoft ||
+        !bothXamlRetries ||
+        kInitialXamlDiagnosticsConnectionLimit != 10000 ||
+        kRetryXamlDiagnosticsConnectionLimit != 256 ||
         g_windowsUiXamlDiagnosticsAttempted.load(
             std::memory_order_acquire) ||
         !g_microsoftUiXamlDiagnosticsAttempted.load(
