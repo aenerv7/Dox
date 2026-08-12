@@ -124,20 +124,60 @@ int wmain() {
     }
 
     if (kXamlDiagnosticsConnectionLimit != 10000 ||
-        GetModernXamlHostFlavor(
+        kXamlDiagnosticsMaxAttempts != 3 ||
+        ClassifyModernXamlHost(
+            L"Windows.UI.Composition.DesktopWindowContentBridge",
+            L"Shell_TrayWnd") !=
+            XamlDiagnosticsFlavor::Windows ||
+        ClassifyModernXamlHost(
             L"Windows.UI.Composition.DesktopWindowContentBridge") !=
+            XamlDiagnosticsFlavor::None ||
+        ClassifyModernXamlHost(
+            L"Windows.UI.Composition.DesktopWindowContentBridge",
+            L"CabinetWClass") != XamlDiagnosticsFlavor::None ||
+        ClassifyModernXamlHost(L"XamlExplorerHostIslandWindow") !=
             XamlDiagnosticsFlavor::Windows ||
-        GetModernXamlHostFlavor(L"XamlExplorerHostIslandWindow") !=
-            XamlDiagnosticsFlavor::Windows ||
-        GetModernXamlHostFlavor(
+        ClassifyModernXamlHost(L"CabinetWClass") !=
+            XamlDiagnosticsFlavor::Microsoft ||
+        ClassifyModernXamlHost(
             L"XamlExplorerHostIslandWindow_WASDK") !=
             XamlDiagnosticsFlavor::Microsoft ||
-        GetModernXamlHostFlavor(L"TaskListThumbnailWnd") !=
+        ClassifyModernXamlHost(L"TaskListThumbnailWnd") !=
             XamlDiagnosticsFlavor::None ||
+        !IsModernXamlHostClassName(L"CabinetWClass") ||
         !IsModernXamlHostClassName(
             L"XamlExplorerHostIslandWindow_WASDK") ||
         IsModernXamlHostClassName(L"TaskListThumbnailWnd")) {
         std::wcerr << L"FAIL (XAML diagnostics host classification)\n";
+        ++failed;
+    }
+
+    XamlDiagnosticsConnectionState connectionState;
+    if (!NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics initial state)\n";
+        ++failed;
+    }
+    connectionState.requestPending.store(true);
+    if (NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics pending state)\n";
+        ++failed;
+    }
+    connectionState.requestPending.store(false);
+    connectionState.failureCount.store(
+        kXamlDiagnosticsMaxAttempts - 1);
+    if (!NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics retryable state)\n";
+        ++failed;
+    }
+    connectionState.failureCount.store(kXamlDiagnosticsMaxAttempts);
+    if (NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics exhausted state)\n";
+        ++failed;
+    }
+    connectionState.failureCount.store(0);
+    connectionState.blocked.store(true);
+    if (NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics blocked state)\n";
         ++failed;
     }
 
@@ -217,9 +257,9 @@ int wmain() {
         WaitForXamlWatcherThreads();
         if (g_xamlDiagnosticsWorkerThread ||
             g_xamlDiagnosticsWorkerWakeEvent ||
-            g_windowsUiXamlDiagnosticsRequestPending.load(
+            g_windowsUiXamlDiagnostics.requestPending.load(
                 std::memory_order_acquire) ||
-            g_microsoftUiXamlDiagnosticsRequestPending.load(
+            g_microsoftUiXamlDiagnostics.requestPending.load(
                 std::memory_order_acquire) ||
             g_xamlWatcherThreads) {
             std::wcerr << L"FAIL (managed XAML worker cleanup)\n";

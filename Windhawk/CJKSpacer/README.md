@@ -83,10 +83,14 @@ XAML Diagnostics 竞争确认对话框。
   因此也不会被修改。
 - 现代路径只在 Explorer 创建受支持的 XAML Host 窗口后尝试连接。模组 Hook
   `CreateWindowExW`、`CreateWindowInBand` 和 `CreateWindowInBandEx`，但只对
-  `Windows.UI.Composition.DesktopWindowContentBridge`、
-  `XamlExplorerHostIslandWindow` 与 `XamlExplorerHostIslandWindow_WASDK`
-  三种类名作出响应。模组初始化后的进程内窗口扫描会补充发现已经存在的顶层
-  或子 Host 窗口，并用进程 ID 排除其他程序的窗口。
+  `XamlExplorerHostIslandWindow`、`XamlExplorerHostIslandWindow_WASDK`、
+  `CabinetWClass`，以及父窗口为 `Shell_TrayWnd` 的
+  `Windows.UI.Composition.DesktopWindowContentBridge` 作出响应。
+  `XamlExplorerHostIslandWindow` 与任务栏 Composition Bridge 映射到
+  Windows.UI.Xaml，`CabinetWClass` 与 WASDK Host 映射到 Microsoft.UI.Xaml。
+  模组初始化后的进程内窗口扫描会补充发现已经存在的顶层或子 Host 窗口，并用
+  进程 ID 排除其他程序的窗口；两个 flavor 都已经排队或无需继续尝试后，扫描会
+  提前停止。
 - 现代路径不猜测 XAML 源属于哪个 popup。XAML Diagnostics 报告受支持的源
   元素进入视觉树时立即处理，元素离开视觉树时恢复；禁用或更新模组时也会
   恢复仍在跟踪的值。这避免了缓存、隐藏或复用的 popup 把源错误归给随后显示
@@ -99,9 +103,10 @@ XAML Diagnostics 竞争确认对话框。
 - 窗口创建 Hook 只按 Windows.UI.Xaml 与 Microsoft.UI.Xaml flavor 分别唤醒
   受控连接工作线程，不会在窗口创建调用栈里执行 COM 或 Diagnostics 初始化。
   Host 窗口出现意味着相应 XAML Core 已经就绪，因此不再定时轮询。连接仍保留
-  10,000 个名称的兼容范围，但正常会在首个可用名称处立即停止；已有连接断开时
-  只重连对应 flavor。被其他 Diagnostics 工具拦截但返回成功的连接不会自动
-  重试。连接工作线程会在模组卸载前停止。
+  10,000 个名称的兼容范围，但正常会在首个可用名称处立即停止。普通连接失败
+  可由后续匹配的 Host 窗口通知再次触发，每个 flavor 最多尝试三次；已有连接
+  断开时只重置并重连对应 flavor。被其他 Diagnostics 工具拦截但返回成功、且
+  未创建 watcher 的连接不会自动重试。连接工作线程会在模组卸载前停止。
 - 每个功能的必要 Hook 会作为完整组注册。任意菜单或 Tooltip 测量、绘制、
   生命周期 Hook 注册失败时，模组初始化会直接失败，不会留下可能只测量不
   绘制、只改写不恢复的半工作状态。
