@@ -137,6 +137,8 @@ int wmain() {
             L"CabinetWClass") != XamlDiagnosticsFlavor::None ||
         ClassifyModernXamlHost(L"XamlExplorerHostIslandWindow") !=
             XamlDiagnosticsFlavor::Windows ||
+        ClassifyModernXamlHost(L"Shell_InputSwitchTopLevelWindow") !=
+            XamlDiagnosticsFlavor::Windows ||
         ClassifyModernXamlHost(L"CabinetWClass") !=
             XamlDiagnosticsFlavor::Microsoft ||
         ClassifyModernXamlHost(
@@ -145,8 +147,11 @@ int wmain() {
         ClassifyModernXamlHost(L"TaskListThumbnailWnd") !=
             XamlDiagnosticsFlavor::None ||
         !IsModernXamlHostClassName(L"CabinetWClass") ||
+        !IsModernXamlHostClassName(L"Shell_InputSwitchTopLevelWindow") ||
         !IsModernXamlHostClassName(
             L"XamlExplorerHostIslandWindow_WASDK") ||
+        !IsModernXamlHostClassName(
+            L"Windows.UI.Composition.DesktopWindowContentBridge") ||
         IsModernXamlHostClassName(L"TaskListThumbnailWnd")) {
         std::wcerr << L"FAIL (XAML diagnostics host classification)\n";
         ++failed;
@@ -155,6 +160,30 @@ int wmain() {
     XamlDiagnosticsConnectionState connectionState;
     if (!NeedsXamlDiagnosticsHostNotification(connectionState)) {
         std::wcerr << L"FAIL (XAML diagnostics initial state)\n";
+        ++failed;
+    }
+
+    if (GetXamlDiagnosticsConnectionState(
+            XamlDiagnosticsFlavor::Windows) !=
+            &g_windowsUiXamlDiagnostics ||
+        GetXamlDiagnosticsConnectionState(
+            XamlDiagnosticsFlavor::Microsoft) !=
+            &g_microsoftUiXamlDiagnostics ||
+        GetXamlDiagnosticsConnectionState(
+            XamlDiagnosticsFlavor::None)) {
+        std::wcerr << L"FAIL (XAML diagnostics state mapping)\n";
+        ++failed;
+    }
+
+    g_windowsUiXamlDiagnostics.connected.store(true);
+    g_windowsUiXamlDiagnostics.blocked.store(true);
+    g_windowsUiXamlDiagnostics.failureCount.store(
+        kXamlDiagnosticsMaxAttempts);
+    RearmXamlDiagnosticsConnection(XamlDiagnosticsFlavor::Windows);
+    if (g_windowsUiXamlDiagnostics.connected.load() ||
+        g_windowsUiXamlDiagnostics.blocked.load() ||
+        g_windowsUiXamlDiagnostics.failureCount.load() != 0) {
+        std::wcerr << L"FAIL (XAML diagnostics disconnect re-arm)\n";
         ++failed;
     }
     connectionState.requestPending.store(true);
