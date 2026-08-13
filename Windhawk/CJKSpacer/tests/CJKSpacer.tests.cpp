@@ -177,21 +177,26 @@ int wmain() {
 
     g_windowsUiXamlDiagnostics.connected.store(true);
     g_windowsUiXamlDiagnostics.blocked.store(true);
+    g_windowsUiXamlDiagnostics.requestGeneration.store(3);
+    g_windowsUiXamlDiagnostics.processedGeneration.store(1);
     g_windowsUiXamlDiagnostics.failureCount.store(
         kXamlDiagnosticsMaxAttempts);
     RearmXamlDiagnosticsConnection(XamlDiagnosticsFlavor::Windows);
     if (g_windowsUiXamlDiagnostics.connected.load() ||
         g_windowsUiXamlDiagnostics.blocked.load() ||
+        g_windowsUiXamlDiagnostics.processedGeneration.load() !=
+            g_windowsUiXamlDiagnostics.requestGeneration.load() ||
         g_windowsUiXamlDiagnostics.failureCount.load() != 0) {
         std::wcerr << L"FAIL (XAML diagnostics disconnect re-arm)\n";
         ++failed;
     }
-    connectionState.requestPending.store(true);
-    if (NeedsXamlDiagnosticsHostNotification(connectionState)) {
-        std::wcerr << L"FAIL (XAML diagnostics pending state)\n";
+    connectionState.requestGeneration.store(2);
+    connectionState.processedGeneration.store(1);
+    if (!NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics in-flight notification)\n";
         ++failed;
     }
-    connectionState.requestPending.store(false);
+    connectionState.processedGeneration.store(2);
     connectionState.failureCount.store(
         kXamlDiagnosticsMaxAttempts - 1);
     if (!NeedsXamlDiagnosticsHostNotification(connectionState)) {
@@ -286,10 +291,14 @@ int wmain() {
         WaitForXamlWatcherThreads();
         if (g_xamlDiagnosticsWorkerThread ||
             g_xamlDiagnosticsWorkerWakeEvent ||
-            g_windowsUiXamlDiagnostics.requestPending.load(
-                std::memory_order_acquire) ||
-            g_microsoftUiXamlDiagnostics.requestPending.load(
-                std::memory_order_acquire) ||
+            g_windowsUiXamlDiagnostics.requestGeneration.load(
+                std::memory_order_acquire) !=
+                g_windowsUiXamlDiagnostics.processedGeneration.load(
+                    std::memory_order_acquire) ||
+            g_microsoftUiXamlDiagnostics.requestGeneration.load(
+                std::memory_order_acquire) !=
+                g_microsoftUiXamlDiagnostics.processedGeneration.load(
+                    std::memory_order_acquire) ||
             g_xamlWatcherThreads) {
             std::wcerr << L"FAIL (managed XAML worker cleanup)\n";
             ++failed;

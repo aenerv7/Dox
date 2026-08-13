@@ -50,8 +50,8 @@ File Explorer Styler 等工具可能已经使用或阻止这些连接。也就�
 `modernUiText`。它依赖 XAML Diagnostics，因此仍默认关闭，以避免和其他
 同样使用 XAML Diagnostics 的定制工具争用同一连接名，例如
 Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
-使用提醒模式时，连接名扫描跳过已占用名称的过程中可能会显示一次或多次
-XAML Diagnostics 竞争确认对话框。
+使用提醒模式时，拦截连接尝试会显示 XAML Diagnostics 竞争确认对话框；如果它
+通过返回成功来阻止连接，本模组会停止本次扫描并将对应 flavor 标记为 blocked。
 
 ## 实现范围
 
@@ -103,12 +103,13 @@ XAML Diagnostics 竞争确认对话框。
   全局互斥锁。
 - 窗口创建 Hook 只按 Windows.UI.Xaml 与 Microsoft.UI.Xaml flavor 分别唤醒
   受控连接工作线程，不会在窗口创建调用栈里执行 COM 或 Diagnostics 初始化。
-  Host 窗口出现意味着相应 XAML Core 已经就绪，因此不再定时轮询。连接仍保留
-  10,000 个名称的兼容范围，但正常会在首个可用名称处立即停止。普通连接失败
-  可由后续匹配的 Host 窗口通知再次触发，每个 flavor 最多尝试三次；同一次连接
-  尝试期间出现的同 flavor Host 通知会合并。已有连接断开时只重新启用对应 flavor，
-  等待下一个匹配 Host 窗口触发重连。被其他 Diagnostics 工具拦截但返回成功、且
-  未创建 watcher 的连接不会自动重试。连接工作线程会在模组卸载前停止。
+  Host 窗口是相应 XAML Core 的就绪信号，因此不再定时轮询；Diagnostics 端口仍
+  可能稍后才完成注册。连接保留 10,000 个名称的兼容范围，但正常会在首个有效
+  结果处停止。扫描耗尽并返回 `ERROR_NOT_FOUND` 时视为端口尚未注册，不消耗每个
+  flavor 三次的硬失败预算；尝试期间出现的同 flavor Host 通知按 generation 记录，
+  并合并为一次后续尝试。已有连接断开时只重新启用对应 flavor，等待下一个匹配
+  Host 窗口触发重连。被其他 Diagnostics 工具拦截但返回成功、且未创建 watcher 的
+  连接不会自动重试。连接工作线程会在模组卸载前停止。
 - 每个功能的必要 Hook 会作为完整组注册。任意菜单或 Tooltip 测量、绘制、
   生命周期 Hook 注册失败时，模组初始化会直接失败，不会留下可能只测量不
   绘制、只改写不恢复的半工作状态。
