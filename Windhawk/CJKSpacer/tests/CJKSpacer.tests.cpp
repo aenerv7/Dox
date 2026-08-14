@@ -125,6 +125,17 @@ int wmain() {
 
     if (kXamlDiagnosticsConnectionLimit != 10000 ||
         kXamlDiagnosticsMaxAttempts != 3 ||
+        kXamlDiagnosticsMaxEmptyWalks != 5 ||
+        GetXamlDiagnosticsModuleFlavor(L"Windows.UI.Xaml.dll") !=
+            XamlDiagnosticsFlavor::Windows ||
+        GetXamlDiagnosticsModuleFlavor(
+            L"C:\\Windows\\System32\\Microsoft.Internal.FrameworkUdk.dll") !=
+            XamlDiagnosticsFlavor::Microsoft ||
+        GetXamlDiagnosticsModuleFlavor(
+            L"C:/Windows/System32/Windows.UI.Xaml.dll") !=
+            XamlDiagnosticsFlavor::Windows ||
+        GetXamlDiagnosticsModuleFlavor(L"CoreMessagingXP.dll") !=
+            XamlDiagnosticsFlavor::None ||
         ClassifyModernXamlHost(
             L"Windows.UI.Composition.DesktopWindowContentBridge",
             L"Shell_TrayWnd") !=
@@ -181,12 +192,15 @@ int wmain() {
     g_windowsUiXamlDiagnostics.processedGeneration.store(1);
     g_windowsUiXamlDiagnostics.failureCount.store(
         kXamlDiagnosticsMaxAttempts);
+    g_windowsUiXamlDiagnostics.emptyWalkCount.store(
+        kXamlDiagnosticsMaxEmptyWalks);
     RearmXamlDiagnosticsConnection(XamlDiagnosticsFlavor::Windows);
     if (g_windowsUiXamlDiagnostics.connected.load() ||
         g_windowsUiXamlDiagnostics.blocked.load() ||
         g_windowsUiXamlDiagnostics.processedGeneration.load() !=
             g_windowsUiXamlDiagnostics.requestGeneration.load() ||
-        g_windowsUiXamlDiagnostics.failureCount.load() != 0) {
+        g_windowsUiXamlDiagnostics.failureCount.load() != 0 ||
+        g_windowsUiXamlDiagnostics.emptyWalkCount.load() != 0) {
         std::wcerr << L"FAIL (XAML diagnostics disconnect re-arm)\n";
         ++failed;
     }
@@ -209,6 +223,19 @@ int wmain() {
         ++failed;
     }
     connectionState.failureCount.store(0);
+    connectionState.emptyWalkCount.store(
+        kXamlDiagnosticsMaxEmptyWalks - 1);
+    if (!NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics empty-walk retry state)\n";
+        ++failed;
+    }
+    connectionState.emptyWalkCount.store(
+        kXamlDiagnosticsMaxEmptyWalks);
+    if (NeedsXamlDiagnosticsHostNotification(connectionState)) {
+        std::wcerr << L"FAIL (XAML diagnostics empty-walk latch)\n";
+        ++failed;
+    }
+    connectionState.emptyWalkCount.store(0);
     connectionState.blocked.store(true);
     if (NeedsXamlDiagnosticsHostNotification(connectionState)) {
         std::wcerr << L"FAIL (XAML diagnostics blocked state)\n";

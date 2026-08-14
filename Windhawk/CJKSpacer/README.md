@@ -102,17 +102,15 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   复用，并在显式登记和卸载快照时清理死线程，不在线程局部对象析构期间获取
   全局互斥锁。
 - 窗口创建 Hook 只按 Windows.UI.Xaml 与 Microsoft.UI.Xaml flavor 分别唤醒
-  受控连接工作线程，不会在窗口创建调用栈里执行 COM 或 Diagnostics 初始化。
-  Host 窗口是相应 XAML Core 的就绪信号，因此不再定时轮询；Diagnostics 端口仍
-  可能稍后才完成注册。连接保留 10,000 个名称的兼容范围，但正常会在首个有效
-  结果处停止。扫描耗尽并返回 `ERROR_NOT_FOUND` 时视为端口尚未注册，不消耗每个
-  flavor 三次的硬失败预算；尝试期间出现的同 flavor Host 通知按 generation 记录，
-  并合并为一次后续尝试。已有连接断开时只重新启用对应 flavor，等待下一个匹配
-  Host 窗口触发重连。被其他 Diagnostics 工具拦截但返回成功、且未创建 watcher 的
-  连接不会自动重试。连接工作线程会在模组卸载前停止。
-- 每个功能的必要 Hook 会作为完整组注册。任意菜单或 Tooltip 测量、绘制、
-  生命周期 Hook 注册失败时，模组初始化会直接失败，不会留下可能只测量不
-  绘制、只改写不恢复的半工作状态。
+  受控连接工作线程；如果 Host 先于对应框架出现，框架模块加载会提供补充信号。
+  COM 和 Diagnostics 初始化不会在这些 Hook 的调用栈里执行。连续遇到尚未可用
+  的端口或实际连接错误时，自动尝试次数都有上限；其他 Diagnostics 工具占用或
+  阻止连接时不会持续重试。已有连接断开后只重新启用对应 flavor，并等待新的匹配
+  Host。连接工作线程会在模组卸载前停止。
+- 经典菜单和 Tooltip 的必要 Hook 会作为完整组注册，任一测量、绘制或生命周期
+  Hook 失败时模组初始化会直接失败。现代路径的 `CreateWindowInBand*` 补充 Hook
+  按尽力而为方式安装；现代核心 Hook 或工作线程不可用时，只关闭现代路径，已经
+  启用的经典菜单和 Tooltip 仍会继续工作。
 - 只注入 `explorer.exe`，不会修改系统文件、注册表或文件名。现代路径临时
   修改目标 XAML 源属性并在源离开视觉树或模组卸载时恢复；经典路径会修改
   `HMENU` 保存的文字，因此辅助技术读取到的经典菜单文本也会包含新增空格。
