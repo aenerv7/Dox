@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Dox Reader",
+  "version": "0.1.0",
+  "description": "A local-first RSS reader with WebDAV sync for Firefox desktop and Android.",
+  "author": "aenerv7",
+  "homepage_url": "https://github.com/aenerv7/Dox/tree/main/Firefox/Dox%20Reader",
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "打开 Dox Reader",
+    "default_icon": "icons/icon.svg"
+  },
+  "icons": {
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "type": "module"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "dox-rss-reader@dox.local",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": [
+          "authenticationInfo",
+          "browsingActivity",
+          "websiteActivity",
+          "websiteContent"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
+}

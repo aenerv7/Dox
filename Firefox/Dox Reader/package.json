@@ -1,0 +1,27 @@
+{
+  "name": "dox-rss-reader",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "check": "npm run test && npm run build",
+    "package": "npm run check && npx --yes web-ext@10.6.0 build --source-dir dist --artifacts-dir web-ext-artifacts --overwrite-dest"
+  },
+  "dependencies": {
+    "dexie": "^4.4.5",
+    "fast-xml-parser": "^5.10.1",
+    "lucide-preact": "^1.31.0",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@types/firefox-webext-browser": "^143.0.0",
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  }
+}
