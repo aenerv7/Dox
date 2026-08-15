@@ -151,6 +151,17 @@ input:focus-visible {
   gap: 3px;
 }
 
+.topbar-actions {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.topbar-actions::-webkit-scrollbar {
+  display: none;
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -1131,10 +1142,6 @@ body.layout-resizing {
 
   .mobile-nav button.active {
     color: var(--accent);
-  }
-
-  .topbar-actions .icon-button:first-child {
-    display: none;
   }
 
   .layout-lock-button,
