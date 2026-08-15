@@ -90,6 +90,8 @@ Setup once:
 
 How it works: `web-ext sign` submits the built `dist/` to the unlisted channel with `--upload-source-code` (the source archive AMO requires for compiled bundles). Unlisted add-ons are validated and signed automatically — no human review — and the command polls until signing finishes, then downloads the signed XPI. The script then saves it as `bb7581fa1bbf4b928862.xpi` and appends the version to `updates.json`.
 
+The script is idempotent: before submitting it checks the AMO API, and if the version already exists (e.g. a previous run was interrupted after the submission landed), it skips the upload and downloads the signed XPI directly. The same recovery kicks in automatically if `web-ext sign` fails mid-poll after creating the version.
+
 Before running, bump the version in `package.json` and `public/manifest.json` (and `npm install` to refresh `package-lock.json`).
 
 ## Self-hosted updates
