@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | 扩展 ID | `dox-rss-reader@dox.local`（固定，升级保留数据分区） |
-| 当前版本 | 0.2.2 |
+| 当前版本 | 0.2.3 |
 | 最低 Firefox | 142.0（桌面 + Android） |
 | 运行时依赖 | preact 10、dexie 4、fast-xml-parser 5、lucide-preact |
 | 构建 | Vite 8 + TypeScript 7（`tsc --noEmit` 先做类型检查） |
@@ -252,7 +252,8 @@ npm run release:push   # 自动发布 + git 提交推送
 | 0.1.0 | 初版：三栏阅读器、RSS/Atom/RDF 解析、WebDAV 同步、OPML、主题 |
 | 0.2.0 | 订阅行"全部标为已读"按钮；`update_url` 自托管更新 + `updates.json` + `bb7581fa1bbf4b928862.xpi` |
 | 0.2.1 | 记录并同步"上次全部刷新时间"（`lastRefreshAllAt`）；打开时超过 24h 自动刷新全部；`release.ps1` 一键发布（含幂等/断点恢复） |
-| 0.2.2 | 订阅行未读数量移到最左侧（无未读时显示 RSS 图标）；"资料库"标题去掉文章总数；扩展标签页 favicon 显示扩展图标 |
+| 0.2.2 | 订阅行未读数量移到最左侧（无未读时显示 RSS 图标，>99 显示 99+）；"资料库"标题去掉文章总数；扩展标签页 favicon 显示扩展图标 |
+| 0.2.3 | 顶部工具栏新增"全部标为已读"按钮（刷新所有订阅左侧）；`markAllRead` 批量标记全部未读 |
 
 ---
 

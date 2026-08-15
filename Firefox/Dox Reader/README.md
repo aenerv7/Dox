@@ -32,7 +32,7 @@ npm ci
 npm run package
 ```
 
-The resulting extension archive is `web-ext-artifacts/dox_reader-0.2.2.zip`. All dependencies are installed from the public npm registry using the committed `package-lock.json`.
+The resulting extension archive is `web-ext-artifacts/dox_reader-0.2.3.zip`. All dependencies are installed from the public npm registry using the committed `package-lock.json`.
 
 Because the extension ships as a compiled bundle, AMO requires the source code alongside the signed XPI. Produce the source archive with `release.ps1` (see below) or any zip tool, keeping the repository layout intact — `package.json`, `package-lock.json`, `index.html`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `public/`, `src/`, and `test/`. Reviewers reproduce the build by running `npm ci` and `npm run package` from the extracted archive.
 

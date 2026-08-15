@@ -32,6 +32,7 @@ import {
   getLastRefreshAllAt,
   listFeeds,
   listItems,
+  markAllRead,
   markFeedRead,
   removeFeed,
   setItemState,
@@ -268,6 +269,14 @@ export function App() {
     queueSync();
   }
 
+  async function handleMarkAllRead() {
+    const count = await markAllRead();
+    if (!count) return;
+    await loadData();
+    queueSync();
+    setToast(`已将 ${count} 篇文章全部标为已读`);
+  }
+
   async function handleMarkFeedRead(feed: FeedRecord) {
     const count = await markFeedRead(feed.id);
     if (!count) return;
@@ -404,6 +413,9 @@ export function App() {
         <div class="topbar-actions">
           <button class="icon-button" title="同步" disabled={!settings.webdavUrl || syncStatus === "syncing"} onClick={() => void performSync()}>
             {syncIcon}
+          </button>
+          <button class="icon-button" title="全部标为已读" disabled={refreshing || unreadCount === 0} onClick={() => void handleMarkAllRead()}>
+            <CheckCheck size={18} />
           </button>
           <button class="icon-button" title="刷新所有订阅" disabled={refreshing || !feeds.length} onClick={() => void handleRefresh()}>
             <RefreshCw size={18} class={refreshScope === "all" ? "spin" : ""} />

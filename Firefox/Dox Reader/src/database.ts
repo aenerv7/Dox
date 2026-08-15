@@ -164,12 +164,7 @@ export async function setItemState(
   });
 }
 
-export async function markFeedRead(feedId: string): Promise<number> {
-  const items = await db.items
-    .where("feedId")
-    .equals(feedId)
-    .filter((item) => !item.read)
-    .toArray();
+async function markItemsRead(items: ItemRecord[]): Promise<number> {
   if (!items.length) return 0;
   const version = await nextVersion();
   await db.transaction("rw", db.items, db.itemStates, async () => {
@@ -189,6 +184,20 @@ export async function markFeedRead(feedId: string): Promise<number> {
     }
   });
   return items.length;
+}
+
+export async function markFeedRead(feedId: string): Promise<number> {
+  const items = await db.items
+    .where("feedId")
+    .equals(feedId)
+    .filter((item) => !item.read)
+    .toArray();
+  return markItemsRead(items);
+}
+
+export async function markAllRead(): Promise<number> {
+  const items = await db.items.filter((item) => !item.read).toArray();
+  return markItemsRead(items);
 }
 
 export async function getLastRefreshAllAt(): Promise<number> {

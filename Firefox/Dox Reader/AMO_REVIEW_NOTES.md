@@ -11,7 +11,7 @@ npm ci
 npm run package
 ```
 
-The command runs the Vitest suite, TypeScript checks, the Vite production build, and `web-ext build`. The submitted archive is reproduced at `web-ext-artifacts/dox_reader-0.2.2.zip`. Dependencies are resolved only through the public npm registry using `package-lock.json`.
+The command runs the Vitest suite, TypeScript checks, the Vite production build, and `web-ext build`. The submitted archive is reproduced at `web-ext-artifacts/dox_reader-0.2.3.zip`. Dependencies are resolved only through the public npm registry using `package-lock.json`.
 
 ## Network Behavior
 
