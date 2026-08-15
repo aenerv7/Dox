@@ -103,7 +103,7 @@ The manifest points `browser_specific_settings.gecko.update_url` at `updates.jso
 - Existing installs keep using the `update_url` baked into the version they have installed. Installs of 0.1.0 (no `update_url`) must install 0.2.0 manually once; subsequent versions auto-update.
 - Firefox checks for updates every 24 hours by default; set `extensions.update.interval` to `120` in `about:config` to test more quickly.
 
-The privacy policy is in [`PRIVACY.md`](PRIVACY.md). Reviewer-specific build, dependency, permission, and network notes are in [`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md).
+The privacy policy is in [`PRIVACY.md`](PRIVACY.md). Reviewer-specific build, dependency, permission, and network notes are in [`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md). A complete architecture and cross-device development reference is in [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
 ## Sync format
 
