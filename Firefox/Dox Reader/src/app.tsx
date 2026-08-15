@@ -440,9 +440,8 @@ export function App() {
             return (
               <div class={`feed-row ${filter === feed.id ? "active" : ""}`} key={feed.id}>
                 <button onClick={() => { setFilter(feed.id); setMobilePane("items"); }}>
-                  <Rss size={16} />
+                  {count > 0 ? <strong class="feed-unread">{count}</strong> : <Rss size={16} />}
                   <span>{feed.title}</span>
-                  {count > 0 && <strong>{count}</strong>}
                 </button>
                 <div class="feed-row-actions">
                   <button class="feed-action" title="全部标为已读" disabled={refreshing || count === 0} onClick={() => void handleMarkFeedRead(feed)}>

@@ -260,6 +260,22 @@ input:focus-visible {
   text-align: right;
 }
 
+.feed-row .feed-unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .feed-nav > button:hover,
 .feed-row:hover {
   background: var(--surface-hover);
@@ -284,7 +300,7 @@ input:focus-visible {
 }
 
 .feed-row > button:first-child {
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   min-width: 0;
 }
 
