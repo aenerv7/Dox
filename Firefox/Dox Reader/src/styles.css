@@ -292,6 +292,7 @@ input:focus-visible {
 
 .feed-row > button:first-child {
   grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 5px;
   min-width: 0;
 }
 
