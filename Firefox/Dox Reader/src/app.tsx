@@ -439,7 +439,7 @@ export function App() {
             return (
               <div class={`feed-row ${filter === feed.id ? "active" : ""}`} key={feed.id}>
                 <button onClick={() => { setFilter(feed.id); setMobilePane("items"); }}>
-                  {count > 0 ? <strong class="feed-unread">{count}</strong> : <Rss size={16} />}
+                  {count > 0 ? <strong class="feed-unread">{count > 99 ? "99+" : count}</strong> : <Rss size={16} />}
                   <span>{feed.title}</span>
                 </button>
                 <div class="feed-row-actions">

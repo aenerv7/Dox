@@ -260,16 +260,11 @@ input:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: var(--accent-contrast);
+  min-width: 20px;
+  color: var(--text-soft);
   font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  text-align: center;
 }
 
 .feed-nav > button:hover,
