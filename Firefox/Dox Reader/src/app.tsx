@@ -29,10 +29,13 @@ import { renderArticleContent } from "./article-content";
 import {
   addFeed,
   clearAllData,
+  getLastRefreshAllAt,
   listFeeds,
   listItems,
+  markFeedRead,
   removeFeed,
   setItemState,
+  setLastRefreshAllAt,
 } from "./database";
 import { refreshFeed, refreshFeeds } from "./feed-service";
 import type { AppSettings, FeedRecord, ItemRecord } from "./model";
@@ -51,6 +54,7 @@ const FEED_PANE_MAX = 0.32;
 const ITEM_PANE_MIN = 0.22;
 const ITEM_PANE_MAX = 0.5;
 const READER_PANE_MIN = 0.3;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function resizedPanes(
   target: ResizeTarget,
@@ -152,6 +156,7 @@ export function App() {
       await loadData();
       setReady(true);
       if (saved.webdavUrl) await performSync(saved, true);
+      await maybeAutoRefresh();
     })();
     return () => {
       if (syncTimer.current !== null) window.clearTimeout(syncTimer.current);
@@ -205,14 +210,15 @@ export function App() {
     queueSync();
   }
 
-  async function handleRefresh(feedId?: string) {
-    if (!feeds.length) {
-      setShowAdd(true);
+  async function handleRefresh(feedId?: string, auto = false) {
+    const currentFeeds = auto ? await listFeeds() : feeds;
+    if (!currentFeeds.length) {
+      if (!auto) setShowAdd(true);
       return;
     }
     setRefreshing(true);
     setRefreshScope(feedId ?? "all");
-    const targets = feedId ? [feedId] : feeds.map((feed) => feed.id);
+    const targets = feedId ? [feedId] : currentFeeds.map((feed) => feed.id);
     try {
       const result = await refreshFeeds(targets);
       await loadData();
@@ -222,6 +228,8 @@ export function App() {
           : `刷新完成：读取 ${result.updated} 篇文章`);
       } else {
         setToast(`全部刷新完成：成功 ${result.succeeded} 个，失败 ${result.errors.length} 个，读取 ${result.updated} 篇文章`);
+        await setLastRefreshAllAt(Date.now());
+        queueSync();
       }
     } catch (error) {
       setToast(`刷新失败：${error instanceof Error ? error.message : String(error)}`);
@@ -229,6 +237,16 @@ export function App() {
       setRefreshing(false);
       setRefreshScope(null);
     }
+  }
+
+  async function maybeAutoRefresh() {
+    const [feedCount, lastRefreshAllAt] = await Promise.all([
+      listFeeds().then((list) => list.length),
+      getLastRefreshAllAt(),
+    ]);
+    if (!feedCount) return;
+    if (lastRefreshAllAt > 0 && Date.now() - lastRefreshAllAt < ONE_DAY_MS) return;
+    await handleRefresh(undefined, true);
   }
 
   async function handleAddFeed(url: string) {
@@ -248,6 +266,14 @@ export function App() {
     setRefreshing(false);
     setRefreshScope(null);
     queueSync();
+  }
+
+  async function handleMarkFeedRead(feed: FeedRecord) {
+    const count = await markFeedRead(feed.id);
+    if (!count) return;
+    await loadData();
+    queueSync();
+    setToast(`已将 ${feed.title} 的 ${count} 篇文章标为已读`);
   }
 
   async function handleRemoveFeed(feed: FeedRecord) {
@@ -419,6 +445,9 @@ export function App() {
                   {count > 0 && <strong>{count}</strong>}
                 </button>
                 <div class="feed-row-actions">
+                  <button class="feed-action" title="全部标为已读" disabled={refreshing || count === 0} onClick={() => void handleMarkFeedRead(feed)}>
+                    <CheckCheck size={14} />
+                  </button>
                   <button class="feed-action" title={`刷新 ${feed.title}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
                     <RefreshCw size={14} class={refreshScope === feed.id ? "spin" : ""} />
                   </button>

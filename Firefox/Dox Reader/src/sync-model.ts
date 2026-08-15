@@ -59,6 +59,7 @@ export function mergeSyncDocuments(local: SyncDocument, remote: SyncDocument): S
     generatedAt: new Date().toISOString(),
     subscriptions,
     itemStates,
+    lastRefreshAllAt: Math.max(local.lastRefreshAllAt ?? 0, remote.lastRefreshAllAt ?? 0),
   };
 }
 
@@ -96,6 +97,12 @@ export function parseSyncDocument(value: unknown): SyncDocument {
       || !isVersion(state.read?.version) || !isVersion(state.starred?.version)) {
       throw new Error("WebDAV 同步文件包含无效阅读状态");
     }
+  }
+  if (candidate.lastRefreshAllAt !== undefined
+    && (typeof candidate.lastRefreshAllAt !== "number"
+      || !Number.isFinite(candidate.lastRefreshAllAt)
+      || candidate.lastRefreshAllAt < 0)) {
+    throw new Error("WebDAV 同步文件包含无效刷新时间");
   }
 
   return candidate as SyncDocument;

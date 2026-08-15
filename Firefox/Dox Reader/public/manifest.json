@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dox Reader",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "A local-first RSS reader with WebDAV sync for Firefox desktop and Android.",
   "author": "aenerv7",
   "homepage_url": "https://github.com/aenerv7/Dox/tree/main/Firefox/Dox%20Reader",
@@ -30,6 +30,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "dox-rss-reader@dox.local",
+      "update_url": "https://raw.githubusercontent.com/aenerv7/Dox/main/Firefox/Dox%20Reader/updates.json",
       "strict_min_version": "142.0",
       "data_collection_permissions": {
         "required": [

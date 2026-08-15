@@ -164,10 +164,47 @@ export async function setItemState(
   });
 }
 
+export async function markFeedRead(feedId: string): Promise<number> {
+  const items = await db.items
+    .where("feedId")
+    .equals(feedId)
+    .filter((item) => !item.read)
+    .toArray();
+  if (!items.length) return 0;
+  const version = await nextVersion();
+  await db.transaction("rw", db.items, db.itemStates, async () => {
+    for (const item of items) {
+      const current = await db.itemStates.get(item.id) ?? {
+        id: item.id,
+        feedId: item.feedId,
+        publishedAt: item.publishedAt,
+        read: { value: item.read, version: ZERO_VERSION },
+        starred: { value: item.starred, version: ZERO_VERSION },
+      };
+      await db.itemStates.put({
+        ...current,
+        read: { value: true, version },
+      });
+      await db.items.update(item.id, { read: true });
+    }
+  });
+  return items.length;
+}
+
+export async function getLastRefreshAllAt(): Promise<number> {
+  const record = await db.meta.get("lastRefreshAllAt");
+  return typeof record?.value === "number" ? record.value : 0;
+}
+
+export async function setLastRefreshAllAt(value: number): Promise<void> {
+  await db.meta.put({ key: "lastRefreshAllAt", value });
+}
+
 export async function exportSyncDocument(): Promise<SyncDocument> {
-  const [actor, clockRecord, feeds, states] = await Promise.all([
+  const [actor, clockRecord, refreshRecord, feeds, states] = await Promise.all([
     getActor(),
     db.meta.get("clock"),
+    db.meta.get("lastRefreshAllAt"),
     db.feeds.toArray(),
     db.itemStates.toArray(),
   ]);
@@ -188,6 +225,7 @@ export async function exportSyncDocument(): Promise<SyncDocument> {
     generatedAt: new Date().toISOString(),
     subscriptions,
     itemStates: Object.fromEntries(states.map((state) => [state.id, state])),
+    lastRefreshAllAt: typeof refreshRecord?.value === "number" ? refreshRecord.value : 0,
   };
 }
 
@@ -225,6 +263,14 @@ export async function applySyncDocument(document: SyncDocument): Promise<void> {
     const currentClock = await db.meta.get("clock");
     const localClock = typeof currentClock?.value === "number" ? currentClock.value : 0;
     await db.meta.put({ key: "clock", value: Math.max(localClock, document.clock) });
+    if (typeof document.lastRefreshAllAt === "number") {
+      const currentRefresh = await db.meta.get("lastRefreshAllAt");
+      const localRefresh = typeof currentRefresh?.value === "number" ? currentRefresh.value : 0;
+      await db.meta.put({
+        key: "lastRefreshAllAt",
+        value: Math.max(localRefresh, document.lastRefreshAllAt),
+      });
+    }
   });
 }
 

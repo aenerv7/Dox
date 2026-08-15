@@ -56,6 +56,27 @@ describe("sync model", () => {
     expect(merged.actor).toBe("desktop");
   });
 
+  it("merges lastRefreshAllAt as the latest timestamp", () => {
+    const local = document("desktop");
+    local.lastRefreshAllAt = 1000;
+    const remote = document("android");
+    remote.lastRefreshAllAt = 2000;
+    expect(mergeSyncDocuments(local, remote).lastRefreshAllAt).toBe(2000);
+    expect(mergeSyncDocuments(remote, local).lastRefreshAllAt).toBe(2000);
+    expect(mergeSyncDocuments(local, document("android")).lastRefreshAllAt).toBe(1000);
+  });
+
+  it("accepts a missing or valid lastRefreshAllAt and rejects invalid values", () => {
+    expect(parseSyncDocument(document("desktop")).lastRefreshAllAt).toBeUndefined();
+    const withValue = document("desktop");
+    withValue.lastRefreshAllAt = 123456;
+    expect(parseSyncDocument(withValue).lastRefreshAllAt).toBe(123456);
+    expect(() => parseSyncDocument({ ...document("desktop"), lastRefreshAllAt: -1 }))
+      .toThrow("无效刷新时间");
+    expect(() => parseSyncDocument({ ...document("desktop"), lastRefreshAllAt: "yesterday" }))
+      .toThrow("无效刷新时间");
+  });
+
   it("rejects unsupported schema versions", () => {
     expect(() => parseSyncDocument({ schemaVersion: 2 })).toThrow("不支持");
   });

@@ -1,13 +1,15 @@
 {
   "name": "dox-rss-reader",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "check": "npm run test && npm run build",
+    "release": "pwsh -NoProfile -ExecutionPolicy Bypass -File release.ps1",
+    "release:push": "pwsh -NoProfile -ExecutionPolicy Bypass -File release.ps1 -Push",
     "package": "npm run check && npx --yes web-ext@10.6.0 build --source-dir dist --artifacts-dir web-ext-artifacts --overwrite-dest"
   },
   "dependencies": {

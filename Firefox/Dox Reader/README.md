@@ -32,7 +32,9 @@ npm ci
 npm run package
 ```
 
-The resulting extension archive is `web-ext-artifacts/dox_reader-0.1.0.zip`. All dependencies are installed from the public npm registry using the committed `package-lock.json`.
+The resulting extension archive is `web-ext-artifacts/dox_reader-0.2.1.zip`. All dependencies are installed from the public npm registry using the committed `package-lock.json`.
+
+Because the extension ships as a compiled bundle, AMO requires the source code alongside the signed XPI. Produce the source archive with `release.ps1` (see below) or any zip tool, keeping the repository layout intact — `package.json`, `package-lock.json`, `index.html`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `public/`, `src/`, and `test/`. Reviewers reproduce the build by running `npm ci` and `npm run package` from the extracted archive.
 
 To run the built extension in desktop Firefox:
 
@@ -69,6 +71,35 @@ The remote file contains subscription metadata and item state only. The WebDAV u
 5. On Android Firefox, unlock **Install Extension from File** by opening **Settings > About Firefox** and tapping the Firefox logo five times, then select the signed XPI.
 
 The fixed extension ID is `dox-rss-reader@dox.local`, so updates retain the same local database and settings.
+
+## Automated release
+
+`release.ps1` automates the whole cycle — build, source archive, AMO submission, signing wait, XPI download, and update-manifest bump:
+
+```powershell
+npm run release          # everything up to git push
+npm run release:push     # also commits and pushes
+pwsh -File release.ps1 -SkipSign   # dry run: check + build + source archive only
+```
+
+Setup once:
+
+1. Create AMO API credentials at <https://addons.mozilla.org/en-US/developers/addon/api/key/>.
+2. Put them in a local `.env.release` file in this directory (gitignored, never committed), or export `AMO_API_KEY` (JWT issuer, e.g. `user:12345678` or `user:12345678:808`) and `AMO_API_SECRET` (JWT secret) as environment variables.
+3. The add-on must already exist on AMO. Because the manifest carries a fixed extension ID, `web-ext sign` always targets that existing add-on and never creates a new one.
+
+How it works: `web-ext sign` submits the built `dist/` to the unlisted channel with `--upload-source-code` (the source archive AMO requires for compiled bundles). Unlisted add-ons are validated and signed automatically — no human review — and the command polls until signing finishes, then downloads the signed XPI. The script then saves it as `bb7581fa1bbf4b928862.xpi` and appends the version to `updates.json`.
+
+Before running, bump the version in `package.json` and `public/manifest.json` (and `npm install` to refresh `package-lock.json`).
+
+## Self-hosted updates
+
+The manifest points `browser_specific_settings.gecko.update_url` at `updates.json` in this directory (served over HTTPS via GitHub raw). The update manifest is keyed by the fixed extension ID and references the XPI file `bb7581fa1bbf4b928862.xpi`:
+
+- Replace `bb7581fa1bbf4b928862.xpi` with the **AMO-signed** XPI for each release (an unsigned build does not auto-update; Firefox verifies the signature of downloaded updates).
+- When releasing a new version, add an entry to the `updates` array in `updates.json` and commit both files. The `update_link` is HTTPS, so no `update_hash` is required.
+- Existing installs keep using the `update_url` baked into the version they have installed. Installs of 0.1.0 (no `update_url`) must install 0.2.0 manually once; subsequent versions auto-update.
+- Firefox checks for updates every 24 hours by default; set `extensions.update.interval` to `120` in `about:config` to test more quickly.
 
 The privacy policy is in [`PRIVACY.md`](PRIVACY.md). Reviewer-specific build, dependency, permission, and network notes are in [`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md).
 

@@ -64,6 +64,8 @@ export interface SyncDocument {
   generatedAt: string;
   subscriptions: Record<string, SubscriptionSync>;
   itemStates: Record<string, ItemStateRecord>;
+  /** Timestamp of the last refresh of all subscriptions, shared across devices. */
+  lastRefreshAllAt?: number;
 }
 
 export interface ParsedFeed {
