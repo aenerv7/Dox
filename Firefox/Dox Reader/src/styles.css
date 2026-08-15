@@ -212,10 +212,6 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
-.muted-count {
-  font-variant-numeric: tabular-nums;
-}
-
 .subscriptions-heading {
   margin-top: 10px;
   padding-top: 6px;

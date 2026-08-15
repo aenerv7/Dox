@@ -423,7 +423,6 @@ export function App() {
       <aside class="feeds-pane">
         <div class="pane-heading">
           <span>资料库</span>
-          <span class="muted-count">{items.length}</span>
         </div>
         <nav class="feed-nav">
           <NavItem icon={<Inbox size={17} />} label="全部文章" count={items.length} active={filter === "all"} onClick={() => { setFilter("all"); setMobilePane("items"); }} />
