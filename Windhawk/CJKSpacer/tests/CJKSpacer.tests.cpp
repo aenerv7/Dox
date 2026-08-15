@@ -123,9 +123,10 @@ int wmain() {
         ++failed;
     }
 
-    if (kXamlDiagnosticsConnectionLimit != 10000 ||
+    if (kXamlDiagnosticsConnectionLimit != 64 ||
         kXamlDiagnosticsMaxAttempts != 3 ||
         kXamlDiagnosticsMaxEmptyWalks != 5 ||
+        kXamlDiagnosticsEmptyWalkCooldownMilliseconds != 30'000 ||
         GetXamlDiagnosticsModuleFlavor(L"Windows.UI.Xaml.dll") !=
             XamlDiagnosticsFlavor::Windows ||
         GetXamlDiagnosticsModuleFlavor(
@@ -154,13 +155,14 @@ int wmain() {
             XamlDiagnosticsFlavor::Microsoft ||
         ClassifyModernXamlHost(L"TaskListThumbnailWnd") !=
             XamlDiagnosticsFlavor::None ||
-        !IsModernXamlHostClassName(L"CabinetWClass") ||
-        !IsModernXamlHostClassName(L"Shell_InputSwitchTopLevelWindow") ||
-        !IsModernXamlHostClassName(
+        !IsModernUiDispatchWindowClassName(L"CabinetWClass") ||
+        !IsModernUiDispatchWindowClassName(
+            L"Shell_InputSwitchTopLevelWindow") ||
+        !IsModernUiDispatchWindowClassName(
             L"XamlExplorerHostIslandWindow_WASDK") ||
-        !IsModernXamlHostClassName(
+        !IsModernUiDispatchWindowClassName(
             L"Windows.UI.Composition.DesktopWindowContentBridge") ||
-        IsModernXamlHostClassName(L"TaskListThumbnailWnd")) {
+        IsModernUiDispatchWindowClassName(L"TaskListThumbnailWnd")) {
         std::wcerr << L"FAIL (XAML diagnostics host classification)\n";
         ++failed;
     }
@@ -191,13 +193,15 @@ int wmain() {
         kXamlDiagnosticsMaxAttempts);
     g_windowsUiXamlDiagnostics.emptyWalkCount.store(
         kXamlDiagnosticsMaxEmptyWalks);
+    g_windowsUiXamlDiagnostics.lastEmptyWalkTick.store(1234);
     RearmXamlDiagnosticsConnection(XamlDiagnosticsFlavor::Windows);
     if (g_windowsUiXamlDiagnostics.connected.load() ||
         g_windowsUiXamlDiagnostics.blocked.load() ||
         g_windowsUiXamlDiagnostics.processedGeneration.load() !=
             g_windowsUiXamlDiagnostics.requestGeneration.load() ||
         g_windowsUiXamlDiagnostics.failureCount.load() != 0 ||
-        g_windowsUiXamlDiagnostics.emptyWalkCount.load() != 0) {
+        g_windowsUiXamlDiagnostics.emptyWalkCount.load() != 0 ||
+        g_windowsUiXamlDiagnostics.lastEmptyWalkTick.load() != 0) {
         std::wcerr << L"FAIL (XAML diagnostics disconnect re-arm)\n";
         ++failed;
     }
@@ -228,8 +232,25 @@ int wmain() {
     }
     connectionState.emptyWalkCount.store(
         kXamlDiagnosticsMaxEmptyWalks);
-    if (CanAttemptXamlDiagnosticsConnection(connectionState)) {
-        std::wcerr << L"FAIL (XAML diagnostics empty-walk latch)\n";
+    constexpr uint64_t lastEmptyWalkTick = 1000;
+    connectionState.lastEmptyWalkTick.store(lastEmptyWalkTick);
+    if (CanAttemptXamlDiagnosticsConnection(
+            connectionState,
+            lastEmptyWalkTick +
+                kXamlDiagnosticsEmptyWalkCooldownMilliseconds - 1)) {
+        std::wcerr << L"FAIL (XAML diagnostics empty-walk cooldown)\n";
+        ++failed;
+    }
+    const uint64_t cooldownExpiredTick =
+        lastEmptyWalkTick +
+        kXamlDiagnosticsEmptyWalkCooldownMilliseconds;
+    if (!CanAttemptXamlDiagnosticsConnection(
+            connectionState, cooldownExpiredTick) ||
+        !RefreshXamlDiagnosticsEmptyWalkBudget(
+            connectionState, cooldownExpiredTick) ||
+        connectionState.emptyWalkCount.load() != 0 ||
+        connectionState.lastEmptyWalkTick.load() != 0) {
+        std::wcerr << L"FAIL (XAML diagnostics empty-walk recovery)\n";
         ++failed;
     }
     connectionState.emptyWalkCount.store(0);

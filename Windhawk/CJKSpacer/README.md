@@ -101,12 +101,10 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
   弱引用的状态会随所属线程退出正常释放。线程登记使用线程创建时间识别 ID
   复用，并在显式登记和卸载快照时清理死线程，不在线程局部对象析构期间获取
   全局互斥锁。
-- 窗口创建 Hook 只按 Windows.UI.Xaml 与 Microsoft.UI.Xaml flavor 分别唤醒
-  受控连接工作线程；如果 Host 先于对应框架出现，框架模块加载会提供补充信号。
-  COM 和 Diagnostics 初始化不会在这些 Hook 的调用栈里执行。连续遇到尚未可用
-  的端口或实际连接错误时，自动尝试次数都有上限；其他 Diagnostics 工具占用或
-  阻止连接时不会持续重试。已有连接断开后只重新启用对应 flavor，并等待新的匹配
-  Host。连接工作线程会在模组卸载前停止。
+- 现代路径会等到 Explorer 中出现受支持的 XAML 界面后再尝试连接。暂时不可用
+  的连接会有限重试并在短暂停顿后由后续界面活动恢复；重复发生实际连接错误时
+  会放弃。其他 Diagnostics 工具占用或阻止连接时不会自动重试。已有连接在其
+  XAML Host 消失后可以由后续界面活动恢复。
 - 经典菜单和 Tooltip 的必要 Hook 会作为完整组注册，任一测量、绘制或生命周期
   Hook 失败时模组初始化会直接失败。现代路径的 `CreateWindowInBand*` 补充 Hook
   按尽力而为方式安装；现代核心 Hook 或工作线程不可用时，只关闭现代路径，已经
