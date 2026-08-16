@@ -182,6 +182,9 @@ export function App() {
 
   const selectedItem = items.find((item) => item.id === selectedItemId) ?? null;
   const selectedFeed = feeds.find((feed) => feed.id === filter);
+  const selectedFeedUnread = selectedFeed
+    ? items.filter((item) => item.feedId === selectedFeed.id && !item.read).length
+    : 0;
   const unreadCount = items.filter((item) => !item.read).length;
   const starredCount = items.filter((item) => item.starred).length;
 
@@ -473,10 +476,20 @@ export function App() {
       <section class="items-pane">
         <div class="items-header">
           <button class="mobile-back icon-button" title="订阅列表" onClick={() => setMobilePane("feeds")}><ArrowLeft size={19} /></button>
-          <div>
+          <div class="items-header-title">
             <h1>{selectedFeed?.title ?? (filter === "unread" ? "未读" : filter === "starred" ? "收藏" : "全部文章")}</h1>
             <span>{visibleItems.length} 篇</span>
           </div>
+          {selectedFeed && (
+            <div class="items-header-actions">
+              <button class="icon-button" title="全部标为已读" disabled={refreshing || selectedFeedUnread === 0} onClick={() => void handleMarkFeedRead(selectedFeed)}>
+                <CheckCheck size={18} />
+              </button>
+              <button class="icon-button" title={`更新 ${selectedFeed.title}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
+                <RefreshCw size={18} class={refreshScope === selectedFeed.id ? "spin" : ""} />
+              </button>
+            </div>
+          )}
         </div>
         <label class="search-box">
           <Search size={16} />

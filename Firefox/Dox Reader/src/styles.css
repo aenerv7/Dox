@@ -380,8 +380,16 @@ input:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
-.items-header > div {
+.items-header-title {
+  flex: 1;
   min-width: 0;
+}
+
+.items-header-actions {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
 }
 
 .items-header h1 {
@@ -1085,6 +1093,10 @@ body.layout-resizing {
 
   .items-header {
     padding-left: 6px;
+  }
+
+  .items-header-actions {
+    display: flex;
   }
 
   .mobile-back {
