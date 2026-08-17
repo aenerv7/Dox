@@ -38,7 +38,7 @@ Firefox/Dox Reader/
 │   ├── feed-service.ts     # 抓取订阅源（4 并发）
 │   ├── article-content.tsx # 文章 HTML 白名单净化渲染
 │   ├── opml.ts             # OPML 导入/导出
-│   ├── settings.ts         # 设置持久化（storage.local，降级 localStorage）+ 主题
+│   ├── settings.ts         # 设置持久化（storage.local，降级 localStorage）+ 主题与配色
 │   ├── sync-model.ts       # 同步文档合并/校验（LWW）
 │   ├── webdav.ts           # WebDAV 客户端（PROPFIND/MKCOL/GET/PUT + ETag）
 │   └── styles.css          # 全部样式（含移动端响应式）
@@ -180,9 +180,11 @@ interface SyncDocument {
 
 ### 设置与主题
 
-- 设置：`webdavUrl / webdavUsername / webdavPassword / theme / feedPaneRatio / itemPaneRatio / layoutLocked`。
+- 设置：`webdavUrl / webdavUsername / webdavPassword / theme / colorScheme / feedPaneRatio / itemPaneRatio / layoutLocked`。
 - 持久化优先 `browser.storage.local`，非扩展环境（dev 服务器）自动降级 `localStorage`。
-- 主题 `system/light/dark` 通过 `document.documentElement.dataset.theme` 切换，CSS 变量驱动。
+- 主题 `system/light/dark` 通过 `document.documentElement.dataset.theme` 切换；配色 `ink/ocean/violet/amber/graphite`（墨绿/海洋蓝/紫罗兰/暖橙/石墨灰）通过 `data-scheme` 切换。
+- 每种配色都有浅色与深色两套 CSS 变量（`--bg/--surface/--accent/--accent-soft` 等）；`theme=system` 时用 `@media (prefers-color-scheme: dark)` 自动套用深色变体，OS 切换明暗即自动适配。`data-theme="dark"` 块和媒体查询块按 `data-scheme` 各自声明，靠属性选择器特异性覆盖基色（墨绿）。
+- 新增配色只需在 `styles.css` 的浅色/深色/媒体查询三处各加一个 `data-scheme` 块，并在 `app.tsx` 的 `COLOR_SCHEMES` 数组补一项（`model.ts` 的 `ColorScheme` 联合类型同步加值）。
 
 ### UI 布局
 
@@ -258,6 +260,7 @@ npm run release:push   # 自动发布 + git 提交推送
 | 0.2.5 | 移动端单个订阅标题栏右侧新增"全部标为已读"与"更新订阅"按钮 |
 | 0.2.6 | 自定义订阅名称，随 WebDAV 同步 |
 | 0.2.7 | 移动端触屏移除 hover 效果，仅保留选中/未选中态；hover 规则统一收进 `@media (hover: hover) and (pointer: fine)` |
+| 0.2.8 | 新增 5 种可选配色（墨绿默认/海洋蓝/紫罗兰/暖橙/石墨灰），每种配色带浅色与深色变体，跟随明暗模式自动适配 |
 
 ---
 

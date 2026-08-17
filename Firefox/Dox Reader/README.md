@@ -12,7 +12,7 @@ A local-first RSS/Atom reader for Firefox desktop and Firefox for Android. Subsc
 - WebDAV sync with ETag/`If-Match` conflict retries
 - Deterministic per-field merge using Lamport versions and device IDs
 - OPML import and export
-- System, light, and dark themes
+- System, light, and dark themes with five selectable color schemes (ink, ocean, violet, amber, graphite), each auto-adapting between light and dark palettes
 
 The extension requests access to all HTTP and HTTPS sites because private builds need to fetch arbitrary feed and WebDAV URLs directly. It does not collect or transmit data to the developer.
 

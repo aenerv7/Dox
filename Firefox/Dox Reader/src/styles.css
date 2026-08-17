@@ -3,6 +3,7 @@
   font-family: Inter, "Segoe UI", "Noto Sans SC", system-ui, sans-serif;
   font-synthesis: none;
   letter-spacing: 0;
+  /* 配色：墨绿（默认）· 浅色 */
   --bg: #f7f8f6;
   --surface: #ffffff;
   --surface-soft: #f0f2ef;
@@ -19,6 +20,68 @@
   --shadow: 0 14px 38px rgb(24 32 29 / 18%);
 }
 
+/* 配色：其他方案 · 浅色（--gold / --danger 沿用墨绿基色） */
+:root[data-scheme="ocean"] {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-soft: #eef2f7;
+  --surface-hover: #e4eaf2;
+  --text: #1f2429;
+  --text-soft: #5d6b7a;
+  --border: #d6dee9;
+  --border-strong: #bfcad8;
+  --accent: #2563eb;
+  --accent-soft: #e2ebfb;
+  --accent-contrast: #ffffff;
+  --shadow: 0 14px 38px rgb(23 38 61 / 16%);
+}
+
+:root[data-scheme="violet"] {
+  --bg: #f8f6fa;
+  --surface: #ffffff;
+  --surface-soft: #f2eff7;
+  --surface-hover: #eae5f1;
+  --text: #242129;
+  --text-soft: #655f72;
+  --border: #dcd7e7;
+  --border-strong: #c6bdd8;
+  --accent: #7c3aed;
+  --accent-soft: #f0e8fd;
+  --accent-contrast: #ffffff;
+  --shadow: 0 14px 38px rgb(43 30 68 / 16%);
+}
+
+:root[data-scheme="amber"] {
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --surface-soft: #f5f0e6;
+  --surface-hover: #efe7d8;
+  --text: #29241d;
+  --text-soft: #72695a;
+  --border: #e3dbcb;
+  --border-strong: #cfc3ad;
+  --accent: #c05621;
+  --accent-soft: #fbe9dc;
+  --accent-contrast: #ffffff;
+  --shadow: 0 14px 38px rgb(64 46 21 / 16%);
+}
+
+:root[data-scheme="graphite"] {
+  --bg: #f6f6f6;
+  --surface: #ffffff;
+  --surface-soft: #efefef;
+  --surface-hover: #e6e6e6;
+  --text: #222222;
+  --text-soft: #646464;
+  --border: #d9d9d9;
+  --border-strong: #c2c2c2;
+  --accent: #4f6176;
+  --accent-soft: #e7ebf0;
+  --accent-contrast: #ffffff;
+  --shadow: 0 14px 38px rgb(32 32 32 / 16%);
+}
+
+/* 深色 · 墨绿（默认） */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #171a1a;
@@ -37,6 +100,64 @@
   --shadow: 0 16px 44px rgb(0 0 0 / 45%);
 }
 
+/* 深色 · 其他配色 */
+:root[data-theme="dark"][data-scheme="ocean"] {
+  --bg: #141a21;
+  --surface: #1b232c;
+  --surface-soft: #242e3a;
+  --surface-hover: #2f3b4a;
+  --text: #e9eff6;
+  --text-soft: #a2b0c1;
+  --border: #35414f;
+  --border-strong: #49586a;
+  --accent: #7dabf5;
+  --accent-soft: #253650;
+  --accent-contrast: #0e1826;
+}
+
+:root[data-theme="dark"][data-scheme="violet"] {
+  --bg: #191622;
+  --surface: #201c2b;
+  --surface-soft: #29243a;
+  --surface-hover: #332d49;
+  --text: #f0edf6;
+  --text-soft: #aca6bd;
+  --border: #3a3449;
+  --border-strong: #4d4561;
+  --accent: #b28df7;
+  --accent-soft: #362a50;
+  --accent-contrast: #170f2a;
+}
+
+:root[data-theme="dark"][data-scheme="amber"] {
+  --bg: #1d1a15;
+  --surface: #25211b;
+  --surface-soft: #2f2a22;
+  --surface-hover: #3a342a;
+  --text: #f3efe7;
+  --text-soft: #b3ab9c;
+  --border: #463e31;
+  --border-strong: #59503e;
+  --accent: #f2a057;
+  --accent-soft: #4b3522;
+  --accent-contrast: #221207;
+}
+
+:root[data-theme="dark"][data-scheme="graphite"] {
+  --bg: #151515;
+  --surface: #1c1c1c;
+  --surface-soft: #252525;
+  --surface-hover: #2f2f2f;
+  --text: #ededed;
+  --text-soft: #a6a6a6;
+  --border: #333333;
+  --border-strong: #464646;
+  --accent: #9fb0c4;
+  --accent-soft: #2c333d;
+  --accent-contrast: #10151c;
+}
+
+/* 跟随系统：OS 为深色时，除显式“浅色”外的所有配色自动切换到深色变体 */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
@@ -54,6 +175,62 @@
     --gold: #e8b64e;
     --danger: #ff777d;
     --shadow: 0 16px 44px rgb(0 0 0 / 45%);
+  }
+
+  :root:not([data-theme="light"])[data-scheme="ocean"] {
+    --bg: #141a21;
+    --surface: #1b232c;
+    --surface-soft: #242e3a;
+    --surface-hover: #2f3b4a;
+    --text: #e9eff6;
+    --text-soft: #a2b0c1;
+    --border: #35414f;
+    --border-strong: #49586a;
+    --accent: #7dabf5;
+    --accent-soft: #253650;
+    --accent-contrast: #0e1826;
+  }
+
+  :root:not([data-theme="light"])[data-scheme="violet"] {
+    --bg: #191622;
+    --surface: #201c2b;
+    --surface-soft: #29243a;
+    --surface-hover: #332d49;
+    --text: #f0edf6;
+    --text-soft: #aca6bd;
+    --border: #3a3449;
+    --border-strong: #4d4561;
+    --accent: #b28df7;
+    --accent-soft: #362a50;
+    --accent-contrast: #170f2a;
+  }
+
+  :root:not([data-theme="light"])[data-scheme="amber"] {
+    --bg: #1d1a15;
+    --surface: #25211b;
+    --surface-soft: #2f2a22;
+    --surface-hover: #3a342a;
+    --text: #f3efe7;
+    --text-soft: #b3ab9c;
+    --border: #463e31;
+    --border-strong: #59503e;
+    --accent: #f2a057;
+    --accent-soft: #4b3522;
+    --accent-contrast: #221207;
+  }
+
+  :root:not([data-theme="light"])[data-scheme="graphite"] {
+    --bg: #151515;
+    --surface: #1c1c1c;
+    --surface-soft: #252525;
+    --surface-hover: #2f2f2f;
+    --text: #ededed;
+    --text-soft: #a6a6a6;
+    --border: #333333;
+    --border-strong: #464646;
+    --accent: #9fb0c4;
+    --accent-soft: #2c333d;
+    --accent-contrast: #10151c;
   }
 }
 
@@ -939,6 +1116,59 @@ body.layout-resizing {
   box-shadow: 0 1px 3px rgb(20 25 23 / 12%);
 }
 
+.scheme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 8px;
+  width: min(430px, 100%);
+}
+
+.scheme-option {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.scheme-option.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.scheme-swatch {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 30px;
+  border-radius: 5px;
+}
+
+.scheme-swatch i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgb(255 255 255 / 75%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.scheme-label {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.scheme-option.active .scheme-label {
+  color: var(--text);
+}
+
 .danger-section {
   align-items: flex-start;
   border-bottom: 0;
@@ -1219,5 +1449,9 @@ body.layout-resizing {
 
   .secondary-button:hover:not(:disabled) {
     background: var(--surface-hover);
+  }
+
+  .scheme-option:hover:not(.active) {
+    border-color: var(--border-strong);
   }
 }

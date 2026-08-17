@@ -41,16 +41,24 @@ import {
   setLastRefreshAllAt,
 } from "./database";
 import { refreshFeed, refreshFeeds } from "./feed-service";
-import type { AppSettings, FeedRecord, ItemRecord } from "./model";
+import type { AppSettings, ColorScheme, FeedRecord, ItemRecord } from "./model";
 import { DEFAULT_SETTINGS } from "./model";
 import { createOpml, parseOpml } from "./opml";
-import { applyTheme, loadSettings, saveSettings } from "./settings";
+import { applyAppearance, loadSettings, saveSettings } from "./settings";
 import { syncWithWebDav, testWebDav } from "./webdav";
 
 type Filter = "all" | "unread" | "starred" | string;
 type MobilePane = "feeds" | "items" | "reader";
 type SyncStatus = "idle" | "syncing" | "ok" | "error";
 type ResizeTarget = "feeds" | "items";
+
+const COLOR_SCHEMES: ReadonlyArray<{ id: ColorScheme; label: string; swatch: string; dot: string }> = [
+  { id: "ink", label: "墨绿", swatch: "#e9ece8", dot: "#c8423d" },
+  { id: "ocean", label: "海洋蓝", swatch: "#e4eaf2", dot: "#2563eb" },
+  { id: "violet", label: "紫罗兰", swatch: "#eae5f1", dot: "#7c3aed" },
+  { id: "amber", label: "暖橙", swatch: "#efe7d8", dot: "#c05621" },
+  { id: "graphite", label: "石墨灰", swatch: "#e6e6e6", dot: "#4f6176" },
+];
 
 const FEED_PANE_MIN = 0.13;
 const FEED_PANE_MAX = 0.32;
@@ -160,7 +168,7 @@ export function App() {
     void (async () => {
       const saved = await loadSettings();
       setSettingsState(saved);
-      applyTheme(saved.theme);
+      applyAppearance(saved);
       await loadData();
       setReady(true);
       if (saved.webdavUrl) await performSync(saved, true);
@@ -317,7 +325,7 @@ export function App() {
   async function handleSaveSettings(next: AppSettings) {
     await saveSettings(next);
     setSettingsState(next);
-    applyTheme(next.theme);
+    applyAppearance(next);
     setShowSettings(false);
     setToast("设置已保存");
   }
@@ -775,9 +783,17 @@ function SettingsDialog(props: {
             </div>
           </section>
           <section class="settings-section">
-            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3></div></div>
+            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色，深色/浅色自动适配</p></div></div>
             <div class="segmented" aria-label="主题">
-              {(["system", "light", "dark"] as const).map((theme) => <button class={draft.theme === theme ? "active" : ""} onClick={() => update({ theme })}>{theme === "system" ? "跟随系统" : theme === "light" ? "浅色" : "深色"}</button>)}
+              {(["system", "light", "dark"] as const).map((theme) => <button key={theme} class={draft.theme === theme ? "active" : ""} onClick={() => update({ theme })}>{theme === "system" ? "跟随系统" : theme === "light" ? "浅色" : "深色"}</button>)}
+            </div>
+            <div class="scheme-grid" aria-label="配色">
+              {COLOR_SCHEMES.map((scheme) => (
+                <button key={scheme.id} type="button" class={`scheme-option ${draft.colorScheme === scheme.id ? "active" : ""}`} onClick={() => update({ colorScheme: scheme.id })} title={scheme.label}>
+                  <span class="scheme-swatch" style={{ background: scheme.swatch }}><i style={{ background: scheme.dot }} /></span>
+                  <span class="scheme-label">{scheme.label}</span>
+                </button>
+              ))}
             </div>
           </section>
           <section class="settings-section">

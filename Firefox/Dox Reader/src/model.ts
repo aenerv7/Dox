@@ -76,11 +76,17 @@ export interface ParsedFeed {
   items: Array<Omit<ItemRecord, "read" | "starred" | "fetchedAt">>;
 }
 
+export type Theme = "system" | "light" | "dark";
+
+/** Selectable color schemes; each has a light and a dark palette. */
+export type ColorScheme = "ink" | "ocean" | "violet" | "amber" | "graphite";
+
 export interface AppSettings {
   webdavUrl: string;
   webdavUsername: string;
   webdavPassword: string;
-  theme: "system" | "light" | "dark";
+  theme: Theme;
+  colorScheme: ColorScheme;
   feedPaneRatio: number;
   itemPaneRatio: number;
   layoutLocked: boolean;
@@ -91,6 +97,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   webdavUsername: "",
   webdavPassword: "",
   theme: "system",
+  colorScheme: "ink",
   feedPaneRatio: 0.17,
   itemPaneRatio: 0.27,
   layoutLocked: false,

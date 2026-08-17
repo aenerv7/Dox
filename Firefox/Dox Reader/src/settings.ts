@@ -23,6 +23,7 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
-export function applyTheme(theme: AppSettings["theme"]): void {
-  document.documentElement.dataset.theme = theme;
+export function applyAppearance(appearance: Pick<AppSettings, "theme" | "colorScheme">): void {
+  document.documentElement.dataset.theme = appearance.theme;
+  document.documentElement.dataset.scheme = appearance.colorScheme;
 }
