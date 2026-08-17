@@ -15,7 +15,10 @@ function latestSubscription(
   left: SubscriptionSync,
   right: SubscriptionSync,
 ): SubscriptionSync {
-  return compareVersion(left.version, right.version) >= 0 ? left : right;
+  if (compareVersion(left.version, right.version) >= 0) {
+    return { ...left, customName: left.customName ?? "" };
+  }
+  return { ...right, customName: right.customName ?? left.customName ?? "" };
 }
 
 function mergeItemState(left: ItemStateRecord, right: ItemStateRecord): ItemStateRecord {
@@ -90,6 +93,9 @@ export function parseSyncDocument(value: unknown): SyncDocument {
   for (const subscription of Object.values(candidate.subscriptions)) {
     if (!subscription || typeof subscription.id !== "string" || !isVersion(subscription.version)) {
       throw new Error("WebDAV 同步文件包含无效订阅");
+    }
+    if (subscription.customName !== undefined && typeof subscription.customName !== "string") {
+      throw new Error("WebDAV 同步文件包含无效订阅名称");
     }
   }
   for (const state of Object.values(candidate.itemStates)) {

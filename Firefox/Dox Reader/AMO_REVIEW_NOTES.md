@@ -11,7 +11,7 @@ npm ci
 npm run package
 ```
 
-The command runs the Vitest suite, TypeScript checks, the Vite production build, and `web-ext build`. The submitted archive is reproduced at `web-ext-artifacts/dox_reader-0.2.4.zip`. Dependencies are resolved only through the public npm registry using `package-lock.json`.
+The command runs the Vitest suite, TypeScript checks, the Vite production build, and `web-ext build`. The submitted archive is reproduced at `web-ext-artifacts/dox_reader-0.2.6.zip`. Dependencies are resolved only through the public npm registry using `package-lock.json`.
 
 ## Network Behavior
 
@@ -31,7 +31,7 @@ The manifest declares the following required data categories because WebDAV sync
 - `authenticationInfo`: WebDAV username and password used in the Authorization header.
 - `browsingActivity`: subscribed feed and site URLs.
 - `websiteActivity`: read and starred state.
-- `websiteContent`: feed and site titles included with subscription metadata.
+- `websiteContent`: feed and site titles, plus optional user-defined subscription display names, included with subscription metadata.
 
 The developer does not receive this data. The destination and credentials are supplied and controlled by the user.
 

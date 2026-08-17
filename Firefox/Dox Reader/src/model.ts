@@ -4,6 +4,7 @@ export interface FeedRecord {
   id: string;
   url: string;
   title: string;
+  customName: string;
   siteUrl: string;
   folder: string;
   addedAt: number;
@@ -51,6 +52,7 @@ export interface SubscriptionSync {
   id: string;
   url: string;
   title: string;
+  customName?: string;
   siteUrl: string;
   folder: string;
   deleted: boolean;

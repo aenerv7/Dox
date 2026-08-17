@@ -57,6 +57,7 @@ export async function addFeed(url: string): Promise<FeedRecord> {
     id: existing?.id ?? crypto.randomUUID(),
     url: normalizedUrl,
     title: existing?.title || new URL(normalizedUrl).hostname,
+    customName: existing?.customName ?? "",
     siteUrl: existing?.siteUrl || "",
     folder: existing?.folder || "",
     addedAt: existing?.addedAt ?? now,
@@ -66,6 +67,20 @@ export async function addFeed(url: string): Promise<FeedRecord> {
   };
   await db.feeds.put(feed);
   return feed;
+}
+
+export async function renameFeed(id: string, customName: string): Promise<FeedRecord | undefined> {
+  const feed = await db.feeds.get(id);
+  if (!feed) return undefined;
+
+  const nextName = customName.trim();
+  const version = await nextVersion();
+  await db.feeds.update(id, {
+    customName: nextName,
+    updatedAt: Date.now(),
+    version,
+  });
+  return db.feeds.get(id);
 }
 
 export async function removeFeed(id: string): Promise<void> {
@@ -84,7 +99,12 @@ export async function removeFeed(id: string): Promise<void> {
 
 export async function listFeeds(): Promise<FeedRecord[]> {
   const feeds = await db.feeds.filter((feed) => !feed.deleted).toArray();
-  return feeds.sort((left, right) => left.title.localeCompare(right.title, "zh-CN"));
+  return feeds
+    .map((feed) => ({ ...feed, customName: feed.customName ?? "" }))
+    .sort((left, right) => (left.customName || left.title).localeCompare(
+      right.customName || right.title,
+      "zh-CN",
+    ));
 }
 
 export async function getFeed(id: string): Promise<FeedRecord | undefined> {
@@ -221,6 +241,7 @@ export async function exportSyncDocument(): Promise<SyncDocument> {
     id: feed.id,
     url: feed.url,
     title: feed.title,
+    customName: feed.customName ?? "",
     siteUrl: feed.siteUrl,
     folder: feed.folder,
     deleted: feed.deleted,
@@ -250,6 +271,7 @@ export async function applySyncDocument(document: SyncDocument): Promise<void> {
         id: subscription.id,
         url: subscription.url,
         title: subscription.title,
+        customName: subscription.customName ?? existing?.customName ?? "",
         siteUrl: subscription.siteUrl,
         folder: subscription.folder,
         deleted: subscription.deleted,

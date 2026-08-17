@@ -12,6 +12,7 @@ import {
   LoaderCircle,
   Lock,
   LockOpen,
+  Pencil,
   Plus,
   RefreshCw,
   Rss,
@@ -35,6 +36,7 @@ import {
   markAllRead,
   markFeedRead,
   removeFeed,
+  renameFeed,
   setItemState,
   setLastRefreshAllAt,
 } from "./database";
@@ -106,6 +108,10 @@ function sourceHost(item: ItemRecord): string {
   }
 }
 
+function feedName(feed: FeedRecord): string {
+  return feed.customName.trim() || feed.title;
+}
+
 export function App() {
   const [feeds, setFeeds] = useState<FeedRecord[]>([]);
   const [items, setItems] = useState<ItemRecord[]>([]);
@@ -115,6 +121,7 @@ export function App() {
   const [mobilePane, setMobilePane] = useState<MobilePane>("items");
   const [showAdd, setShowAdd] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [renamingFeed, setRenamingFeed] = useState<FeedRecord | null>(null);
   const [settings, setSettingsState] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshScope, setRefreshScope] = useState<"all" | string | null>(null);
@@ -285,14 +292,25 @@ export function App() {
     if (!count) return;
     await loadData();
     queueSync();
-    setToast(`已将 ${feed.title} 的 ${count} 篇文章标为已读`);
+    setToast(`已将 ${feedName(feed)} 的 ${count} 篇文章标为已读`);
   }
 
   async function handleRemoveFeed(feed: FeedRecord) {
-    if (!confirm(`删除订阅“${feed.title}”？`)) return;
+    if (!confirm(`删除订阅“${feedName(feed)}”？`)) return;
     await removeFeed(feed.id);
     if (filter === feed.id) setFilter("all");
     await loadData();
+    queueSync();
+  }
+
+  async function handleRenameFeed(customName: string) {
+    if (!renamingFeed) return;
+    const updated = await renameFeed(renamingFeed.id, customName);
+    if (updated) {
+      setFeeds((current) => current.map((feed) => feed.id === updated.id ? updated : feed));
+    }
+    setRenamingFeed(null);
+    setToast("订阅名称已更新");
     queueSync();
   }
 
@@ -373,7 +391,7 @@ export function App() {
 
   function handleExport() {
     const xml = createOpml(feeds.map((feed) => ({
-      title: feed.title,
+      title: feedName(feed),
       url: feed.url,
       siteUrl: feed.siteUrl,
     })));
@@ -455,14 +473,17 @@ export function App() {
               <div class={`feed-row ${filter === feed.id ? "active" : ""}`} key={feed.id}>
                 <button onClick={() => { setFilter(feed.id); setMobilePane("items"); }}>
                   {count > 0 ? <strong class="feed-unread">{count > 99 ? "99+" : count}</strong> : <Rss size={16} />}
-                  <span>{feed.title}</span>
+                  <span>{feedName(feed)}</span>
                 </button>
                 <div class="feed-row-actions">
                   <button class="feed-action" title="全部标为已读" disabled={refreshing || count === 0} onClick={() => void handleMarkFeedRead(feed)}>
                     <CheckCheck size={14} />
                   </button>
-                  <button class="feed-action" title={`刷新 ${feed.title}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
+                  <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
                     <RefreshCw size={14} class={refreshScope === feed.id ? "spin" : ""} />
+                  </button>
+                  <button class="feed-action" title="重命名订阅" disabled={refreshing} onClick={() => setRenamingFeed(feed)}>
+                    <Pencil size={14} />
                   </button>
                   <button class="feed-action feed-delete" title="删除订阅" disabled={refreshing} onClick={() => void handleRemoveFeed(feed)}><Trash2 size={14} /></button>
                 </div>
@@ -477,7 +498,7 @@ export function App() {
         <div class="items-header">
           <button class="mobile-back icon-button" title="订阅列表" onClick={() => setMobilePane("feeds")}><ArrowLeft size={19} /></button>
           <div class="items-header-title">
-            <h1>{selectedFeed?.title ?? (filter === "unread" ? "未读" : filter === "starred" ? "收藏" : "全部文章")}</h1>
+            <h1>{selectedFeed ? feedName(selectedFeed) : (filter === "unread" ? "未读" : filter === "starred" ? "收藏" : "全部文章")}</h1>
             <span>{visibleItems.length} 篇</span>
           </div>
           {selectedFeed && (
@@ -485,7 +506,7 @@ export function App() {
               <button class="icon-button" title="全部标为已读" disabled={refreshing || selectedFeedUnread === 0} onClick={() => void handleMarkFeedRead(selectedFeed)}>
                 <CheckCheck size={18} />
               </button>
-              <button class="icon-button" title={`更新 ${selectedFeed.title}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
+              <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
                 <RefreshCw size={18} class={refreshScope === selectedFeed.id ? "spin" : ""} />
               </button>
             </div>
@@ -583,6 +604,13 @@ export function App() {
       )}
 
       {showAdd && <AddFeedDialog onClose={() => setShowAdd(false)} onAdd={handleAddFeed} />}
+      {renamingFeed && (
+        <RenameFeedDialog
+          feed={renamingFeed}
+          onClose={() => setRenamingFeed(null)}
+          onSave={handleRenameFeed}
+        />
+      )}
       {showSettings && (
         <SettingsDialog
           settings={settings}
@@ -623,7 +651,7 @@ function Article(props: {
     <article class="article">
       <div class="article-toolbar">
         <button class="mobile-back icon-button" title="返回文章列表" onClick={props.onBack}><ArrowLeft size={19} /></button>
-        <span>{props.feed?.title || sourceHost(props.item)}</span>
+        <span>{props.feed ? feedName(props.feed) : sourceHost(props.item)}</span>
         <div>
           <button class="icon-button" title={props.item.read ? "标为未读" : "标为已读"} onClick={props.onToggleRead}>
             {props.item.read ? <CheckCheck size={18} /> : <Check size={18} />}
@@ -636,7 +664,7 @@ function Article(props: {
       </div>
       <div class="article-scroll">
         <header class="article-header">
-          <div class="article-source">{props.item.author || props.feed?.title || sourceHost(props.item)}</div>
+          <div class="article-source">{props.item.author || (props.feed ? feedName(props.feed) : sourceHost(props.item))}</div>
           <h1>{props.item.title}</h1>
           <time>{new Intl.DateTimeFormat("zh-CN", { dateStyle: "long", timeStyle: "short" }).format(props.item.publishedAt)}</time>
         </header>
@@ -666,6 +694,45 @@ function AddFeedDialog(props: { onClose: () => void; onAdd: (url: string) => Pro
         <label class="field"><span>RSS 或 Atom URL</span><input type="url" required autoFocus value={url} onInput={(event) => setUrl(event.currentTarget.value)} placeholder="https://example.com/feed.xml" /></label>
         {error && <div class="form-error">{error}</div>}
         <div class="dialog-actions"><button type="button" class="secondary-button" onClick={props.onClose}>取消</button><button class="primary-button" disabled={busy}>{busy ? <LoaderCircle size={17} class="spin" /> : <Plus size={17} />}添加</button></div>
+      </form>
+    </div>
+  );
+}
+
+function RenameFeedDialog(props: {
+  feed: FeedRecord;
+  onClose: () => void;
+  onSave: (customName: string) => Promise<void>;
+}) {
+  const [customName, setCustomName] = useState(props.feed.customName);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <div class="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && props.onClose()}>
+      <form class="dialog add-dialog" onSubmit={(event) => {
+        event.preventDefault();
+        setBusy(true);
+        setError("");
+        void props.onSave(customName).catch((reason) => {
+          setBusy(false);
+          setError(reason instanceof Error ? reason.message : String(reason));
+        });
+      }}>
+        <div class="dialog-title"><div><Pencil size={20} /><h2>重命名订阅</h2></div><button type="button" class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
+        <label class="field">
+          <span>自定义名称（留空显示源标题）</span>
+          <input
+            autoFocus
+            value={customName}
+            onInput={(event) => setCustomName(event.currentTarget.value)}
+            placeholder={props.feed.title}
+          />
+        </label>
+        {error && <div class="form-error">{error}</div>}
+        <div class="dialog-actions">
+          <button type="button" class="secondary-button" onClick={props.onClose}>取消</button>
+          <button class="primary-button" disabled={busy}>{busy ? <LoaderCircle size={17} class="spin" /> : <Check size={17} />}保存</button>
+        </div>
       </form>
     </div>
   );

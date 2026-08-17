@@ -314,7 +314,7 @@ input:focus-visible {
   display: none;
   align-items: center;
   justify-content: flex-end;
-  width: 81px;
+  width: 108px;
   border-radius: 4px;
   background: var(--surface-hover);
 }
@@ -338,7 +338,7 @@ input:focus-visible {
 
 .feed-row:hover > button:first-child,
 .feed-row:focus-within > button:first-child {
-  padding-right: 90px;
+  padding-right: 117px;
 }
 
 .feed-row.active .feed-row-actions {
@@ -1088,7 +1088,7 @@ body.layout-resizing {
   }
 
   .feed-row > button:first-child {
-    padding-right: 90px;
+    padding-right: 117px;
   }
 
   .items-header {

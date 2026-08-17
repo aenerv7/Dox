@@ -6,7 +6,7 @@ Dox Reader is a local-first RSS reader. The developer does not operate a server 
 
 ## Data Stored Locally
 
-The extension stores subscriptions, downloaded feed articles, read and starred state, layout preferences, WebDAV settings, and WebDAV credentials in the user's Firefox profile. Article bodies and search queries remain local and are not included in the WebDAV synchronization file.
+The extension stores subscriptions, user-defined subscription display names, downloaded feed articles, read and starred state, layout preferences, WebDAV settings, and WebDAV credentials in the user's Firefox profile. Article bodies and search queries remain local and are not included in the WebDAV synchronization file.
 
 ## Network Requests
 
@@ -14,7 +14,7 @@ Dox Reader makes network requests only for its primary functions:
 
 - When the user adds or refreshes a feed, the extension requests that user-provided RSS or Atom URL. The feed server receives the network information normally associated with an HTTP request.
 - When the user configures and uses WebDAV synchronization, the extension connects only to the HTTPS WebDAV URL supplied by the user. The WebDAV username and password are sent to that server for authentication and are not included in the synchronization file.
-- The synchronization file contains subscription URLs and titles, site URLs, read and starred state, timestamps, and identifiers used to merge changes between the user's devices. It does not contain downloaded article bodies or search queries.
+- The synchronization file contains subscription URLs, titles, optional user-defined display names, site URLs, read and starred state, timestamps, and identifiers used to merge changes between the user's devices. It does not contain downloaded article bodies or search queries.
 
 The WebDAV data is stored in `Dox Reader/state.json` on the server selected and controlled by the user. The developer has no access to that server or file.
 

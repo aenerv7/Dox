@@ -8,6 +8,7 @@ A local-first RSS/Atom reader for Firefox desktop and Firefox for Android. Subsc
 - Manual feed refresh; no background polling or notifications
 - RSS 2.0, Atom, and common RDF feed parsing
 - Local article cache, search, read/unread state, and starring
+- Per-subscription custom display names, synchronized through WebDAV
 - WebDAV sync with ETag/`If-Match` conflict retries
 - Deterministic per-field merge using Lamport versions and device IDs
 - OPML import and export
@@ -32,7 +33,7 @@ npm ci
 npm run package
 ```
 
-The resulting extension archive is `web-ext-artifacts/dox_reader-0.2.5.zip`. All dependencies are installed from the public npm registry using the committed `package-lock.json`.
+The resulting extension archive is `web-ext-artifacts/dox_reader-0.2.6.zip`. All dependencies are installed from the public npm registry using the committed `package-lock.json`.
 
 Because the extension ships as a compiled bundle, AMO requires the source code alongside the signed XPI. Produce the source archive with `release.ps1` (see below) or any zip tool, keeping the repository layout intact — `package.json`, `package-lock.json`, `index.html`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `public/`, `src/`, and `test/`. Reviewers reproduce the build by running `npm ci` and `npm run package` from the extracted archive.
 
@@ -107,4 +108,4 @@ The privacy policy is in [`PRIVACY.md`](PRIVACY.md). Reviewer-specific build, de
 
 ## Sync format
 
-The sync document uses schema version 1. A subscription has one Lamport version. Read and starred values are independent last-writer-wins registers, so changing one field on one device does not overwrite a newer change to the other field on another device. Deletions are retained as subscription tombstones.
+The sync document uses schema version 1. A subscription has one Lamport version; its custom display name is part of that subscription record and is preserved as an optional field when reading documents created by older versions. Read and starred values are independent last-writer-wins registers, so changing one field on one device does not overwrite a newer change to the other field on another device. Deletions are retained as subscription tombstones.
