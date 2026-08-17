@@ -525,7 +525,7 @@ export function App() {
           <input value={query} onInput={(event) => setQuery(event.currentTarget.value)} placeholder="搜索文章" />
           {query && <button title="清除搜索" onClick={() => setQuery("")}><X size={15} /></button>}
         </label>
-        <div class="item-list">
+        <div class={`item-list ${settings.showItemSnippet ? "" : "compact"}`}>
           {visibleItems.map((item) => (
             <button class={`item-row ${selectedItemId === item.id ? "selected" : ""} ${item.read ? "read" : ""}`} key={item.id} onClick={() => void chooseItem(item)}>
               <div class="item-meta">
@@ -533,7 +533,7 @@ export function App() {
                 <time>{formatDate(item.publishedAt)}</time>
               </div>
               <h2>{item.title}</h2>
-              <p>{item.snippet}</p>
+              {settings.showItemSnippet && <p>{item.snippet}</p>}
               <div class="item-flags">
                 {!item.read && <span class="unread-dot" title="未读" />}
                 {item.starred && <Star size={14} fill="currentColor" />}
@@ -795,6 +795,10 @@ function SettingsDialog(props: {
                 </button>
               ))}
             </div>
+            <label class="toggle-row">
+              <span>文章列表显示简介</span>
+              <input type="checkbox" checked={draft.showItemSnippet} onChange={(event) => update({ showItemSnippet: event.currentTarget.checked })} />
+            </label>
           </section>
           <section class="settings-section">
             <div class="section-heading"><FileUp size={18} /><div><h3>订阅迁移</h3><p>标准 OPML 文件</p></div></div>

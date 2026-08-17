@@ -87,6 +87,7 @@ export interface AppSettings {
   webdavPassword: string;
   theme: Theme;
   colorScheme: ColorScheme;
+  showItemSnippet: boolean;
   feedPaneRatio: number;
   itemPaneRatio: number;
   layoutLocked: boolean;
@@ -98,6 +99,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   webdavPassword: "",
   theme: "system",
   colorScheme: "ink",
+  showItemSnippet: true,
   feedPaneRatio: 0.17,
   itemPaneRatio: 0.27,
   layoutLocked: false,

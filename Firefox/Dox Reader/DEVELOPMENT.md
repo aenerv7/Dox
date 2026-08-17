@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | 扩展 ID | `dox-rss-reader@dox.local`（固定，升级保留数据分区） |
-| 当前版本 | 0.2.7 |
+| 当前版本 | 0.2.9 |
 | 最低 Firefox | 142.0（桌面 + Android） |
 | 运行时依赖 | preact 10、dexie 4、fast-xml-parser 5、lucide-preact |
 | 构建 | Vite 8 + TypeScript 7（`tsc --noEmit` 先做类型检查） |
@@ -180,11 +180,12 @@ interface SyncDocument {
 
 ### 设置与主题
 
-- 设置：`webdavUrl / webdavUsername / webdavPassword / theme / colorScheme / feedPaneRatio / itemPaneRatio / layoutLocked`。
+- 设置：`webdavUrl / webdavUsername / webdavPassword / theme / colorScheme / showItemSnippet / feedPaneRatio / itemPaneRatio / layoutLocked`。
 - 持久化优先 `browser.storage.local`，非扩展环境（dev 服务器）自动降级 `localStorage`。
 - 主题 `system/light/dark` 通过 `document.documentElement.dataset.theme` 切换；配色 `ink/ocean/violet/amber/graphite`（墨绿/海洋蓝/紫罗兰/暖橙/石墨灰）通过 `data-scheme` 切换。
 - 每种配色都有浅色与深色两套 CSS 变量（`--bg/--surface/--accent/--accent-soft` 等）；`theme=system` 时用 `@media (prefers-color-scheme: dark)` 自动套用深色变体，OS 切换明暗即自动适配。`data-theme="dark"` 块和媒体查询块按 `data-scheme` 各自声明，靠属性选择器特异性覆盖基色（墨绿）。
 - 新增配色只需在 `styles.css` 的浅色/深色/媒体查询三处各加一个 `data-scheme` 块，并在 `app.tsx` 的 `COLOR_SCHEMES` 数组补一项（`model.ts` 的 `ColorScheme` 联合类型同步加值）。
+- `showItemSnippet=false` 时文章列表不渲染简介 `<p>`，`.item-list` 加 `compact` 类：行高 62px、标题单行截断、未读点/收藏星标垂直居中。
 
 ### UI 布局
 
@@ -261,6 +262,7 @@ npm run release:push   # 自动发布 + git 提交推送
 | 0.2.6 | 自定义订阅名称，随 WebDAV 同步 |
 | 0.2.7 | 移动端触屏移除 hover 效果，仅保留选中/未选中态；hover 规则统一收进 `@media (hover: hover) and (pointer: fine)` |
 | 0.2.8 | 新增 5 种可选配色（墨绿默认/海洋蓝/紫罗兰/暖橙/石墨灰），每种配色带浅色与深色变体，跟随明暗模式自动适配 |
+| 0.2.9 | 设置新增"文章列表显示简介"开关（`showItemSnippet`）；关闭后列表行高 62px、标题单行截断、未读点/星标垂直居中 |
 
 ---
 
