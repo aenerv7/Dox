@@ -177,11 +177,6 @@ input:focus-visible {
   text-decoration: none;
 }
 
-.icon-button:hover:not(:disabled) {
-  background: var(--surface-hover);
-  color: var(--text);
-}
-
 .icon-button:disabled {
   opacity: 0.4;
   cursor: default;
@@ -278,11 +273,6 @@ input:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-.feed-nav > button:hover,
-.feed-row:hover {
-  background: var(--surface-hover);
-}
-
 .feed-nav > button.active,
 .feed-row.active {
   background: var(--surface);
@@ -331,12 +321,10 @@ input:focus-visible {
   cursor: pointer;
 }
 
-.feed-row:hover .feed-row-actions,
 .feed-row:focus-within .feed-row-actions {
   display: flex;
 }
 
-.feed-row:hover > button:first-child,
 .feed-row:focus-within > button:first-child {
   padding-right: 117px;
 }
@@ -348,14 +336,6 @@ input:focus-visible {
 .feed-action:disabled {
   opacity: 0.45;
   cursor: default;
-}
-
-.feed-action:hover:not(:disabled) {
-  color: var(--text);
-}
-
-.feed-delete:hover:not(:disabled) {
-  color: var(--danger);
 }
 
 .sidebar-empty {
@@ -462,7 +442,6 @@ input:focus-visible {
   text-align: left;
 }
 
-.item-row:hover,
 .item-row.selected {
   background: var(--surface-soft);
 }
@@ -585,7 +564,6 @@ input:focus-visible {
   content: "";
 }
 
-.resize-handle:hover::after,
 .resize-handle:focus-visible::after,
 .layout-resizing .resize-handle::after {
   width: 2px;
@@ -769,18 +747,10 @@ body.layout-resizing {
   color: var(--accent-contrast);
 }
 
-.primary-button:hover:not(:disabled) {
-  filter: brightness(0.94);
-}
-
 .secondary-button {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-}
-
-.secondary-button:hover:not(:disabled) {
-  background: var(--surface-hover);
 }
 
 .primary-button:disabled,
@@ -1202,5 +1172,52 @@ body.layout-resizing {
   .article-scroll {
     padding-right: 16px;
     padding-left: 16px;
+  }
+}
+
+/* Hover 效果仅对具备悬停能力的设备（鼠标/触控板）生效；
+   移动端触屏（hover: none / pointer: coarse）只有选中/未选中态。 */
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+
+  .feed-nav > button:hover,
+  .feed-row:hover {
+    background: var(--surface-hover);
+  }
+
+  .feed-row:hover .feed-row-actions {
+    display: flex;
+  }
+
+  .feed-row:hover > button:first-child {
+    padding-right: 117px;
+  }
+
+  .feed-action:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  .feed-delete:hover:not(:disabled) {
+    color: var(--danger);
+  }
+
+  .item-row:hover {
+    background: var(--surface-soft);
+  }
+
+  .resize-handle:hover::after {
+    width: 2px;
+    background: var(--accent);
+  }
+
+  .primary-button:hover:not(:disabled) {
+    filter: brightness(0.94);
+  }
+
+  .secondary-button:hover:not(:disabled) {
+    background: var(--surface-hover);
   }
 }

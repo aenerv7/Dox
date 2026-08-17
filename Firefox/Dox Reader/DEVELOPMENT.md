@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | 扩展 ID | `dox-rss-reader@dox.local`（固定，升级保留数据分区） |
-| 当前版本 | 0.2.5 |
+| 当前版本 | 0.2.7 |
 | 最低 Firefox | 142.0（桌面 + Android） |
 | 运行时依赖 | preact 10、dexie 4、fast-xml-parser 5、lucide-preact |
 | 构建 | Vite 8 + TypeScript 7（`tsc --noEmit` 先做类型检查） |
@@ -256,6 +256,8 @@ npm run release:push   # 自动发布 + git 提交推送
 | 0.2.3 | 顶部工具栏新增"全部标为已读"按钮（刷新所有订阅左侧）；`markAllRead` 批量标记全部未读 |
 | 0.2.4 | 订阅行图标/未读数与标题加 5px 间距；移动端恢复顶栏同步按钮；顶栏操作区超长时横向滚动（桌面通用） |
 | 0.2.5 | 移动端单个订阅标题栏右侧新增"全部标为已读"与"更新订阅"按钮 |
+| 0.2.6 | 自定义订阅名称，随 WebDAV 同步 |
+| 0.2.7 | 移动端触屏移除 hover 效果，仅保留选中/未选中态；hover 规则统一收进 `@media (hover: hover) and (pointer: fine)` |
 
 ---
 
