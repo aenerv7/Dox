@@ -1062,12 +1062,13 @@ body.layout-resizing {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(620px, 100%);
-  height: min(720px, calc(100dvh - 40px));
+  max-height: calc(100dvh - 40px);
 }
 
 .settings-scroll {
   min-height: 0;
   overflow-y: auto;
+  max-height: 50dvh;
 }
 
 .settings-section {
@@ -1076,6 +1077,10 @@ body.layout-resizing {
   gap: 14px;
   padding: 20px 22px;
   border-bottom: 1px solid var(--border);
+}
+
+.settings-section > :not(.section-heading) {
+  margin-left: 28px;
 }
 
 .section-heading {
@@ -1436,7 +1441,7 @@ body.layout-resizing {
   }
 
   .settings-dialog {
-    height: calc(100dvh - 30px);
+    max-height: calc(100dvh - 30px);
   }
 
   .field-row {

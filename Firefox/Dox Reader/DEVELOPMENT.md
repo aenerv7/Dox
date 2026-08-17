@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | 扩展 ID | `dox-rss-reader@dox.local`（固定，升级保留数据分区） |
-| 当前版本 | 0.2.9 |
+| 当前版本 | 0.3.0 |
 | 最低 Firefox | 142.0（桌面 + Android） |
 | 运行时依赖 | preact 10、dexie 4、fast-xml-parser 5、lucide-preact |
 | 构建 | Vite 8 + TypeScript 7（`tsc --noEmit` 先做类型检查） |
@@ -263,6 +263,7 @@ npm run release:push   # 自动发布 + git 提交推送
 | 0.2.7 | 移动端触屏移除 hover 效果，仅保留选中/未选中态；hover 规则统一收进 `@media (hover: hover) and (pointer: fine)` |
 | 0.2.8 | 新增 5 种可选配色（墨绿默认/海洋蓝/紫罗兰/暖橙/石墨灰），每种配色带浅色与深色变体，跟随明暗模式自动适配 |
 | 0.2.9 | 设置新增"文章列表显示简介"开关（`showItemSnippet`）；关闭后列表行高 62px、标题单行截断、未读点/星标垂直居中 |
+| 0.3.0 | 设置子项与分节标题对齐；设置页仅当内容超过视口一半高度时才滚动（`50dvh`）；切换文章后正文滚动回顶部；切换订阅源/视图后文章列表滚动回顶部 |
 
 ---
 

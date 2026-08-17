@@ -24,7 +24,7 @@ import {
   Wifi,
   X,
 } from "lucide-preact";
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import { renderArticleContent } from "./article-content";
 import {
@@ -137,6 +137,7 @@ export function App() {
   const [toast, setToast] = useState("");
   const [ready, setReady] = useState(false);
   const syncTimer = useRef<number | null>(null);
+  const itemListRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
     const [nextFeeds, nextItems] = await Promise.all([listFeeds(), listItems("all")]);
@@ -184,6 +185,11 @@ export function App() {
     const timer = window.setTimeout(() => setToast(""), 4200);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  // 切换订阅源/视图后，文章列表滚动位置回到顶部。
+  useLayoutEffect(() => {
+    if (itemListRef.current) itemListRef.current.scrollTop = 0;
+  }, [filter]);
 
   const visibleItems = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -525,7 +531,7 @@ export function App() {
           <input value={query} onInput={(event) => setQuery(event.currentTarget.value)} placeholder="搜索文章" />
           {query && <button title="清除搜索" onClick={() => setQuery("")}><X size={15} /></button>}
         </label>
-        <div class={`item-list ${settings.showItemSnippet ? "" : "compact"}`}>
+        <div class={`item-list ${settings.showItemSnippet ? "" : "compact"}`} ref={itemListRef}>
           {visibleItems.map((item) => (
             <button class={`item-row ${selectedItemId === item.id ? "selected" : ""} ${item.read ? "read" : ""}`} key={item.id} onClick={() => void chooseItem(item)}>
               <div class="item-meta">
@@ -655,6 +661,13 @@ function Article(props: {
     () => renderArticleContent(props.item.content, props.item.url),
     [props.item.content, props.item.url],
   );
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 切换文章后，正文滚动位置回到顶部。
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [props.item.id]);
+
   return (
     <article class="article">
       <div class="article-toolbar">
@@ -670,7 +683,7 @@ function Article(props: {
           {props.item.url && <a class="icon-button" title="打开原文" href={props.item.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={18} /></a>}
         </div>
       </div>
-      <div class="article-scroll">
+      <div class="article-scroll" ref={scrollRef}>
         <header class="article-header">
           <div class="article-source">{props.item.author || (props.feed ? feedName(props.feed) : sourceHost(props.item))}</div>
           <h1>{props.item.title}</h1>
