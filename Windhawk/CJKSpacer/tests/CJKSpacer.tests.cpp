@@ -127,6 +127,7 @@ int wmain() {
         kXamlDiagnosticsMaxAttempts != 3 ||
         kXamlDiagnosticsMaxEmptyWalks != 5 ||
         kXamlDiagnosticsEmptyWalkCooldownMilliseconds != 30'000 ||
+        kXamlDiagnosticsMaxCooldownRetries != 3 ||
         GetXamlDiagnosticsModuleFlavor(L"Windows.UI.Xaml.dll") !=
             XamlDiagnosticsFlavor::Windows ||
         GetXamlDiagnosticsModuleFlavor(
@@ -194,6 +195,8 @@ int wmain() {
     g_windowsUiXamlDiagnostics.emptyWalkCount.store(
         kXamlDiagnosticsMaxEmptyWalks);
     g_windowsUiXamlDiagnostics.lastEmptyWalkTick.store(1234);
+    g_windowsUiXamlDiagnostics.cooldownRetryCount.store(
+        kXamlDiagnosticsMaxCooldownRetries);
     RearmXamlDiagnosticsConnection(XamlDiagnosticsFlavor::Windows);
     if (g_windowsUiXamlDiagnostics.connected.load() ||
         g_windowsUiXamlDiagnostics.blocked.load() ||
@@ -201,6 +204,7 @@ int wmain() {
             g_windowsUiXamlDiagnostics.requestGeneration.load() ||
         g_windowsUiXamlDiagnostics.failureCount.load() != 0 ||
         g_windowsUiXamlDiagnostics.emptyWalkCount.load() != 0 ||
+        g_windowsUiXamlDiagnostics.cooldownRetryCount.load() != 0 ||
         g_windowsUiXamlDiagnostics.lastEmptyWalkTick.load() != 0) {
         std::wcerr << L"FAIL (XAML diagnostics disconnect re-arm)\n";
         ++failed;
@@ -253,7 +257,20 @@ int wmain() {
         std::wcerr << L"FAIL (XAML diagnostics empty-walk recovery)\n";
         ++failed;
     }
+    connectionState.emptyWalkCount.store(
+        kXamlDiagnosticsMaxEmptyWalks);
+    connectionState.lastEmptyWalkTick.store(lastEmptyWalkTick);
+    if (!IsXamlDiagnosticsFlavorCoolingDown(
+            connectionState,
+            lastEmptyWalkTick +
+                kXamlDiagnosticsEmptyWalkCooldownMilliseconds - 1) ||
+        IsXamlDiagnosticsFlavorCoolingDown(
+            connectionState, cooldownExpiredTick)) {
+        std::wcerr << L"FAIL (XAML diagnostics cooldown detection)\n";
+        ++failed;
+    }
     connectionState.emptyWalkCount.store(0);
+    connectionState.lastEmptyWalkTick.store(0);
     connectionState.blocked.store(true);
     if (CanAttemptXamlDiagnosticsConnection(connectionState)) {
         std::wcerr << L"FAIL (XAML diagnostics blocked state)\n";
