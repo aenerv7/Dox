@@ -832,14 +832,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         g_updating = false;
         g_mode = DetectLaunchMode();  // 更新后重新检测启动方式
         if (!ok) {
+            Log(L"update: 更新失败");
             MessageBoxW(g_hwnd, L"DeepSeek Harness 更新失败。\n请检查网络连接后重试。", kAppName, MB_ICONERROR | MB_OK);
         } else {
             Log(L"update: 更新完成");
+            // 更新成功保持静默，不弹任何窗口；需要重启服务时直接启动，
+            // 启动失败会由 StartDSH 内部弹出错误提示
             if (restart) {
-                MessageBoxW(g_hwnd, L"DeepSeek Harness 更新完成，正在重新启动…", kAppName, MB_ICONINFORMATION | MB_OK);
+                Log(L"update: 更新完成，正在重新启动 DeepSeek Harness");
                 StartDSH();
-            } else {
-                MessageBoxW(g_hwnd, L"DeepSeek Harness 更新完成。", kAppName, MB_ICONINFORMATION | MB_OK);
             }
         }
         UpdateTrayTip();
