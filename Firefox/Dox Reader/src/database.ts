@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import { decodeHtmlEntities } from "./html-entities";
 import type {
   FeedRecord,
   ItemRecord,
@@ -28,6 +29,50 @@ class ReaderDatabase extends Dexie {
 
 export const db = new ReaderDatabase();
 const ZERO_VERSION: Version = [0, ""];
+/** meta 标记：旧数据实体解码迁移是否已执行 */
+const LEGACY_ENTITY_DECODE_KEY = "legacyEntityDecode";
+
+/**
+ * 一次性迁移：早期版本未解码数字字符引用（如 &#038;）和常见 HTML 命名实体，
+ * 已入库的标题/作者/摘要可能带有原始实体文本。这里只改展示字段，不动
+ * guid/id/url/content，避免影响文章去重与阅读状态。
+ */
+export async function migrateLegacyEntities(): Promise<void> {
+  const marker = await db.meta.get(LEGACY_ENTITY_DECODE_KEY);
+  if (marker) return;
+
+  const [items, feeds] = await Promise.all([db.items.toArray(), db.feeds.toArray()]);
+  let changedItems = 0;
+  let changedFeeds = 0;
+
+  await db.transaction("rw", db.items, db.feeds, db.meta, async () => {
+    for (const item of items) {
+      const patch: Partial<ItemRecord> = {};
+      const title = decodeHtmlEntities(item.title);
+      const author = decodeHtmlEntities(item.author);
+      const snippet = decodeHtmlEntities(item.snippet);
+      if (title !== item.title) patch.title = title;
+      if (author !== item.author) patch.author = author;
+      if (snippet !== item.snippet) patch.snippet = snippet;
+      if (Object.keys(patch).length > 0) {
+        await db.items.update(item.id, patch);
+        changedItems++;
+      }
+    }
+    for (const feed of feeds) {
+      const title = decodeHtmlEntities(feed.title);
+      if (title !== feed.title) {
+        await db.feeds.update(feed.id, { title });
+        changedFeeds++;
+      }
+    }
+    await db.meta.put({ key: LEGACY_ENTITY_DECODE_KEY, value: Date.now() });
+  });
+
+  if (changedItems > 0 || changedFeeds > 0) {
+    console.info(`[dox-reader] 已修复 ${changedItems} 篇文章、${changedFeeds} 个订阅中的未解码实体`);
+  }
+}
 
 export async function getActor(): Promise<string> {
   const existing = await db.meta.get("actor");

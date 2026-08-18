@@ -36,6 +36,7 @@ import {
   listItems,
   markAllRead,
   markFeedRead,
+  migrateLegacyEntities,
   removeFeed,
   renameFeed,
   setItemState,
@@ -171,6 +172,7 @@ export function App() {
       const saved = await loadSettings();
       setSettingsState(saved);
       applyAppearance(saved);
+      await migrateLegacyEntities();
       await loadData();
       setReady(true);
       if (saved.webdavUrl) await performSync(saved, true);

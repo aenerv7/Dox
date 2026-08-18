@@ -58,4 +58,58 @@ describe("parseFeedXml", () => {
     await expect(parseFeedXml("<html><body>no feed</body></html>", "feed-c", "https://example.org"))
       .rejects.toThrow("不是可识别");
   });
+
+  it("decodes numeric and named entities in titles, authors, and snippets", async () => {
+    const result = await parseFeedXml(`<?xml version="1.0"?>
+      <rss version="2.0">
+        <channel>
+          <title>Windows Blog &#038; Friends</title>
+          <link>https://example.com/</link>
+          <item>
+            <guid>post-1</guid>
+            <title>Improving File Explorer &#038; Context Menu: faster, simpler, and more customizable</title>
+            <link>/posts/1</link>
+            <description>Up &#038; running &amp; ready &mdash; now &#x26; then</description>
+            <dc:creator>R&amp;D Team</dc:creator>
+            <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+          </item>
+          <item>
+            <guid>post-2</guid>
+            <title><![CDATA[CDATA title with literal & ampersand]]></title>
+            <link>/posts/2</link>
+            <description>second</description>
+            <pubDate>Fri, 14 Aug 2026 13:00:00 GMT</pubDate>
+          </item>
+        </channel>
+      </rss>`, "feed-d", "https://example.com/feed.xml");
+
+    expect(result.title).toBe("Windows Blog & Friends");
+    expect(result.items[0]).toMatchObject({
+      title: "Improving File Explorer & Context Menu: faster, simpler, and more customizable",
+      author: "R&D Team",
+      snippet: "Up & running & ready — now & then",
+    });
+    // CDATA 内容按 XML 规范原样保留，不进行实体解码。
+    expect(result.items[1].title).toBe("CDATA title with literal & ampersand");
+  });
+
+  it("keeps guid raw so item ids stay stable across parser changes", async () => {
+    const result = await parseFeedXml(`<?xml version="1.0"?>
+      <rss version="2.0">
+        <channel>
+          <title>Feed</title>
+          <link>https://example.com/</link>
+          <item>
+            <guid>https://example.com/posts?a=1&#038;b=2</guid>
+            <title>Title &#038; more</title>
+            <link>/posts/1</link>
+            <description>desc</description>
+            <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+          </item>
+        </channel>
+      </rss>`, "feed-e", "https://example.com/feed.xml");
+
+    expect(result.items[0].guid).toBe("https://example.com/posts?a=1&#038;b=2");
+    expect(result.items[0].title).toBe("Title & more");
+  });
 });

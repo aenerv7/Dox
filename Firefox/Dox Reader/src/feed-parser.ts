@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { decodeHtmlEntities } from "./html-entities";
 import type { ParsedFeed } from "./model";
 
 const parser = new XMLParser({
@@ -20,6 +21,15 @@ function asText(value: unknown): string {
   if (!value || typeof value !== "object") return "";
   const record = value as Record<string, unknown>;
   return asText(record["#text"] ?? record.value ?? "");
+}
+
+/**
+ * 提取文本并补齐实体解码。fast-xml-parser 默认不解码数字字符引用（如 &#038;）
+ * 和常见 HTML 命名实体（如 &rsquo;），需要在这里解码后用于展示。
+ * 注意：guid/identity 走 asText 保持原始字节，避免变更文章 id 造成重复。
+ */
+function decodeText(value: unknown): string {
+  return decodeHtmlEntities(asText(value));
 }
 
 function absoluteUrl(value: string, baseUrl: string): string {
@@ -45,16 +55,12 @@ function atomLink(value: unknown, baseUrl: string): string {
 }
 
 function stripMarkup(value: string): string {
-  return value
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/gi, "\"")
+  return decodeHtmlEntities(
+    value
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " "),
+  )
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -88,7 +94,7 @@ export async function parseFeedXml(xml: string, feedId: string, sourceUrl: strin
 
   const root = rssChannel ?? atomFeed;
   const rawItems = asArray(rssChannel ? (root.item ?? document.rdf?.item) : root.entry);
-  const title = asText(root.title) || new URL(sourceUrl).hostname;
+  const title = decodeText(root.title) || new URL(sourceUrl).hostname;
   const siteUrl = rssChannel
     ? absoluteUrl(asText(root.link), sourceUrl)
     : atomLink(root.link, sourceUrl);
@@ -101,13 +107,13 @@ export async function parseFeedXml(xml: string, feedId: string, sourceUrl: strin
     const content = asText(raw.encoded ?? raw.content ?? raw.description ?? raw.summary);
     const identity = guid || `${asText(raw.title)}\u0000${asText(raw.pubDate ?? raw.published ?? raw.updated)}`;
     const id = await digest(`${feedId}\u0000${identity}`);
-    const author = asText(raw.creator ?? raw.author?.name ?? raw.author);
+    const author = decodeText(raw.creator ?? raw.author?.name ?? raw.author);
 
     return {
       id,
       feedId,
       guid: identity,
-      title: asText(raw.title) || "无标题",
+      title: decodeText(raw.title) || "无标题",
       url: link,
       author,
       publishedAt: timestamp(raw.pubDate ?? raw.date ?? raw.published ?? raw.updated),
