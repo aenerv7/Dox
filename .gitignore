@@ -20,3 +20,6 @@ CapsLockOSD/CapsLockOSD.ini
 
 # Firefox extensions
 Firefox/**/web-ext-artifacts/
+
+# DeepSeek Harness Launcher（构建产物）
+DeepSeek Harness/Launcher/bin/

@@ -1,0 +1,51 @@
+﻿// Launcher.rc — 资源脚本（UTF-8）
+#include <windows.h>
+#include "Resource.h"
+
+IDI_APP ICON "Launcher.ico"
+
+IDD_PORT DIALOGEX 0, 0, 264, 104
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "启动端口设置"
+FONT 9, "Microsoft YaHei UI"
+BEGIN
+    LTEXT "DeepSeek Harness Web 界面启动端口（1-65535）：", -1, 14, 14, 236, 18
+    EDITTEXT IDC_PORT_EDIT, 14, 38, 96, 18, ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT "修改后保存即可，下次启动 DeepSeek Harness 时生效。", -1, 14, 62, 236, 14
+    DEFPUSHBUTTON "确定", IDOK, 88, 80, 60, 20
+    PUSHBUTTON "取消", IDCANCEL, 154, 80, 60, 20
+END
+
+1 24 "app.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "DeepSeek Harness"
+            VALUE "FileDescription", "DeepSeek Harness 托盘启动器"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "Launcher"
+            VALUE "OriginalFilename", "Launcher.exe"
+            VALUE "ProductName", "DeepSeek Harness Launcher"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
