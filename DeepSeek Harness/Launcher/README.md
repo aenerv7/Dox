@@ -2,11 +2,14 @@
 
 DeepSeek Harness 系统托盘启动器 —— **纯 Windows 11 原生代码实现**（C++ / Win32 API，MSVC 编译，静态链接运行时，无任何第三方依赖）。**完全便携：不写注册表、无安装过程**，托盘程序自身的开机自启交由任务计划程序负责。
 
+启动时会自动自检：检测 Node.js 环境（缺失则弹窗提示并自动退出）、检测 dsh 是否 npm 全局安装（已全局安装 → 以 `dsh` 命令启动；未安装 → 以 `npx` 方式启动），托盘菜单顶部以浅色文本实时显示当前启动方式。
+
 ## 功能
 
 - **系统托盘图标**，右键弹出菜单
 - **启动 / 停止 DeepSeek Harness**：同一菜单项二选一显示（运行中显示「停止」，已停止显示「启动」）
 - **重启 DeepSeek Harness**（先停止、等端口释放、再启动）
+- **启动方式自动判定**：dsh 全局安装 → `dsh` 命令；未安装 → `npx -y @deepseek-ai/dsh`；菜单顶部以浅色不可编辑文本显示当前启动方式（dsh / npx / 自定义）
 - **自定义启动端口**：菜单项打开设置对话框，写入 ini，下次启动生效
 - **随托盘程序自启动 DeepSeek Harness**：勾选后，托盘程序一启动就自动拉起 Harness（配合任务计划程序的登录自启即可实现开机全自动启动）
 - **双击托盘图标**直接打开 Web 界面
@@ -50,7 +53,7 @@ powershell -ExecutionPolicy Bypass -File scripts\make-icon.ps1
 
 ## 使用
 
-1. 双击 `bin\Launcher.exe`，任务栏托盘区出现图标（无窗口）。
+1. 双击 `bin\Launcher.exe`：程序先检测 Node.js 环境（未安装则弹窗提示并自动退出），再判定启动方式（dsh / npx），随后任务栏托盘区出现图标（无窗口）。
 2. 右键托盘图标 → 选择「启动 DeepSeek Harness」。
 3. 双击托盘图标可打开 Web 界面（`http://127.0.0.1:<端口>`）。
 4. 首次运行会自动在 exe 同目录生成默认 `Launcher.ini`。
@@ -69,19 +72,22 @@ Port=16100
 AutoStart=0
 ; 高级：node.exe 的完整路径（留空自动查找：PATH → 常见安装目录）
 NodePath=
-; 高级：dsh 的 lib\bin.js 完整路径（留空自动查找：%APPDATA%\npm 全局安装）
+; 高级：自定义启动入口（node.exe 直接执行的 .js 文件；留空则自动判定 dsh / npx）
 DshBin=
 ```
 
-托盘程序启动的完整命令为：
+启动方式判定规则（托盘菜单顶部浅色文本显示）：
 
-```
-"<node.exe>" "<dsh 的 lib\bin.js>" web --port <Port>
-```
+| 环境 | 启动方式 | 实际执行命令 |
+|---|---|---|
+| dsh 已全局安装（PATH 上有 `dsh` 命令，如 `npm i -g @deepseek-ai/dsh`） | dsh | `dsh web --port <Port>` |
+| dsh 未全局安装 | npx | `npx -y @deepseek-ai/dsh web --port <Port>` |
+| ini 显式指定了 `DshBin` | 自定义 | `node.exe <DshBin> web --port <Port>` |
 
 ## 实现要点
 
-- **进程管理**：直接以 `node.exe …\dsh\lib\bin.js web --port <N>` 派生进程，进程句柄可直接判断存活；停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
+- **进程管理**：以 `dsh web --port <N>` / `npx -y @deepseek-ai/dsh web --port <N>` 派生进程（经 cmd.exe，作业对象整树管理），进程句柄可直接判断存活；停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
+- **启动环境自检**：启动时检测 Node.js（缺失则弹窗提示并自动退出），并判定 dsh 是否全局安装（PATH 上存在 dsh 命令）：全局 → `dsh` 命令；未全局 → `npx` 方式。托盘菜单顶部以浅色不可编辑文本显示当前启动方式。
 - **运行状态判定**：托管进程存活 **或** TCP 探测 `127.0.0.1:<端口>` 可连接，二者任一为真即视为运行中——因此能正确识别“由其他方式启动的实例”。
 - **外部实例停止**：若端口被外部启动的 Harness 占用，停止时会先询问用户，再通过 TCP 表找到监听进程并结束。
 - **单实例**：命名互斥体 `Local\DSHLauncher_SingleInstance`。
@@ -98,8 +104,8 @@ powershell -ExecutionPolicy Bypass -File scripts\test-lifecycle.ps1
 
 ## 常见问题
 
-**Q：启动时提示「未找到启动组件」？**
-需要 Node.js 与全局安装的 dsh 包（`npm i -g @deepseek-ai/dsh`）。也可以在 ini 中手动指定 `NodePath` / `DshBin`。
+**Q：启动托盘程序时弹出「未检测到 Node.js 环境」？**
+需要先安装 Node.js（https://nodejs.org/zh-cn/download），安装完成后重新启动托盘程序。启动方式会自动判定：dsh 已全局安装（`npm i -g @deepseek-ai/dsh`）→ 用 `dsh` 命令；未安装 → 用 `npx` 自动拉取。托盘菜单顶部会显示当前启动方式。
 
 **Q：端口被占用 / Harness 由别的方式启动？**
 托盘菜单的「停止」会检测到端口上的非托管实例并询问是否结束（通过 TCP 表定位 PID）。

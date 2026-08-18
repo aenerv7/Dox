@@ -44,22 +44,37 @@ Launcher/
 | 模块 | 位置 | 职责 |
 |---|---|---|
 | 配置 | `Config` / `LoadConfig` / `Read/WriteIniStr` | 读写 exe 同目录 `Launcher.ini` |
-| 组件发现 | `FindNodeExe` / `FindDshBin` / `SearchPathFor` | 定位 node.exe 与 dsh 的 `lib\bin.js` |
+| 组件发现 | `FindNodeExe` / `FindDshCmd` / `SearchPathFor` | 定位 node.exe 与 dsh 命令（PATH 搜索） |
+| 启动方式判定 | `DetectLaunchMode` / `ModeName` | dsh（全局安装）/ npx / 自定义（DshBin） |
 | 状态探测 | `IsPortOpen` / `PortOwnerPid` | TCP 探测端口、TCP 表定位监听 PID |
 | 进程管理 | `StartDSH` / `StopDSH` / `RestartDSH` / `StopManaged` | 派生、整树终止、重启 Harness |
 | 托盘 UI | `ShowTrayMenu` / `HandleCommand` / `WndProc` | 托盘图标、右键菜单、命令分发 |
 | 端口对话框 | `PortDlgProc` | 端口输入与校验（1-65535） |
 | 日志 | `Log` | 追加写 `Launcher.log`（UTF-16LE，超 256KB 截断） |
 
+### 3.0 启动自检与启动方式（环境自适应）
+
+托盘程序启动时（`wWinMain`）依次执行：
+
+1. **Node.js 检测**：`FindNodeExe()` 找不到 node.exe → 弹窗提示安装 Node.js 并**自动退出**（托盘自身不运行）。
+2. **启动方式判定**：`DetectLaunchMode()` 返回 `LaunchMode`：
+   - `Dsh`：ini 未指定 `DshBin` 且 PATH 上存在 `dsh` 命令（`FindDshCmd()` 依次找 `dsh.cmd` / `dsh`）→ 视为 npm 全局安装；
+   - `Npx`：PATH 上无 dsh 命令 → 视为未全局安装，用 npx 按需拉取；
+   - `Custom`：ini 显式指定了存在的 `DshBin`（.js 脚本，node.exe 直接执行）→ 高级覆盖。
+
+判定结果存入 `g_mode`，每次弹出托盘菜单与每次启动时都会刷新（环境变化后立即生效）。菜单**顶部第一条**以灰色禁用文本显示 `启动方式：dsh / npx / 自定义`。
+
 ### 3.1 进程模型（核心）
 
-启动命令（`StartDSH`）：
+启动命令（`StartDSH`，按 `g_mode` 构造）：
 
-```
-"<node.exe>" "<dsh 的 lib\bin.js>" web --port <Port>
-```
+| 模式 | 实际命令 |
+|---|---|
+| dsh | `cmd.exe /c ""<dsh 命令全路径>" web --port <Port>"` |
+| npx | `cmd.exe /c npx -y @deepseek-ai/dsh web --port <Port>` |
+| 自定义 | `"<node.exe>" "<DshBin>" web --port <Port>` |
 
-- 直接以 `node.exe` 派生，**不经过 cmd.exe**，因此进程句柄即 Harness 主进程，可直接判断存活。
+- 命令统一经 `cmd.exe` 派生（dsh / npx 均为 npm 的 .cmd shim）；`cmd /c` 会等待子进程，因此进程句柄在 Harness 存活期间有效，可直接判断存活。
 - 派生时用 `CREATE_SUSPENDED` 先创建，**AssignProcessToJobObject 后再 ResumeThread**，保证 Harness 及其全部子进程（pwsh 沙箱、vision-router 等）都进入作业对象。
 - 作业对象设置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`：
   - 停止 = `TerminateJobObject`（整树终止）；
@@ -78,7 +93,7 @@ Launcher/
 
 - 隐藏顶层窗口（类名 `DSHLauncherWnd`），`Shell_NotifyIcon` 挂托盘图标，回调消息 `WM_APP+1`。
 - 右键（v3 行为：`WM_RBUTTONUP`）弹出菜单；`TrackPopupMenu` 前 `SetForegroundWindow`，返回后 `PostMessage(WM_NULL)` 保证菜单正确收起。
-- 每次弹菜单**重建**（标签随状态切换：运行中显示「停止」，停止显示「启动」；重启/打开网页在停止时置灰）。
+- 每次弹菜单**重建**：顶部第一条为当前启动方式（灰色禁用文本，见 3.0），其后标签随状态切换（运行中显示「停止」，停止显示「启动」；重启/打开网页在停止时置灰）。
 - 双击托盘（`WM_LBUTTONDBLCLK`）打开 Web 界面。
 - 2 秒定时器刷新托盘提示文字；定时器同时回收已退出进程的句柄。
 
@@ -123,6 +138,8 @@ Launcher/
 8. **`$PID` 是只读变量**，测试脚本中不要对其赋值。
 9. **图标**：`Launcher.ico` 由 `scripts\make-icon.ps1` 生成（PNG 压缩多尺寸 ICO，含 16/20/24/32/48/64/256），已纳入版本库，改图标后需重新生成并提交。
 10. **清理残留**：托盘派生进程用作业对象管理后，测试/调试结束务必确认无残留 `node.exe`（`KILL_ON_JOB_CLOSE` 已保证托盘进程死亡即清理，但手工杀进程的场景要注意）。
+11. **`cmd.exe /c` 的引号规则**：执行带空格路径的 .cmd 时必须用 `cmd /c ""<path>" args"` 双引号套引号形式（已实测含空格路径的 fakebin\dsh.cmd）；无空格命令（如 `npx -y @deepseek-ai/dsh`）无需引号。
+12. **`npx` 语义**：`npx -y @deepseek-ai/dsh` 在未全局安装时会自动拉取并缓存 dsh 包；托盘不主动校验网络，启动失败（端口未开）由状态探测体现。
 
 ## 6. 测试
 
@@ -132,17 +149,25 @@ Launcher/
 - 通过私有消息驱动 Launcher：随托盘自启动（`AutoStart=1`）→ 状态查询 → 停止 → 再启动 → 重启（对比监听 PID 变化）→ **强杀托盘验证 KILL_ON_JOB_CLOSE**（端口关闭、无残留 node 进程）→ 日志断言。
 - `finally` 块统一清理：杀 Launcher/测试服务器、删临时文件、恢复默认 ini。
 
+`scripts\test-modes.ps1`（启动方式判定）：
+
+- 用**受限 PATH + 假 shim** 模拟两种环境，不碰真实 npm 全局目录：
+  - `dsh` 模式：PATH 前置含 `dsh.cmd` 的目录（内容转发到测试服务器）→ 判定 dsh → 日志断言 `启动方式=dsh` 且命令含 `dsh.cmd`；
+  - `npx` 模式：PATH 不含 `dsh.cmd`（只有 `npx.cmd`）→ 判定 npx → 日志断言 `启动方式=npx` 且命令为 `npx -y @deepseek-ai/dsh`。
+- 每个场景均验证端口开/关与进程清理。
+
 运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\test-lifecycle.ps1
+powershell -ExecutionPolicy Bypass -File scripts\test-modes.ps1
 ```
 
 ## 7. 扩展指引
 
 - **新增菜单项**：`Resource.h` 加 ID → `ShowTrayMenu` 加 `AppendMenuW` → `HandleCommand` 加 case。
 - **修改端口生效策略**：目前端口在对话框确定后写入 ini，提示"重启后生效"；若改为即时生效，可在 `IDM_PORT` 成功后调用 `RestartDSH()`（注意先确认用户意图）。
-- **接入其它 Harness 启动方式**：`FindNodeExe`/`FindDshBin` 已支持 ini 覆盖（`NodePath`/`DshBin`），如需支持自定义命令行模板，可在 `StartDSH` 中扩展。
+- **接入其它 Harness 启动方式**：启动方式判定集中在 `DetectLaunchMode()`（dsh / npx / 自定义），如需新增模式（如本地工作区安装），扩展枚举与 `StartDSH` 的命令构造即可；`NodePath`/`DshBin` ini 覆盖保留。
 - **日志级别**：`Log` 目前全量记录生命周期事件；如需降噪可增加 `Debug` 开关（ini 键）。
 
 ## 8. 版本库约定

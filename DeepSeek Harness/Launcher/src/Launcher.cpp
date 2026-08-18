@@ -63,6 +63,18 @@ Config       g_cfg;
 std::wstring g_iniPath;
 std::wstring g_logPath;
 
+// 启动方式：dsh（npm 全局安装）/ npx（未全局安装，按需拉取）/ 自定义（DshBin 显式覆盖）
+enum class LaunchMode { Dsh, Npx, Custom };
+LaunchMode   g_mode = LaunchMode::Npx;
+
+std::wstring ModeName(LaunchMode m) {
+    switch (m) {
+    case LaunchMode::Dsh: return L"dsh";
+    case LaunchMode::Npx: return L"npx";
+    default:              return L"自定义";
+    }
+}
+
 // 托管的 DeepSeek Harness 进程
 HANDLE g_hJob  = nullptr;
 HANDLE g_hProc = nullptr;
@@ -167,22 +179,18 @@ std::wstring FindNodeExe() {
     return L"";
 }
 
-std::wstring FindDshBin() {
-    if (!g_cfg.dshBin.empty() && FileExists(g_cfg.dshBin)) return g_cfg.dshBin;
-    wchar_t appdata[MAX_PATH]{};
-    if (SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, appdata) == S_OK) {
-        const std::wstring p = std::wstring(appdata) + L"\\npm\\node_modules\\@deepseek-ai\\dsh\\lib\\bin.js";
-        if (FileExists(p)) return p;
-    }
-    const std::wstring dshCmd = SearchPathFor(L"dsh.cmd");
-    if (!dshCmd.empty()) {
-        const size_t pos = dshCmd.find_last_of(L'\\');
-        if (pos != std::wstring::npos) {
-            const std::wstring p = dshCmd.substr(0, pos) + L"\\node_modules\\@deepseek-ai\\dsh\\lib\\bin.js";
-            if (FileExists(p)) return p;
-        }
-    }
-    return L"";
+// dsh 命令（npm 全局安装的 shim）：先在 PATH 上找 dsh.cmd，再找无扩展名的 dsh
+std::wstring FindDshCmd() {
+    const std::wstring p = SearchPathFor(L"dsh.cmd");
+    if (!p.empty()) return p;
+    return SearchPathFor(L"dsh");
+}
+
+// 启动方式判定：DshBin 显式覆盖 > 全局安装（PATH 上有 dsh 命令） > npx
+LaunchMode DetectLaunchMode() {
+    if (!g_cfg.dshBin.empty() && FileExists(g_cfg.dshBin)) return LaunchMode::Custom;
+    if (!FindDshCmd().empty()) return LaunchMode::Dsh;
+    return LaunchMode::Npx;
 }
 
 // ---------- 端口探测 ----------
@@ -261,24 +269,32 @@ bool StartDSH() {
         Log(L"start: 已在运行，跳过");
         return true;
     }
+    // Node.js 兜底检查（托盘启动时已检查过一次）
     const std::wstring node = FindNodeExe();
-    const std::wstring bin  = FindDshBin();
-    if (node.empty() || bin.empty()) {
-        std::wstring msg =
-            L"未找到 DeepSeek Harness 的启动组件。\n\n"
-            L"需要 Node.js 以及全局安装的 dsh 包（npm i -g @deepseek-ai/dsh）。\n"
-            L"也可以在 Launcher.ini 的 [General] 中手动指定：\n"
-            L"  NodePath = node.exe 的完整路径\n"
-            L"  DshBin   = dsh 的 lib\\bin.js 完整路径\n\n"
-            L"已找到：node.exe -> " + (node.empty() ? L"（无）" : node) + L"\n"
-            L"        dsh bin  -> " + (bin.empty() ? L"（无）" : bin);
-        MessageBoxW(g_hwnd, msg.c_str(), kAppName, MB_ICONERROR | MB_OK);
-        Log(L"start: 未找到启动组件");
+    if (node.empty()) {
+        MessageBoxW(g_hwnd,
+                    L"未检测到 Node.js 环境，无法启动 DeepSeek Harness。\n请先安装 Node.js（https://nodejs.org）。",
+                    kAppName, MB_ICONERROR | MB_OK);
+        Log(L"start: 未找到 node.exe");
         return false;
     }
-
-    const std::wstring cmd = L"\"" + node + L"\" \"" + bin + L"\" web --port " + ToStr(g_cfg.port);
-    Log(L"start: " + cmd);
+    // 判定启动方式：dsh（全局安装）/ npx（未全局安装，按需拉取）/ 自定义（DshBin 覆盖）
+    g_mode = DetectLaunchMode();
+    std::wstring cmd;
+    switch (g_mode) {
+    case LaunchMode::Dsh: {
+        const std::wstring dshCmd = FindDshCmd();
+        cmd = L"cmd.exe /c \"\"" + dshCmd + L"\" web --port " + ToStr(g_cfg.port) + L"\"";
+        break;
+    }
+    case LaunchMode::Npx:
+        cmd = L"cmd.exe /c npx -y @deepseek-ai/dsh web --port " + ToStr(g_cfg.port);
+        break;
+    default:  // 自定义：node.exe 直接执行 DshBin（.js 脚本）
+        cmd = L"\"" + node + L"\" \"" + g_cfg.dshBin + L"\" web --port " + ToStr(g_cfg.port);
+        break;
+    }
+    Log(L"start: 启动方式=" + ModeName(g_mode) + L"，命令 " + cmd);
 
     // 作业对象：停止时整树终止；KILL_ON_JOB_CLOSE 保证托盘退出（含被强制结束）
     // 时 DeepSeek Harness 一并终止 —— 托盘完全接管 Harness 的启停状态
@@ -484,6 +500,10 @@ void ShowTrayMenu() {
     POINT pt{};
     GetCursorPos(&pt);
     HMENU menu = CreatePopupMenu();
+    // 顶部：当前启动方式（浅色、不可编辑），每次弹出菜单时刷新检测
+    g_mode = DetectLaunchMode();
+    AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"启动方式：" + ModeName(g_mode)).c_str());
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     const std::wstring toggle = running ? L"停止 DeepSeek Harness" : L"启动 DeepSeek Harness";
     AppendMenuW(menu, MF_STRING, IDM_TOGGLE, toggle.c_str());
     AppendMenuW(menu, MF_STRING | (running ? 0 : MF_GRAYED), IDM_RESTART, L"重启 DeepSeek Harness");
@@ -604,6 +624,22 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
         WriteIniStr(L"General", L"DshBin", L"");
         Log(L"init: 已生成默认配置文件 " + g_iniPath);
     }
+
+    // 检查 Node.js 环境：缺失则提示并自动退出（托盘自身也不运行）
+    if (FindNodeExe().empty()) {
+        MessageBoxW(nullptr,
+                    L"未检测到 Node.js 环境。\n\n"
+                    L"DeepSeek Harness 需要 Node.js 才能运行。\n"
+                    L"请先安装 Node.js（https://nodejs.org/zh-cn/download），\n"
+                    L"安装完成后重新启动本程序。",
+                    kAppName, MB_ICONERROR | MB_OK);
+        ReleaseMutex(mutex);
+        CloseHandle(mutex);
+        return 0;
+    }
+    // 检测启动方式：dsh（npm 全局安装）或 npx（未安装，按需拉取）
+    g_mode = DetectLaunchMode();
+    Log(L"init: Node.js 已就绪，启动方式=" + ModeName(g_mode));
 
     // 注册窗口类（隐藏窗口，仅接收托盘消息）
     WNDCLASSW wc{};
