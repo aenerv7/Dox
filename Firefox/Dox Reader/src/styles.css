@@ -1356,6 +1356,39 @@ body.layout-resizing {
     padding-right: 117px;
   }
 
+  /* 移动端选中订阅：面板背景与行背景同为 --surface，选中态改用强调色
+     背景 + 左侧色条，未读数和标题同步加深，保证触屏上可一眼区分。 */
+  .feed-nav > button.active,
+  .feed-row.active {
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+
+  .feed-nav > button.active,
+  .feed-row.active > button:first-child {
+    position: relative;
+    color: var(--text);
+    font-weight: 650;
+  }
+
+  .feed-nav > button.active::before,
+  .feed-row.active > button:first-child::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 3px;
+    height: 20px;
+    border-radius: 0 2px 2px 0;
+    background: var(--accent);
+    content: "";
+    transform: translateY(-50%);
+  }
+
+  .feed-nav > button.active strong,
+  .feed-row.active .feed-unread {
+    color: var(--text);
+  }
+
   .items-header {
     padding-left: 6px;
   }
@@ -1446,6 +1479,17 @@ body.layout-resizing {
 
   .field-row {
     grid-template-columns: 1fr;
+  }
+
+  /* 竖屏窄屏下，设置分区收窄内边距并去掉内容缩进，
+     让字段占满可用宽度，避免 min(330/430px, 100%) + 28px
+     缩进把内容挤出视口（此前配色宫格最右列会被裁掉）。 */
+  .settings-section {
+    padding: 18px 16px;
+  }
+
+  .settings-section > :not(.section-heading) {
+    margin-left: 0;
   }
 
   .toast {

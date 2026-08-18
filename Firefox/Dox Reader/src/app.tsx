@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  BookOpen,
   Check,
   CheckCheck,
   Cloud,
@@ -808,6 +809,9 @@ function SettingsDialog(props: {
                 </button>
               ))}
             </div>
+          </section>
+          <section class="settings-section">
+            <div class="section-heading"><BookOpen size={18} /><div><h3>阅读</h3><p>文章列表与正文显示</p></div></div>
             <label class="toggle-row">
               <span>文章列表显示简介</span>
               <input type="checkbox" checked={draft.showItemSnippet} onChange={(event) => update({ showItemSnippet: event.currentTarget.checked })} />
