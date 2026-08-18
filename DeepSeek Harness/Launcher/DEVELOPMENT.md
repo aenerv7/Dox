@@ -46,10 +46,10 @@ Launcher/
 | 配置 | `Config` / `LoadConfig` / `Read/WriteIniStr` | 读写 exe 同目录 `Launcher.ini` |
 | 组件发现 | `FindNodeExe` / `FindDshCmd` / `SearchPathFor` | 定位 node.exe 与 dsh 命令（PATH 搜索） |
 | 启动方式判定 | `DetectLaunchMode` / `ModeName` | dsh（全局安装）/ npx / 自定义（DshBin） |
-| 状态探测 | `IsPortOpen` / `PortOwnerPid` | TCP 探测端口、TCP 表定位监听 PID |
+| 状态探测 | `IsPortOpen` / `PortOwnerPid` / `HostAddr` | TCP 探测端口（按配置的 Host）、TCP 表定位监听 PID |
 | 进程管理 | `StartDSH` / `StopDSH` / `RestartDSH` / `StopManaged` | 派生、整树终止、重启 Harness |
 | 托盘 UI | `ShowTrayMenu` / `HandleCommand` / `WndProc` | 托盘图标、右键菜单、命令分发 |
-| 端口收束 | `RandomFreePort` | 无效端口修正为随机可用端口（探测 127.0.0.1 未占用） |
+| 端口收束 | `RandomFreePort` | 无效端口修正为随机可用端口（按配置的 Host 探测未占用） |
 | 更新检查 | `CheckForUpdate` / `CheckThread` / `DoUpdate` / `UpdateThread` / `RunCommandCapture` / `LocalDshVersion` | npm 版本对比、后台更新、完成通知 |
 | 日志 | `Log` | 追加写 `Launcher.log`（UTF-16LE，超 256KB 截断） |
 
@@ -58,13 +58,13 @@ Launcher/
 托盘程序启动时（`wWinMain`）依次执行：
 
 1. **Node.js 检测**：`FindNodeExe()` 找不到 node.exe → 弹窗提示安装 Node.js 并**自动退出**（托盘自身不运行）。
-2. **端口收束**：`LoadConfig` 读取 `Port`（`GetPrivateProfileIntW` 默认 0 表示无效）；不在 1-65535 → `RandomFreePort()` 随机选一个 127.0.0.1 上未占用的端口（1024-65535，最多试 100 次）并**写回 ini**，日志记录修正。
+2. **监听地址与端口收束**：`LoadConfig` 读取 `Host`（默认 `127.0.0.1`，去首尾空白、空则回退默认）与 `Port`（`GetPrivateProfileIntW` 默认 0 表示无效）；端口不在 1-65535 → `RandomFreePort()` 随机选一个按 Host 探测未占用的端口（1024-65535，最多试 100 次）并**写回 ini**，日志记录修正。`StartDSH` 前校验 `Host=0.0.0.0`（dsh 出于安全不支持）并友好提示。
 3. **启动方式判定**：`DetectLaunchMode()` 返回 `LaunchMode`：
    - `Dsh`：ini 未指定 `DshBin` 且 PATH 上存在 `dsh` 命令（`FindDshCmd()` 依次找 `dsh.cmd` / `dsh`）→ 视为 npm 全局安装；
    - `Npx`：PATH 上无 dsh 命令 → 视为未全局安装，用 npx 按需拉取；
    - `Custom`：ini 显式指定了存在的 `DshBin`（.js 脚本，node.exe 直接执行）→ 高级覆盖。
 
-判定结果存入 `g_mode`，每次弹出托盘菜单与每次启动时都会刷新（环境变化后立即生效）。菜单**顶部前两条**以灰色禁用文本显示 `启动方式：dsh / npx / 自定义` 与 `监听端口：<Port>`（端口直接编辑 ini，无设置 UI）。
+判定结果存入 `g_mode`，每次弹出托盘菜单与每次启动时都会刷新（环境变化后立即生效）。菜单**顶部前两条**以灰色禁用文本显示 `启动方式：dsh / npx / 自定义` 与 `监听地址：http://<Host>:<Port>`（Host/Port 直接编辑 ini，无设置 UI）。
 
 ### 3.1 进程模型（核心）
 
@@ -72,9 +72,9 @@ Launcher/
 
 | 模式 | 实际命令 |
 |---|---|
-| dsh | `cmd.exe /c ""<dsh 命令全路径>" web --port <Port>"` |
-| npx | `cmd.exe /c npx -y @deepseek-ai/dsh web --port <Port>` |
-| 自定义 | `"<node.exe>" "<DshBin>" web --port <Port>` |
+| dsh | `cmd.exe /c ""<dsh 命令全路径>" web --host <Host> --port <Port>"` |
+| npx | `cmd.exe /c npx -y @deepseek-ai/dsh web --host <Host> --port <Port>` |
+| 自定义 | `"<node.exe>" "<DshBin>" web --host <Host> --port <Port>` |
 
 - 命令统一经 `cmd.exe` 派生（dsh / npx 均为 npm 的 .cmd shim）；`cmd /c` 会等待子进程，因此进程句柄在 Harness 存活期间有效，可直接判断存活。
 - 派生时用 `CREATE_SUSPENDED` 先创建，**AssignProcessToJobObject 后再 ResumeThread**，保证 Harness 及其全部子进程（pwsh 沙箱、vision-router 等）都进入作业对象。
@@ -85,19 +85,18 @@ Launcher/
 
 ### 3.2 运行状态判定
 
-`IsRunning() = 托管进程句柄存活 || TCP 探测 127.0.0.1:<Port> 可连接`。
+`IsRunning() = 托管进程句柄存活 || TCP 探测 <Host>:<Port> 可连接`。
 
 - 句柄判定：`WaitForSingleObject(g_hProc, 0) == WAIT_TIMEOUT`。
-- 端口探测：非阻塞 `connect` + `select`，最多等 200ms，避免阻塞 UI 线程。
+- 端口探测：非阻塞 `connect` + `select`，最多等 200ms，避免阻塞 UI 线程；目标地址由 `HostAddr(g_cfg.host)` 解析（支持 IP 与主机名，失败回退 127.0.0.1）。
 - 双条件设计使托盘能识别**由外部启动的实例**（如手动 `dsh web`）。停止外部实例时通过 `GetExtendedTcpTable`（`TCP_TABLE_OWNER_PID_LISTENER`）定位监听 PID，并经用户确认后 `OpenProcess(PROCESS_TERMINATE) + TerminateProcess`。
 
 ### 3.3 托盘 UI
 
 - 隐藏顶层窗口（类名 `DSHLauncherWnd`），`Shell_NotifyIcon` 挂托盘图标，回调消息 `WM_APP+1`。
 - 右键（v3 行为：`WM_RBUTTONUP`）弹出菜单；`TrackPopupMenu` 前 `SetForegroundWindow`，返回后 `PostMessage(WM_NULL)` 保证菜单正确收起。
-- 每次弹菜单**重建**：顶部前两条为当前启动方式与监听端口（灰色禁用文本，见 3.0），其后标签随状态切换（运行中显示「停止」，停止显示「启动」；重启/打开网页在停止时置灰）。
-- 双击托盘（`WM_LBUTTONDBLCLK`）打开 Web 界面。
-- 2 秒定时器刷新托盘提示文字；定时器同时回收已退出进程的句柄。
+- 每次弹菜单**重建**：顶部前两条为当前启动方式与监听地址（灰色禁用文本，见 3.0），其后标签随状态切换（运行中显示「停止」，停止显示「启动」；重启在停止时置灰）。
+- 2 秒定时器刷新托盘提示文字（含监听地址）；定时器同时回收已退出进程的句柄。
 
 ### 3.4 私有消息协议（自动化/调试接口）
 

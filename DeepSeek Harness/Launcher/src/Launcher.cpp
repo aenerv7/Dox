@@ -3,15 +3,14 @@
 //
 // 功能：
 //   * 系统托盘图标 + 右键菜单：启动 / 停止（二选一显示）、重启 DeepSeek Harness
-//   * 启动端口直接编辑 exe 同目录 Launcher.ini（无效端口自动修正为随机可用端口），
-//     右键菜单以浅色文本显示当前监听端口
+//   * 监听地址（Host）与端口（Port）直接编辑 exe 同目录 Launcher.ini；
+//     无效端口自动修正为随机可用端口，右键菜单顶部以浅色文本显示当前监听地址
 //   * 随托盘程序自启动 DeepSeek Harness（写入 ini）
 //   * 检查并更新 DeepSeek Harness（npm 最新版本对比，停止 → 更新 → 重启）
-//   * 双击托盘图标打开 Web 界面
 //
 // 实现要点：
 //   * 按环境自适应启动：dsh 全局安装 → dsh 命令；未安装 → npx -y @deepseek-ai/dsh
-//   * 作业对象整树终止；端口探测识别外部启动的实例
+//   * 作业对象整树终止；按配置的 Host 做端口探测识别外部启动的实例
 //   * 完全便携：不写注册表、无安装过程，所有设置通过 GetPrivateProfileString /
 //     WritePrivateProfileString 读写 exe 同目录的 Launcher.ini；
 //     托盘程序自身的开机自启交由外部任务计划程序负责
@@ -63,6 +62,7 @@ constexpr UINT g_trayId = 1;
 struct Config {
     int          port       = 16100;
     bool         autoStart  = false;   // 随托盘程序自启动 DeepSeek Harness
+    std::wstring host       = L"127.0.0.1";  // 监听地址（默认回环）
     std::wstring nodePath;             // 高级：node.exe 完整路径（留空自动查找）
     std::wstring dshBin;               // 高级：dsh 的 lib\bin.js 完整路径（留空自动查找）
 };
@@ -154,6 +154,12 @@ void WriteIniStr(const wchar_t* section, const wchar_t* key, const std::wstring&
 int RandomFreePort();  // 前向声明（定义在 IsPortOpen 之后）
 
 void LoadConfig() {
+    // 监听地址：读取 Host（默认 127.0.0.1），去首尾空白，为空则回退默认
+    std::wstring h = ReadIniStr(L"General", L"Host", L"127.0.0.1");
+    const size_t hb = h.find_first_not_of(L" \t");
+    const size_t he = h.find_last_not_of(L" \t");
+    g_cfg.host = (hb == std::wstring::npos) ? L"127.0.0.1" : h.substr(hb, he - hb + 1);
+    if (g_cfg.host.empty()) g_cfg.host = L"127.0.0.1";
     // 端口收束：读取后必须在 1-65535 内；无效（非数字 / 越界）则改为随机可用端口并写回 ini
     g_cfg.port = ReadIniInt(L"General", L"Port", 0);  // 0 = 无效 / 未设置
     if (g_cfg.port < 1 || g_cfg.port > 65535) {
@@ -214,13 +220,32 @@ LaunchMode DetectLaunchMode() {
 }
 
 // ---------- 端口探测 ----------
+// 解析 host 为 IPv4 地址（支持 IP 与主机名），失败回退 127.0.0.1
+in_addr HostAddr(const std::wstring& host) {
+    in_addr a{};
+    char buf[64]{};
+    WideCharToMultiByte(CP_UTF8, 0, host.c_str(), -1, buf, 64, nullptr, nullptr);
+    if (inet_pton(AF_INET, buf, &a) == 1) return a;
+    addrinfo hints{};
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    addrinfo* res = nullptr;
+    if (getaddrinfo(buf, nullptr, &hints, &res) == 0 && res) {
+        a = reinterpret_cast<sockaddr_in*>(res->ai_addr)->sin_addr;
+        freeaddrinfo(res);
+        return a;
+    }
+    a.s_addr = htonl(INADDR_LOOPBACK);
+    return a;
+}
+
 bool IsPortOpen(int port) {
     SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (s == INVALID_SOCKET) return false;
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons((u_short)port);
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_addr = HostAddr(g_cfg.host);
     u_long mode = 1;
     ioctlsocket(s, FIONBIO, &mode);
     const int r = connect(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
@@ -282,7 +307,7 @@ bool IsRunning() {
 void UpdateTrayTip() {
     std::wstring tip = std::wstring(kAppName);
     if (IsRunning())
-        tip += L" — 运行中（端口 " + ToStr(g_cfg.port) + L"）";
+        tip += L" — 运行中（http://" + g_cfg.host + L":" + ToStr(g_cfg.port) + L"）";
     else
         tip += L" — 已停止";
     NOTIFYICONDATAW nid{};
@@ -310,20 +335,32 @@ bool StartDSH() {
         Log(L"start: 未找到 node.exe");
         return false;
     }
+    // dsh 出于安全原因不支持监听 0.0.0.0，给出友好提示
+    if (g_cfg.host == L"0.0.0.0") {
+        MessageBoxW(g_hwnd,
+                    L"dsh 不支持监听 0.0.0.0（存在远程代码执行风险）。\n"
+                    L"请在 Launcher.ini 中将 Host 配置为 127.0.0.1 或具体的局域网 IP。",
+                    kAppName, MB_ICONWARNING | MB_OK);
+        Log(L"start: Host=0.0.0.0 不被 dsh 支持");
+        return false;
+    }
     // 判定启动方式：dsh（全局安装）/ npx（未全局安装，按需拉取）/ 自定义（DshBin 覆盖）
     g_mode = DetectLaunchMode();
     std::wstring cmd;
     switch (g_mode) {
     case LaunchMode::Dsh: {
         const std::wstring dshCmd = FindDshCmd();
-        cmd = L"cmd.exe /c \"\"" + dshCmd + L"\" web --port " + ToStr(g_cfg.port) + L"\"";
+        cmd = L"cmd.exe /c \"\"" + dshCmd + L"\" web --host " + g_cfg.host +
+              L" --port " + ToStr(g_cfg.port) + L"\"";
         break;
     }
     case LaunchMode::Npx:
-        cmd = L"cmd.exe /c npx -y @deepseek-ai/dsh web --port " + ToStr(g_cfg.port);
+        cmd = L"cmd.exe /c npx -y @deepseek-ai/dsh web --host " + g_cfg.host +
+              L" --port " + ToStr(g_cfg.port);
         break;
     default:  // 自定义：node.exe 直接执行 DshBin（.js 脚本）
-        cmd = L"\"" + node + L"\" \"" + g_cfg.dshBin + L"\" web --port " + ToStr(g_cfg.port);
+        cmd = L"\"" + node + L"\" \"" + g_cfg.dshBin + L"\" web --host " + g_cfg.host +
+              L" --port " + ToStr(g_cfg.port);
         break;
     }
     Log(L"start: 启动方式=" + ModeName(g_mode) + L"，命令 " + cmd);
@@ -431,13 +468,6 @@ bool RestartDSH() {
     const bool ok = StartDSH();
     Log(ok ? L"restart: 完成" : L"restart: 启动失败");
     return ok;
-}
-
-// ---------- 其它操作 ----------
-void OpenBrowser() {
-    const std::wstring url = L"http://127.0.0.1:" + ToStr(g_cfg.port);
-    ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-    Log(L"open: " + url);
 }
 
 // ---------- 更新检查与更新 ----------
@@ -650,9 +680,6 @@ void HandleCommand(int cmd) {
     case IDM_RESTART:
         RestartDSH();
         break;
-    case IDM_OPEN:
-        OpenBrowser();
-        break;
     case IDM_UPDATE:
         CheckForUpdate();
         break;
@@ -699,15 +726,14 @@ void ShowTrayMenu() {
     POINT pt{};
     GetCursorPos(&pt);
     HMENU menu = CreatePopupMenu();
-    // 顶部：当前启动方式与监听端口（浅色、不可编辑），每次弹出菜单时刷新检测
+    // 顶部：当前启动方式与监听地址（浅色、不可编辑），每次弹出菜单时刷新检测
     g_mode = DetectLaunchMode();
     AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"启动方式：" + ModeName(g_mode)).c_str());
-    AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"监听端口：" + ToStr(g_cfg.port)).c_str());
+    AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"监听地址：http://" + g_cfg.host + L":" + ToStr(g_cfg.port)).c_str());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     const std::wstring toggle = running ? L"停止 DeepSeek Harness" : L"启动 DeepSeek Harness";
     AppendMenuW(menu, MF_STRING, IDM_TOGGLE, toggle.c_str());
     AppendMenuW(menu, MF_STRING | (running ? 0 : MF_GRAYED), IDM_RESTART, L"重启 DeepSeek Harness");
-    AppendMenuW(menu, MF_STRING | (running ? 0 : MF_GRAYED), IDM_OPEN, L"打开 Web 界面");
     AppendMenuW(menu, MF_STRING | (g_updating || g_checking ? MF_GRAYED : 0), IDM_UPDATE,
                 L"检查并更新 DeepSeek Harness");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
@@ -732,9 +758,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_RBUTTONUP:
         case WM_CONTEXTMENU:
             ShowTrayMenu();
-            return 0;
-        case WM_LBUTTONDBLCLK:
-            OpenBrowser();
             return 0;
         }
         break;
@@ -876,6 +899,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
 
     // 首次运行：生成默认配置文件
     if (!FileExists(g_iniPath)) {
+        WriteIniStr(L"General", L"Host", L"127.0.0.1");
         WriteIniStr(L"General", L"Port", ToStr(16100));
         WriteIniStr(L"General", L"AutoStart", L"0");
         WriteIniStr(L"General", L"NodePath", L"");

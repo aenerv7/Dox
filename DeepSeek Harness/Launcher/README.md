@@ -11,10 +11,9 @@ DeepSeek Harness 系统托盘启动器 —— **纯 Windows 11 原生代码实�
 - **重启 DeepSeek Harness**（先停止、等端口释放、再启动）
 - **启动方式自动判定**：dsh 全局安装 → `dsh` 命令；未安装 → `npx -y @deepseek-ai/dsh`；菜单顶部以浅色不可编辑文本显示当前启动方式（dsh / npx / 自定义）
 - **检查并更新 DeepSeek Harness**：对比 npm 最新版本；有更新且 Harness 正在运行 → 询问「停止当前实例并更新后重启」，确认后自动完成 停止 → 更新 → 重新启动
-- **启动端口（ini 配置）**：直接编辑 `Launcher.ini` 的 `Port` 即可；右键菜单以浅色文本显示当前监听端口；填写无效端口（非数字 / 越界）会自动修正为随机可用端口
+- **监听地址与端口（ini 配置）**：直接编辑 `Launcher.ini` 的 `Host`（默认 `127.0.0.1`）与 `Port` 即可；右键菜单顶部以浅色文本显示当前监听地址（`http://<Host>:<Port>`）；填写无效端口（非数字 / 越界）会自动修正为随机可用端口
 - **随托盘程序自启动 DeepSeek Harness**：勾选后，托盘程序一启动就自动拉起 Harness（配合任务计划程序的登录自启即可实现开机全自动启动）
-- **双击托盘图标**直接打开 Web 界面
-- 托盘提示文字实时显示运行状态与当前端口
+- 托盘提示文字实时显示运行状态与当前监听地址
 - 所有设置写入 **exe 同目录的 `Launcher.ini`**
 
 ## 目录结构
@@ -55,9 +54,8 @@ powershell -ExecutionPolicy Bypass -File scripts\make-icon.ps1
 ## 使用
 
 1. 双击 `bin\Launcher.exe`：程序先检测 Node.js 环境（未安装则弹窗提示并自动退出），再判定启动方式（dsh / npx），随后任务栏托盘区出现图标（无窗口）。
-2. 右键托盘图标 → 选择「启动 DeepSeek Harness」。
-3. 双击托盘图标可打开 Web 界面（`http://127.0.0.1:<端口>`）。
-4. 首次运行会自动在 exe 同目录生成默认 `Launcher.ini`。
+2. 右键托盘图标 → 选择「启动 DeepSeek Harness」；菜单顶部以浅色文本显示当前监听地址，用浏览器访问即可打开 Web 界面。
+3. 首次运行会自动在 exe 同目录生成默认 `Launcher.ini`。
 
 > 托盘程序一次只能运行一个实例（互斥体保证）。**退出托盘程序会同时停止 DeepSeek Harness**（若 Harness 由外部启动，退出前会提示并一并结束），托盘完全接管 Harness 的启动状态控制。
 
@@ -67,6 +65,8 @@ powershell -ExecutionPolicy Bypass -File scripts\make-icon.ps1
 
 ```ini
 [General]
+; 监听地址（默认 127.0.0.1；不支持 0.0.0.0），对应 dsh web --host <host>
+Host=127.0.0.1
 ; Web 界面启动端口（1-65535），对应 dsh web --port <port>
 ; 无效值（非数字或越界）会在启动时自动修正为随机可用端口并写回本文件
 Port=16100
@@ -78,26 +78,26 @@ NodePath=
 DshBin=
 ```
 
-托盘右键菜单顶部以浅色不可编辑文本显示「启动方式」与「监听端口」。
+托盘右键菜单顶部以浅色不可编辑文本显示「启动方式」与「监听地址」。
 
 启动方式判定规则（托盘菜单顶部浅色文本显示）：
 
 | 环境 | 启动方式 | 实际执行命令 |
 |---|---|---|
-| dsh 已全局安装（PATH 上有 `dsh` 命令，如 `npm i -g @deepseek-ai/dsh`） | dsh | `dsh web --port <Port>` |
-| dsh 未全局安装 | npx | `npx -y @deepseek-ai/dsh web --port <Port>` |
-| ini 显式指定了 `DshBin` | 自定义 | `node.exe <DshBin> web --port <Port>` |
+| dsh 已全局安装（PATH 上有 `dsh` 命令，如 `npm i -g @deepseek-ai/dsh`） | dsh | `dsh web --host <Host> --port <Port>` |
+| dsh 未全局安装 | npx | `npx -y @deepseek-ai/dsh web --host <Host> --port <Port>` |
+| ini 显式指定了 `DshBin` | 自定义 | `node.exe <DshBin> web --host <Host> --port <Port>` |
 
 ## 实现要点
 
-- **进程管理**：以 `dsh web --port <N>` / `npx -y @deepseek-ai/dsh web --port <N>` 派生进程（经 cmd.exe，作业对象整树管理），进程句柄可直接判断存活；停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
-- **启动环境自检**：启动时检测 Node.js（缺失则弹窗提示并自动退出），并判定 dsh 是否全局安装（PATH 上存在 dsh 命令）：全局 → `dsh` 命令；未全局 → `npx` 方式。托盘菜单顶部以浅色不可编辑文本显示当前启动方式与监听端口。
-- **端口收束**：`Launcher.ini` 的 `Port` 读取后校验 1-65535；无效（非数字 / 越界）自动改为**随机可用端口**（探测 127.0.0.1 未占用）并写回 ini，避免错误端口导致 Harness 起不来。
+- **进程管理**：以 `dsh web --host <Host> --port <Port>` / `npx -y @deepseek-ai/dsh web --host <Host> --port <Port>` 派生进程（经 cmd.exe，作业对象整树管理），进程句柄可直接判断存活；停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
+- **启动环境自检**：启动时检测 Node.js（缺失则弹窗提示并自动退出），并判定 dsh 是否全局安装（PATH 上存在 dsh 命令）：全局 → `dsh` 命令；未全局 → `npx` 方式。托盘菜单顶部以浅色不可编辑文本显示当前启动方式与监听地址。
+- **端口收束**：`Launcher.ini` 的 `Port` 读取后校验 1-65535；无效（非数字 / 越界）自动改为**随机可用端口**（按配置的 Host 探测未占用）并写回 ini，避免错误端口导致 Harness 起不来。
 - **更新检查**：后台线程执行 `npm view @deepseek-ai/dsh version` 获取最新版本，本地版本读取全局 dsh 的 `package.json`；有更新时按场景询问。更新命令：dsh 模式 `npm i -g @deepseek-ai/dsh@latest`，npx 模式 `npx -y @deepseek-ai/dsh@latest --version`（刷新缓存）；更新在后台线程执行，完成后按用户选择自动重新启动。
-- **运行状态判定**：托管进程存活 **或** TCP 探测 `127.0.0.1:<端口>` 可连接，二者任一为真即视为运行中——因此能正确识别“由其他方式启动的实例”。
+- **运行状态判定**：托管进程存活 **或** TCP 探测 `<Host>:<Port>` 可连接，二者任一为真即视为运行中——因此能正确识别“由其他方式启动的实例”。
 - **外部实例停止**：若端口被外部启动的 Harness 占用，停止时会先询问用户，再通过 TCP 表找到监听进程并结束。
 - **单实例**：命名互斥体 `Local\DSHLauncher_SingleInstance`。
-- **自动化接口**：隐藏窗口支持私有消息 `WM_APP+100~103`（启动/停止/重启/状态查询），测试脚本据此驱动。
+- **自动化接口**：隐藏窗口支持私有消息 `WM_APP+100~106`（启动/停止/重启/状态查询/更新检查等），测试脚本据此驱动。
 - **日志**：`Launcher.log`（exe 同目录，UTF-16，超 256KB 自动截断）。
 
 ## 测试
@@ -122,8 +122,8 @@ powershell -ExecutionPolicy Bypass -File scripts\test-port.ps1
 **Q：端口被占用 / Harness 由别的方式启动？**
 托盘菜单的「停止」会检测到端口上的非托管实例并询问是否结束（通过 TCP 表定位 PID）。
 
-**Q：修改端口后没有生效？**
-端口直接编辑 `Launcher.ini` 的 `Port` 后保存，在下次启动 DeepSeek Harness 时生效；若当前正在运行，先重启（或停止后重新启动）。填写无效端口（非数字 / 越界）会自动修正为随机可用端口（托盘菜单可看到当前监听端口）。
+**Q：修改端口 / 监听地址后没有生效？**
+直接编辑 `Launcher.ini` 的 `Host`（默认 `127.0.0.1`）与 `Port` 后保存，在下次启动 DeepSeek Harness 时生效；若当前正在运行，先重启（或停止后重新启动）。填写无效端口（非数字 / 越界）会自动修正为随机可用端口（托盘菜单可看到当前监听地址）。注意 dsh 出于安全考虑不支持 `0.0.0.0`。
 
 **Q：退出托盘程序后 DeepSeek Harness 会怎样？**
 会一并停止。托盘程序是 Harness 的唯一启停控制器：菜单「退出」（或托盘进程被强制结束）都会终止 Harness（外部启动的实例退出前会先询问）。
