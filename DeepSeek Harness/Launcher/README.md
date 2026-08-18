@@ -10,6 +10,7 @@ DeepSeek Harness 系统托盘启动器 —— **纯 Windows 11 原生代码实�
 - **启动 / 停止 DeepSeek Harness**：同一菜单项二选一显示（运行中显示「停止」，已停止显示「启动」）
 - **重启 DeepSeek Harness**（先停止、等端口释放、再启动）
 - **启动方式自动判定**：dsh 全局安装 → `dsh` 命令；未安装 → `npx -y @deepseek-ai/dsh`；菜单顶部以浅色不可编辑文本显示当前启动方式（dsh / npx / 自定义）
+- **检查并更新 DeepSeek Harness**：对比 npm 最新版本；有更新且 Harness 正在运行 → 询问「停止当前实例并更新后重启」，确认后自动完成 停止 → 更新 → 重新启动
 - **自定义启动端口**：菜单项打开设置对话框，写入 ini，下次启动生效
 - **随托盘程序自启动 DeepSeek Harness**：勾选后，托盘程序一启动就自动拉起 Harness（配合任务计划程序的登录自启即可实现开机全自动启动）
 - **双击托盘图标**直接打开 Web 界面
@@ -88,6 +89,7 @@ DshBin=
 
 - **进程管理**：以 `dsh web --port <N>` / `npx -y @deepseek-ai/dsh web --port <N>` 派生进程（经 cmd.exe，作业对象整树管理），进程句柄可直接判断存活；停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
 - **启动环境自检**：启动时检测 Node.js（缺失则弹窗提示并自动退出），并判定 dsh 是否全局安装（PATH 上存在 dsh 命令）：全局 → `dsh` 命令；未全局 → `npx` 方式。托盘菜单顶部以浅色不可编辑文本显示当前启动方式。
+- **更新检查**：后台线程执行 `npm view @deepseek-ai/dsh version` 获取最新版本，本地版本读取全局 dsh 的 `package.json`；有更新时按场景询问。更新命令：dsh 模式 `npm i -g @deepseek-ai/dsh@latest`，npx 模式 `npx -y @deepseek-ai/dsh@latest --version`（刷新缓存）；更新在后台线程执行，完成后按用户选择自动重新启动。
 - **运行状态判定**：托管进程存活 **或** TCP 探测 `127.0.0.1:<端口>` 可连接，二者任一为真即视为运行中——因此能正确识别“由其他方式启动的实例”。
 - **外部实例停止**：若端口被外部启动的 Harness 占用，停止时会先询问用户，再通过 TCP 表找到监听进程并结束。
 - **单实例**：命名互斥体 `Local\DSHLauncher_SingleInstance`。
@@ -98,9 +100,13 @@ DshBin=
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\test-lifecycle.ps1
+powershell -ExecutionPolicy Bypass -File scripts\test-modes.ps1
+powershell -ExecutionPolicy Bypass -File scripts\test-update.ps1
 ```
 
-用一个临时 Node HTTP 服务器代替真实 Harness，通过私有消息驱动验证：随托盘自启动、状态查询、停止、再启动、重启（进程 PID 变化）、无残留进程、日志记录；结束后自动清理并恢复默认配置。
+- `test-lifecycle.ps1`：用临时 Node HTTP 服务器代替真实 Harness，验证随托盘自启动、停止、再启动、重启、强杀托盘即停 Harness、日志记录。
+- `test-modes.ps1`：受限 PATH + 假 shim 验证 dsh / npx 两种启动方式判定。
+- `test-update.ps1`：验证更新检查链路（无 npm 的失败提示 + 真实环境的结果提示）；不执行真实更新，避免改动全局 npm 环境。
 
 ## 常见问题
 
@@ -115,6 +121,9 @@ powershell -ExecutionPolicy Bypass -File scripts\test-lifecycle.ps1
 
 **Q：退出托盘程序后 DeepSeek Harness 会怎样？**
 会一并停止。托盘程序是 Harness 的唯一启停控制器：菜单「退出」（或托盘进程被强制结束）都会终止 Harness（外部启动的实例退出前会先询问）。
+
+**Q：如何更新 DeepSeek Harness？**
+托盘菜单「检查并更新 DeepSeek Harness」：自动对比 npm 最新版本；有更新且 Harness 正在运行时，会询问「是否停止当前实例并更新后重启」，确认后自动完成 停止 → 更新 → 重新启动（npx 模式则刷新 npx 缓存）。
 
 **Q：如何实现开机自动启动 Harness？**
 本程序完全便携、不写注册表。请用任务计划程序（`taskschd.msc`）新建任务：登录时运行 `Launcher.exe`，并在托盘菜单勾选「随托盘程序自启动 DeepSeek Harness」：开机 → 任务计划启动托盘程序 → Harness 自动启动。

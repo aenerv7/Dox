@@ -50,6 +50,7 @@ Launcher/
 | 进程管理 | `StartDSH` / `StopDSH` / `RestartDSH` / `StopManaged` | 派生、整树终止、重启 Harness |
 | 托盘 UI | `ShowTrayMenu` / `HandleCommand` / `WndProc` | 托盘图标、右键菜单、命令分发 |
 | 端口对话框 | `PortDlgProc` | 端口输入与校验（1-65535） |
+| 更新检查 | `CheckForUpdate` / `CheckThread` / `DoUpdate` / `UpdateThread` / `RunCommandCapture` / `LocalDshVersion` | npm 版本对比、后台更新、完成通知 |
 | 日志 | `Log` | 追加写 `Launcher.log`（UTF-16LE，超 256KB 截断） |
 
 ### 3.0 启动自检与启动方式（环境自适应）
@@ -107,10 +108,19 @@ Launcher/
 | `kMsgStop` | `WM_APP+101` (0x8065) | 停止 |
 | `kMsgRestart` | `WM_APP+102` (0x8066) | 重启 |
 | `kMsgQuery` | `WM_APP+103` (0x8067) | 查询运行状态，返回 1/0 |
+| `kMsgUpdateDone` | `WM_APP+104` (0x8068) | 更新线程完成通知（wParam=成功, lParam=是否重启） |
+| `kMsgCheckUpdate` | `WM_APP+105` (0x8069) | 触发更新检查（测试用） |
+| `kMsgCheckResult` | `WM_APP+106` (0x806A) | 检查结果通知（wParam=0 失败/1 最新/2 有更新/3 本地未知） |
 
 ### 3.5 单实例
 
 命名互斥体 `Local\DSHLauncher_SingleInstance`（`CreateMutex` + `ERROR_ALREADY_EXISTS` 判定）。
+
+### 3.6 更新检查与更新（后台线程）
+
+- **检查**（`CheckThread`）：后台执行 `npm view @deepseek-ai/dsh version`（`RunCommandCapture` 捕获输出，**以退出码判定成功**，避免错误文本冒充版本号），与本地版本（`LocalDshVersion` 读取全局 dsh 的 `package.json` 的 `version`，`ExtractJsonVersion` 文本解析）对比；结果经 `PostMessage(kMsgCheckResult)` 回传 UI 弹框。
+- **更新**（`DoUpdate` → `UpdateThread`）：dsh 模式 `npm i -g @deepseek-ai/dsh@latest`；npx 模式 `npx -y @deepseek-ai/dsh@latest --version`（刷新 npx 缓存）。更新期间菜单项置灰、防重入（`g_updating`）；完成后 `kMsgUpdateDone` 通知 UI：失败弹错误框，成功按用户选择（`restartAfter`）自动重新启动 Harness，并重新检测启动方式。
+- **流程**：菜单「检查并更新」→ 检查 → 有更新且 Harness 运行中 → 询问「是否停止当前实例并更新后重启」→ 确认后 `StopDSH()` → 更新 → 完成后 `StartDSH()`。
 
 ## 4. 构建系统
 
@@ -140,6 +150,7 @@ Launcher/
 10. **清理残留**：托盘派生进程用作业对象管理后，测试/调试结束务必确认无残留 `node.exe`（`KILL_ON_JOB_CLOSE` 已保证托盘进程死亡即清理，但手工杀进程的场景要注意）。
 11. **`cmd.exe /c` 的引号规则**：执行带空格路径的 .cmd 时必须用 `cmd /c ""<path>" args"` 双引号套引号形式（已实测含空格路径的 fakebin\dsh.cmd）；无空格命令（如 `npx -y @deepseek-ai/dsh`）无需引号。
 12. **`npx` 语义**：`npx -y @deepseek-ai/dsh` 在未全局安装时会自动拉取并缓存 dsh 包；托盘不主动校验网络，启动失败（端口未开）由状态探测体现。
+13. **子进程输出捕获**：`RunCommandCapture` 必须同时校验退出码与输出格式（版本号含 `.`），否则 `npm` 缺失时的错误文本会被误判为版本；`ReadFile` 读管道在写端关闭后返回 EOF，短输出命令（npm view）无死锁风险。
 
 ## 6. 测试
 
@@ -156,11 +167,18 @@ Launcher/
   - `npx` 模式：PATH 不含 `dsh.cmd`（只有 `npx.cmd`）→ 判定 npx → 日志断言 `启动方式=npx` 且命令为 `npx -y @deepseek-ai/dsh`。
 - 每个场景均验证端口开/关与进程清理。
 
+`scripts\test-update.ps1`（更新检查链路）：
+
+- 场景 1：受限 PATH（无 npm）→ 检查失败 → 断言日志 `update: 获取远端版本失败` 且提示框出现；
+- 场景 2：真实环境 → 完整检查链路 → 等待结果对话框出现并关闭（等效“否”，**不执行真实更新**），断言日志含 `update:` 与版本对比。
+- 说明：真实更新（`npm i -g`）会改动全局环境，不做自动化。
+
 运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\test-lifecycle.ps1
 powershell -ExecutionPolicy Bypass -File scripts\test-modes.ps1
+powershell -ExecutionPolicy Bypass -File scripts\test-update.ps1
 ```
 
 ## 7. 扩展指引

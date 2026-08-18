@@ -24,11 +24,23 @@ if (-not (Test-Path $vcvars)) { throw "未找到 $vcvars" }
 $defs  = '/DUNICODE /D_UNICODE /D_WIN32_WINNT=0x0A00 /DWINVER=0x0A00 /D_CRT_SECURE_NO_WARNINGS'
 $flags = "/nologo /EHsc /std:c++20 /O2 /MT $defs /W3 /utf-8"
 
-# 1) rc：在 src 目录下编译资源（Launcher.ico / 对话框 / 清单 / 版本信息）
+# ---- 1. 确保 rc 输入为 UTF-8 BOM（rc.exe 对无 BOM 的 UTF-8 中文会报 RC1004）----
+foreach ($f in @((Join-Path $src 'Resource.h'), (Join-Path $src 'Launcher.rc'))) {
+    if (-not (Test-Path $f)) { continue }
+    $bytes = [System.IO.File]::ReadAllBytes($f)
+    $hasBom = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
+    if (-not $hasBom) {
+        $text = Get-Content -Raw -Encoding UTF8 $f
+        [System.IO.File]::WriteAllText($f, $text, (New-Object System.Text.UTF8Encoding($true)))
+        Write-Host "已为 $([System.IO.Path]::GetFileName($f)) 补上 UTF-8 BOM"
+    }
+}
+
+# ---- 2. rc：在 src 目录下编译资源（Launcher.ico / 对话框 / 清单 / 版本信息）----
 $rcCmd = "cd /d `"$src`" && rc /nologo /fo ..\bin\Launcher.res Launcher.rc"
-# 2) cl：仅编译（/c），输出 Launcher.obj 到 bin
+# 3) cl：仅编译（/c），输出 Launcher.obj 到 bin
 $compileCmd = "cd /d `"$out`" && cl /nologo /c $flags ..\src\Launcher.cpp /Fo:Launcher.obj"
-# 3) link：显式链接 obj 与 res（cl 一步式链接在 /Fo: 空值下有兼容性问题，故拆开）
+# 4) link：显式链接 obj 与 res（cl 一步式链接在 /Fo: 空值下有兼容性问题，故拆开）
 $linkCmd = "cd /d `"$out`" && link /nologo /SUBSYSTEM:WINDOWS /MACHINE:X64 Launcher.obj Launcher.res /OUT:Launcher.exe"
 
 $cmd = "call `"$vcvars`" >nul 2>&1 && $rcCmd && $compileCmd && $linkCmd"

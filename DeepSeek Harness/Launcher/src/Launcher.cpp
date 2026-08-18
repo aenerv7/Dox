@@ -23,6 +23,8 @@
 #include <shlobj.h>
 #include <cstdio>
 #include <cwchar>
+#include <memory>
+#include <process.h>
 #include <string>
 #include <vector>
 #include "Resource.h"
@@ -42,10 +44,13 @@ constexpr wchar_t kMutexName[]    = L"Local\\DSHLauncher_SingleInstance";
 constexpr UINT    kTrayMsg        = WM_APP + 1;
 constexpr UINT_PTR kTimerState    = 1;
 // 私有消息（自动化 / 调试用，不影响正常使用）
-constexpr UINT kMsgStart   = WM_APP + 100;
-constexpr UINT kMsgStop    = WM_APP + 101;
-constexpr UINT kMsgRestart = WM_APP + 102;
-constexpr UINT kMsgQuery   = WM_APP + 103;
+constexpr UINT kMsgStart       = WM_APP + 100;
+constexpr UINT kMsgStop        = WM_APP + 101;
+constexpr UINT kMsgRestart     = WM_APP + 102;
+constexpr UINT kMsgQuery       = WM_APP + 103;
+constexpr UINT kMsgUpdateDone  = WM_APP + 104;  // 更新线程完成通知
+constexpr UINT kMsgCheckUpdate = WM_APP + 105;  // 触发更新检查
+constexpr UINT kMsgCheckResult = WM_APP + 106;  // 检查线程结果通知
 
 HINSTANCE g_hInst = nullptr;
 HWND      g_hwnd   = nullptr;
@@ -79,6 +84,12 @@ std::wstring ModeName(LaunchMode m) {
 HANDLE g_hJob  = nullptr;
 HANDLE g_hProc = nullptr;
 DWORD  g_pid   = 0;
+
+// 更新检查状态（检查线程写、UI 线程读，同一时刻最多一个检查/更新在跑）
+bool    g_checking = false;
+bool    g_updating = false;
+wchar_t g_checkLatest[64]{};  // 远端最新版本
+wchar_t g_checkLocal[64]{};   // 本地当前版本（可能为空）
 
 // ---------- 小工具 ----------
 std::wstring ExeDir() {
@@ -437,6 +448,207 @@ INT_PTR CALLBACK PortDlgProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM) {
     return FALSE;
 }
 
+// ---------- 更新检查与更新 ----------
+// 运行命令并等待结束；返回进程退出码是否为 0
+bool RunCommandWait(const std::wstring& cmd) {
+    std::vector<wchar_t> cmdBuf(cmd.begin(), cmd.end());
+    cmdBuf.push_back(L'\0');
+    STARTUPINFOW si{};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    PROCESS_INFORMATION pi{};
+    if (!CreateProcessW(nullptr, cmdBuf.data(), nullptr, nullptr, FALSE,
+                        CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT, nullptr, nullptr, &si, &pi))
+        return false;
+    WaitForSingleObject(pi.hProcess, 10 * 60 * 1000);  // 最长 10 分钟
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return code == 0;
+}
+
+// 运行命令并捕获 stdout+stderr（用于 npm view 等短输出）
+bool RunCommandCapture(const std::wstring& cmd, std::wstring& out, DWORD timeoutMs) {
+    SECURITY_ATTRIBUTES sa{};
+    sa.nLength = sizeof(sa);
+    sa.bInheritHandle = TRUE;
+    HANDLE hRead = nullptr, hWrite = nullptr;
+    if (!CreatePipe(&hRead, &hWrite, &sa, 0)) return false;
+    SetHandleInformation(hRead, HANDLE_FLAG_INHERIT, 0);
+    std::vector<wchar_t> cmdBuf(cmd.begin(), cmd.end());
+    cmdBuf.push_back(L'\0');
+    STARTUPINFOW si{};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.hStdOutput = hWrite;
+    si.hStdError = hWrite;
+    si.wShowWindow = SW_HIDE;
+    PROCESS_INFORMATION pi{};
+    if (!CreateProcessW(nullptr, cmdBuf.data(), nullptr, nullptr, TRUE,
+                        CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT, nullptr, nullptr, &si, &pi)) {
+        CloseHandle(hRead);
+        CloseHandle(hWrite);
+        return false;
+    }
+    CloseHandle(hWrite);
+    std::string acc;
+    char buf[1024];
+    DWORD n = 0;
+    while (ReadFile(hRead, buf, sizeof(buf), &n, nullptr) && n > 0) acc.append(buf, n);
+    CloseHandle(hRead);
+    WaitForSingleObject(pi.hProcess, timeoutMs);
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    if (code != 0) return false;  // 命令失败（如 npm 不存在）→ 不以错误文本冒充输出
+    const int wlen = MultiByteToWideChar(CP_UTF8, 0, acc.data(), (int)acc.size(), nullptr, 0);
+    if (wlen <= 0) return false;
+    out.resize(wlen);
+    MultiByteToWideChar(CP_UTF8, 0, acc.data(), (int)acc.size(), out.data(), wlen);
+    return true;
+}
+
+// 取第一行并去首尾空白
+std::wstring TrimLine(std::wstring s) {
+    const size_t nl = s.find_first_of(L"\r\n");
+    if (nl != std::wstring::npos) s.resize(nl);
+    const size_t b = s.find_first_not_of(L" \t");
+    if (b == std::wstring::npos) return L"";
+    const size_t e = s.find_last_not_of(L" \t");
+    return s.substr(b, e - b + 1);
+}
+
+// 从 package.json 提取 version 字段（首个 "version" 键，UTF-8 文件）
+std::wstring ExtractJsonVersion(const std::wstring& path) {
+    HANDLE h = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return L"";
+    LARGE_INTEGER sz{};
+    GetFileSizeEx(h, &sz);
+    if (sz.QuadPart <= 0 || sz.QuadPart > 1024 * 1024) {
+        CloseHandle(h);
+        return L"";
+    }
+    std::string data((size_t)sz.QuadPart, '\0');
+    DWORD rd = 0;
+    ReadFile(h, data.data(), (DWORD)data.size(), &rd, nullptr);
+    CloseHandle(h);
+    data.resize(rd);
+    const int wlen = MultiByteToWideChar(CP_UTF8, 0, data.data(), (int)data.size(), nullptr, 0);
+    if (wlen <= 0) return L"";
+    std::wstring w(wlen, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, data.data(), (int)data.size(), w.data(), wlen);
+    const std::wstring key = L"\"version\"";
+    const size_t i = w.find(key);
+    if (i == std::wstring::npos) return L"";
+    const size_t colon = w.find(L':', i + key.size());
+    if (colon == std::wstring::npos) return L"";
+    const size_t q1 = w.find(L'"', colon);
+    if (q1 == std::wstring::npos) return L"";
+    const size_t q2 = w.find(L'"', q1 + 1);
+    if (q2 == std::wstring::npos) return L"";
+    return w.substr(q1 + 1, q2 - q1 - 1);
+}
+
+// dsh 全局安装的本地版本（dsh 命令同级 node_modules\@deepseek-ai\dsh\package.json）
+std::wstring LocalDshVersion() {
+    const std::wstring dshCmd = FindDshCmd();
+    if (dshCmd.empty()) return L"";
+    const size_t pos = dshCmd.find_last_of(L'\\');
+    if (pos == std::wstring::npos) return L"";
+    const std::wstring pkg = dshCmd.substr(0, pos) + L"\\node_modules\\@deepseek-ai\\dsh\\package.json";
+    return ExtractJsonVersion(pkg);
+}
+
+// 更新命令：dsh 全局安装 → npm 升级；npx 模式 → 显式 latest 刷新缓存
+std::wstring UpdateCommand() {
+    if (g_mode == LaunchMode::Npx)
+        return L"cmd.exe /c npx -y @deepseek-ai/dsh@latest --version";
+    return L"cmd.exe /c npm i -g @deepseek-ai/dsh@latest";
+}
+
+struct UpdateJob {
+    std::wstring cmd;
+    bool         restartAfter = false;
+};
+
+// 更新检查线程：npm view 获取远端版本，对比本地版本，结果回传 UI
+unsigned __stdcall CheckThread(void*) {
+    std::wstring latest;
+    bool got = RunCommandCapture(L"cmd.exe /c npm view @deepseek-ai/dsh version", latest, 30000);
+    int code = 0;  // 0=获取失败
+    if (got) {
+        latest = TrimLine(latest);
+        if (latest.find(L'.') == std::wstring::npos) got = false;  // 输出不是版本号 → 视为失败
+    }
+    if (got) {
+        std::wstring local;
+        if (g_mode == LaunchMode::Dsh) local = LocalDshVersion();
+        wcsncpy(g_checkLatest, latest.c_str(), 63);
+        g_checkLatest[63] = L'\0';
+        wcsncpy(g_checkLocal, local.c_str(), 63);
+        g_checkLocal[63] = L'\0';
+        if (local.empty()) {
+            code = (g_mode == LaunchMode::Npx) ? 2 : 3;  // npx：视为可刷新；其余：本地版本未知
+        } else if (local == latest) {
+            code = 1;  // 已是最新
+        } else {
+            code = 2;  // 有更新
+        }
+        Log(L"update: 本地版本=" + local + L"，远端版本=" + latest);
+    } else {
+        Log(L"update: 获取远端版本失败");
+    }
+    PostMessageW(g_hwnd, kMsgCheckResult, code, 0);
+    return 0;
+}
+
+// 菜单入口：触发更新检查（后台线程执行）
+void CheckForUpdate() {
+    if (g_updating) {
+        MessageBoxW(g_hwnd, L"DeepSeek Harness 正在更新中，请稍候。", kAppName, MB_ICONINFORMATION | MB_OK);
+        return;
+    }
+    if (g_checking) return;
+    g_checking = true;
+    const HANDLE h = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, CheckThread, nullptr, 0, nullptr));
+    if (!h) {
+        g_checking = false;
+        MessageBoxW(g_hwnd, L"无法启动更新检查线程。", kAppName, MB_ICONERROR | MB_OK);
+        return;
+    }
+    CloseHandle(h);
+}
+
+unsigned __stdcall UpdateThread(void* p);  // 前向声明（定义在 DoUpdate 之后）
+
+// 后台执行更新命令，完成后通知 UI
+void DoUpdate(bool restartAfter) {
+    if (g_updating) return;
+    g_updating = true;
+    auto* job = new UpdateJob{ UpdateCommand(), restartAfter };
+    Log(L"update: 开始更新，命令 " + job->cmd);
+    const HANDLE h = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, UpdateThread, job, 0, nullptr));
+    if (!h) {
+        delete job;
+        g_updating = false;
+        MessageBoxW(g_hwnd, L"无法启动更新线程。", kAppName, MB_ICONERROR | MB_OK);
+        return;
+    }
+    CloseHandle(h);
+}
+
+unsigned __stdcall UpdateThread(void* p) {
+    std::unique_ptr<UpdateJob> job(static_cast<UpdateJob*>(p));
+    const bool ok = RunCommandWait(job->cmd);
+    Log(ok ? L"update: 更新命令执行成功" : L"update: 更新命令执行失败");
+    PostMessageW(g_hwnd, kMsgUpdateDone, ok ? 1 : 0, job->restartAfter ? 1 : 0);
+    return 0;
+}
+
 // ---------- 菜单 ----------
 void HandleCommand(int cmd) {
     switch (cmd) {
@@ -448,6 +660,9 @@ void HandleCommand(int cmd) {
         break;
     case IDM_OPEN:
         OpenBrowser();
+        break;
+    case IDM_UPDATE:
+        CheckForUpdate();
         break;
     case IDM_PORT: {
         DialogBoxParamW(g_hInst, MAKEINTRESOURCE(IDD_PORT), g_hwnd, PortDlgProc, 0);
@@ -508,6 +723,8 @@ void ShowTrayMenu() {
     AppendMenuW(menu, MF_STRING, IDM_TOGGLE, toggle.c_str());
     AppendMenuW(menu, MF_STRING | (running ? 0 : MF_GRAYED), IDM_RESTART, L"重启 DeepSeek Harness");
     AppendMenuW(menu, MF_STRING | (running ? 0 : MF_GRAYED), IDM_OPEN, L"打开 Web 界面");
+    AppendMenuW(menu, MF_STRING | (g_updating || g_checking ? MF_GRAYED : 0), IDM_UPDATE,
+                L"检查并更新 DeepSeek Harness");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, IDM_PORT, (L"启动端口设置（当前 " + ToStr(g_cfg.port) + L"）...").c_str());
     AppendMenuW(menu, MF_STRING | (g_cfg.autoStart ? MF_CHECKED : 0), IDM_AUTOSTART,
@@ -563,6 +780,64 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     case kMsgQuery:
         return IsRunning() ? 1 : 0;
+    case kMsgCheckUpdate:
+        CheckForUpdate();
+        return 0;
+    case kMsgCheckResult: {
+        g_checking = false;
+        const int code = (int)wp;
+        if (code == 0) {
+            MessageBoxW(g_hwnd, L"无法获取 DeepSeek Harness 的更新信息。\n\n请检查网络连接以及 npm 是否可用。",
+                        kAppName, MB_ICONWARNING | MB_OK);
+        } else if (code == 1) {
+            MessageBoxW(g_hwnd, (L"DeepSeek Harness 已是最新版本（v" + std::wstring(g_checkLatest) + L"）。").c_str(),
+                        kAppName, MB_ICONINFORMATION | MB_OK);
+        } else if (code == 3) {
+            const std::wstring msg =
+                L"已获取 DeepSeek Harness 最新版本 v" + std::wstring(g_checkLatest) +
+                L"，但无法确定当前安装版本。\n\n是否现在更新？";
+            if (MessageBoxW(g_hwnd, msg.c_str(), kAppName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES)
+                DoUpdate(false);
+        } else {  // code == 2：有更新
+            const bool running = IsRunning();
+            std::wstring msg =
+                L"检测到 DeepSeek Harness 有新版本：v" + std::wstring(g_checkLatest) +
+                (g_checkLocal[0] ? (L"（当前 v" + std::wstring(g_checkLocal) + L"）") : L"");
+            if (g_mode == LaunchMode::Npx) msg += L"（当前以 npx 方式运行，更新将刷新缓存）";
+            if (running) {
+                msg += L"。\n\n是否停止当前实例并更新，然后重新启动？";
+                if (MessageBoxW(g_hwnd, msg.c_str(), kAppName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES) {
+                    Log(L"update: 用户确认停止并更新后重启");
+                    StopDSH();
+                    DoUpdate(true);
+                }
+            } else {
+                msg += L"。\n\n是否现在更新？";
+                if (MessageBoxW(g_hwnd, msg.c_str(), kAppName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES)
+                    DoUpdate(false);
+            }
+        }
+        return 0;
+    }
+    case kMsgUpdateDone: {
+        const bool ok = wp != 0;
+        const bool restart = lp != 0;
+        g_updating = false;
+        g_mode = DetectLaunchMode();  // 更新后重新检测启动方式
+        if (!ok) {
+            MessageBoxW(g_hwnd, L"DeepSeek Harness 更新失败。\n请检查网络连接后重试。", kAppName, MB_ICONERROR | MB_OK);
+        } else {
+            Log(L"update: 更新完成");
+            if (restart) {
+                MessageBoxW(g_hwnd, L"DeepSeek Harness 更新完成，正在重新启动…", kAppName, MB_ICONINFORMATION | MB_OK);
+                StartDSH();
+            } else {
+                MessageBoxW(g_hwnd, L"DeepSeek Harness 更新完成。", kAppName, MB_ICONINFORMATION | MB_OK);
+            }
+        }
+        UpdateTrayTip();
+        return 0;
+    }
     case WM_DESTROY:
         KillTimer(hwnd, kTimerState);
         {
