@@ -3,12 +3,14 @@
 //
 // 功能：
 //   * 系统托盘图标 + 右键菜单：启动 / 停止（二选一显示）、重启 DeepSeek Harness
-//   * 自定义启动端口（写入 exe 同目录 Launcher.ini）
+//   * 启动端口直接编辑 exe 同目录 Launcher.ini（无效端口自动修正为随机可用端口），
+//     右键菜单以浅色文本显示当前监听端口
 //   * 随托盘程序自启动 DeepSeek Harness（写入 ini）
+//   * 检查并更新 DeepSeek Harness（npm 最新版本对比，停止 → 更新 → 重启）
 //   * 双击托盘图标打开 Web 界面
 //
 // 实现要点：
-//   * 直接以 node.exe <dsh>/lib/bin.js web --port <N> 派生进程，便于完整管理
+//   * 按环境自适应启动：dsh 全局安装 → dsh 命令；未安装 → npx -y @deepseek-ai/dsh
 //   * 作业对象整树终止；端口探测识别外部启动的实例
 //   * 完全便携：不写注册表、无安装过程，所有设置通过 GetPrivateProfileString /
 //     WritePrivateProfileString 读写 exe 同目录的 Launcher.ini；
@@ -149,9 +151,16 @@ void WriteIniStr(const wchar_t* section, const wchar_t* key, const std::wstring&
     WritePrivateProfileStringW(section, key, value.c_str(), g_iniPath.c_str());
 }
 
+int RandomFreePort();  // 前向声明（定义在 IsPortOpen 之后）
+
 void LoadConfig() {
-    g_cfg.port = ReadIniInt(L"General", L"Port", 16100);
-    if (g_cfg.port < 1 || g_cfg.port > 65535) g_cfg.port = 16100;
+    // 端口收束：读取后必须在 1-65535 内；无效（非数字 / 越界）则改为随机可用端口并写回 ini
+    g_cfg.port = ReadIniInt(L"General", L"Port", 0);  // 0 = 无效 / 未设置
+    if (g_cfg.port < 1 || g_cfg.port > 65535) {
+        g_cfg.port = RandomFreePort();
+        WriteIniStr(L"General", L"Port", ToStr(g_cfg.port));
+        Log(L"port: ini 中端口无效，已改为随机可用端口 " + ToStr(g_cfg.port));
+    }
     g_cfg.autoStart  = ReadIniInt(L"General", L"AutoStart", 0) != 0;
     g_cfg.nodePath   = ReadIniStr(L"General", L"NodePath", L"");
     g_cfg.dshBin     = ReadIniStr(L"General", L"DshBin", L"");
@@ -231,6 +240,18 @@ bool IsPortOpen(int port) {
     }
     closesocket(s);
     return open;
+}
+
+// 随机选择一个当前可用的端口（1024-65535，探测 127.0.0.1 未被占用）
+int RandomFreePort() {
+    srand((unsigned)(GetTickCount64() ^ GetCurrentProcessId()));
+    int last = 16100;
+    for (int i = 0; i < 100; ++i) {
+        const int p = 1024 + (rand() % (65535 - 1024 + 1));
+        last = p;
+        if (!IsPortOpen(p)) return p;
+    }
+    return last;  // 极端兜底：100 个随机端口全部被占用
 }
 
 DWORD PortOwnerPid(int port) {
@@ -417,35 +438,6 @@ void OpenBrowser() {
     const std::wstring url = L"http://127.0.0.1:" + ToStr(g_cfg.port);
     ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     Log(L"open: " + url);
-}
-
-// ---------- 端口设置对话框 ----------
-INT_PTR CALLBACK PortDlgProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM) {
-    switch (msg) {
-    case WM_INITDIALOG:
-        SetDlgItemInt(hDlg, IDC_PORT_EDIT, (UINT)g_cfg.port, FALSE);
-        return TRUE;
-    case WM_COMMAND:
-        switch (LOWORD(wp)) {
-        case IDOK: {
-            BOOL ok = FALSE;
-            const int v = (int)GetDlgItemInt(hDlg, IDC_PORT_EDIT, &ok, FALSE);
-            if (!ok || v < 1 || v > 65535) {
-                MessageBoxW(hDlg, L"请输入 1-65535 之间的端口号。", kAppName, MB_ICONWARNING | MB_OK);
-                return TRUE;
-            }
-            WriteIniStr(L"General", L"Port", ToStr(v));
-            Log(L"port: 端口已改为 " + ToStr(v));
-            EndDialog(hDlg, IDOK);
-            return TRUE;
-        }
-        case IDCANCEL:
-            EndDialog(hDlg, IDCANCEL);
-            return TRUE;
-        }
-        break;
-    }
-    return FALSE;
 }
 
 // ---------- 更新检查与更新 ----------
@@ -664,14 +656,6 @@ void HandleCommand(int cmd) {
     case IDM_UPDATE:
         CheckForUpdate();
         break;
-    case IDM_PORT: {
-        DialogBoxParamW(g_hInst, MAKEINTRESOURCE(IDD_PORT), g_hwnd, PortDlgProc, 0);
-        LoadConfig();  // 端口可能在对话框中被修改
-        UpdateTrayTip();
-        if (IsRunning())
-            MessageBoxW(g_hwnd, L"端口已更新，重启 DeepSeek Harness 后生效。", kAppName, MB_ICONINFORMATION | MB_OK);
-        break;
-    }
     case IDM_AUTOSTART:
         g_cfg.autoStart = !g_cfg.autoStart;
         WriteIniStr(L"General", L"AutoStart", g_cfg.autoStart ? L"1" : L"0");
@@ -715,9 +699,10 @@ void ShowTrayMenu() {
     POINT pt{};
     GetCursorPos(&pt);
     HMENU menu = CreatePopupMenu();
-    // 顶部：当前启动方式（浅色、不可编辑），每次弹出菜单时刷新检测
+    // 顶部：当前启动方式与监听端口（浅色、不可编辑），每次弹出菜单时刷新检测
     g_mode = DetectLaunchMode();
     AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"启动方式：" + ModeName(g_mode)).c_str());
+    AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"监听端口：" + ToStr(g_cfg.port)).c_str());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     const std::wstring toggle = running ? L"停止 DeepSeek Harness" : L"启动 DeepSeek Harness";
     AppendMenuW(menu, MF_STRING, IDM_TOGGLE, toggle.c_str());
@@ -726,7 +711,6 @@ void ShowTrayMenu() {
     AppendMenuW(menu, MF_STRING | (g_updating || g_checking ? MF_GRAYED : 0), IDM_UPDATE,
                 L"检查并更新 DeepSeek Harness");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(menu, MF_STRING, IDM_PORT, (L"启动端口设置（当前 " + ToStr(g_cfg.port) + L"）...").c_str());
     AppendMenuW(menu, MF_STRING | (g_cfg.autoStart ? MF_CHECKED : 0), IDM_AUTOSTART,
                 L"随托盘程序自启动 DeepSeek Harness");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
@@ -889,7 +873,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
 
     g_iniPath = ExeDir() + L"\\" + kIniName;
     g_logPath = ExeDir() + L"\\" + kLogName;
-    LoadConfig();
 
     // 首次运行：生成默认配置文件
     if (!FileExists(g_iniPath)) {
@@ -899,6 +882,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
         WriteIniStr(L"General", L"DshBin", L"");
         Log(L"init: 已生成默认配置文件 " + g_iniPath);
     }
+    LoadConfig();  // 端口收束：无效端口在此修正为随机可用端口并写回 ini
 
     // 检查 Node.js 环境：缺失则提示并自动退出（托盘自身也不运行）
     if (FindNodeExe().empty()) {

@@ -3,6 +3,7 @@
 
 [General]
 ; Web 界面启动端口（1-65535），对应 dsh web --port <port>
+; 无效值（非数字或越界）会在启动时自动修正为随机可用端口并写回本文件
 Port=16100
 ; 随托盘程序启动时自动启动 DeepSeek Harness（0=否，1=是）
 AutoStart=0
@@ -20,4 +21,5 @@ DshBin=
 ;   2. 检测 dsh 是否 npm 全局安装（PATH 上存在 dsh 命令）：
 ;      已全局安装（npm i -g @deepseek-ai/dsh）→ 以 dsh 命令启动
 ;      未安装                           → 以 npx -y @deepseek-ai/dsh 方式启动
-;   托盘菜单顶部会以浅色文本显示当前启动方式（dsh / npx / 自定义）。
+;   3. 端口收束：Port 无效（非数字或越界）→ 自动改为随机可用端口
+;   托盘菜单顶部会以浅色文本显示当前启动方式（dsh / npx / 自定义）与监听端口。

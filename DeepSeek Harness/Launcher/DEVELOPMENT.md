@@ -25,7 +25,7 @@ Launcher/
 ├── src/
 │   ├── Launcher.cpp        # 全部业务逻辑（单文件，约 700 行）
 │   ├── Resource.h          # 资源与菜单命令 ID
-│   ├── Launcher.rc         # 图标 / 端口对话框 / 清单 / 版本信息（必须 UTF-8 BOM）
+│   ├── Launcher.rc         # 图标 / 清单 / 版本信息（必须 UTF-8 BOM）
 │   ├── app.manifest        # DPI 感知、Win11 兼容、长路径、Common-Controls v6
 │   └── Launcher.ico        # 托盘图标（由 scripts\make-icon.ps1 生成，纳入版本库）
 ├── scripts/
@@ -49,7 +49,7 @@ Launcher/
 | 状态探测 | `IsPortOpen` / `PortOwnerPid` | TCP 探测端口、TCP 表定位监听 PID |
 | 进程管理 | `StartDSH` / `StopDSH` / `RestartDSH` / `StopManaged` | 派生、整树终止、重启 Harness |
 | 托盘 UI | `ShowTrayMenu` / `HandleCommand` / `WndProc` | 托盘图标、右键菜单、命令分发 |
-| 端口对话框 | `PortDlgProc` | 端口输入与校验（1-65535） |
+| 端口收束 | `RandomFreePort` | 无效端口修正为随机可用端口（探测 127.0.0.1 未占用） |
 | 更新检查 | `CheckForUpdate` / `CheckThread` / `DoUpdate` / `UpdateThread` / `RunCommandCapture` / `LocalDshVersion` | npm 版本对比、后台更新、完成通知 |
 | 日志 | `Log` | 追加写 `Launcher.log`（UTF-16LE，超 256KB 截断） |
 
@@ -58,12 +58,13 @@ Launcher/
 托盘程序启动时（`wWinMain`）依次执行：
 
 1. **Node.js 检测**：`FindNodeExe()` 找不到 node.exe → 弹窗提示安装 Node.js 并**自动退出**（托盘自身不运行）。
-2. **启动方式判定**：`DetectLaunchMode()` 返回 `LaunchMode`：
+2. **端口收束**：`LoadConfig` 读取 `Port`（`GetPrivateProfileIntW` 默认 0 表示无效）；不在 1-65535 → `RandomFreePort()` 随机选一个 127.0.0.1 上未占用的端口（1024-65535，最多试 100 次）并**写回 ini**，日志记录修正。
+3. **启动方式判定**：`DetectLaunchMode()` 返回 `LaunchMode`：
    - `Dsh`：ini 未指定 `DshBin` 且 PATH 上存在 `dsh` 命令（`FindDshCmd()` 依次找 `dsh.cmd` / `dsh`）→ 视为 npm 全局安装；
    - `Npx`：PATH 上无 dsh 命令 → 视为未全局安装，用 npx 按需拉取；
    - `Custom`：ini 显式指定了存在的 `DshBin`（.js 脚本，node.exe 直接执行）→ 高级覆盖。
 
-判定结果存入 `g_mode`，每次弹出托盘菜单与每次启动时都会刷新（环境变化后立即生效）。菜单**顶部第一条**以灰色禁用文本显示 `启动方式：dsh / npx / 自定义`。
+判定结果存入 `g_mode`，每次弹出托盘菜单与每次启动时都会刷新（环境变化后立即生效）。菜单**顶部前两条**以灰色禁用文本显示 `启动方式：dsh / npx / 自定义` 与 `监听端口：<Port>`（端口直接编辑 ini，无设置 UI）。
 
 ### 3.1 进程模型（核心）
 
@@ -94,7 +95,7 @@ Launcher/
 
 - 隐藏顶层窗口（类名 `DSHLauncherWnd`），`Shell_NotifyIcon` 挂托盘图标，回调消息 `WM_APP+1`。
 - 右键（v3 行为：`WM_RBUTTONUP`）弹出菜单；`TrackPopupMenu` 前 `SetForegroundWindow`，返回后 `PostMessage(WM_NULL)` 保证菜单正确收起。
-- 每次弹菜单**重建**：顶部第一条为当前启动方式（灰色禁用文本，见 3.0），其后标签随状态切换（运行中显示「停止」，停止显示「启动」；重启/打开网页在停止时置灰）。
+- 每次弹菜单**重建**：顶部前两条为当前启动方式与监听端口（灰色禁用文本，见 3.0），其后标签随状态切换（运行中显示「停止」，停止显示「启动」；重启/打开网页在停止时置灰）。
 - 双击托盘（`WM_LBUTTONDBLCLK`）打开 Web 界面。
 - 2 秒定时器刷新托盘提示文字；定时器同时回收已退出进程的句柄。
 
@@ -141,7 +142,7 @@ Launcher/
 1. **`wWinMain` 必须是全局函数**。放在匿名命名空间内时，MSVC 无法识别入口函数，链接报 `WinMainCRTStartup` 未解析。其余辅助函数统一放入匿名命名空间 `namespace { }`。
 2. **`/utf-8` 编译选项必须保留**：系统代码页可能是 GBK（936），不带 `/utf-8` 时中文注释/字符串会被误解析（C4819/C2001 一串报错）。
 3. **`.rc` 与 `Resource.h` 必须是 UTF-8 BOM**：`rc.exe` 对无 BOM 的 UTF-8 中文注释会报 `RC1004: unexpected end of file`。写入文件后需转换加 BOM（见 build 流程外的 `[IO.File]::WriteAllText(..., UTF8Encoding($true))` 步骤）。
-4. **ini 编码**：`GetPrivateProfileStringW`/`WritePrivateProfileStringW` 对 UTF-16LE（带 BOM）文件可正确读写并保留注释，因此随包发布的 `Launcher.ini` 使用 UTF-16LE；程序首次运行生成的默认 ini 为系统 ANSI，两种编码均被支持。
+4. **ini 编码（踩坑）**：`GetPrivateProfileStringW`/`WritePrivateProfileStringW` 只支持 ANSI 与 **UTF-16LE（BOM `FF FE`）**；**UTF-16BE（BOM `FE FF`，如 PowerShell 的 `UnicodeEncoding($true,$true)` 会生成）无法解析**——键值读不到（`GetPrivateProfileIntW` 返回默认值 0），会误触发端口随机化修正。发布/恢复 `Launcher.ini` 必须用 `[System.Text.Encoding]::Unicode`（LE）或 `UnicodeEncoding($false,$true)`；测试脚本全部使用 ASCII ini 规避此问题。
 5. **PowerShell 脚本内避免弯引号**“ ”：PowerShell 会把中文弯引号当作字符串定界符导致解析错误，统一用「」。
 6. **PowerShell 的 `$null` 编组**：P/Invoke 传 `$null` 给 `FindWindow` 会被编组成空字符串而非通配 NULL，必须同时传类名与标题（测试脚本已固化此写法）。
 7. **`New-Object TypeName(a, b, c)` 多参构造是陷阱**：会按单数组参数绑定，改用 `[TypeName]::new(a, b, c)`（图标脚本中已修正）。
@@ -173,12 +174,18 @@ Launcher/
 - 场景 2：真实环境 → 完整检查链路 → 等待结果对话框出现并关闭（等效“否”，**不执行真实更新**），断言日志含 `update:` 与版本对比。
 - 说明：真实更新（`npm i -g`）会改动全局环境，不做自动化。
 
+`scripts\test-port.ps1`（端口收束）：
+
+- 有效端口（16555）→ 保持不变、不触发修正；
+- 越界端口（99999）与非数字端口（abc）→ 启动后 ini 中 `Port` 被修正为 [1024,65535] 内的可用端口（探测空闲）且日志记录 `端口无效，已改为随机可用端口`。
+
 运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\test-lifecycle.ps1
 powershell -ExecutionPolicy Bypass -File scripts\test-modes.ps1
 powershell -ExecutionPolicy Bypass -File scripts\test-update.ps1
+powershell -ExecutionPolicy Bypass -File scripts\test-port.ps1
 ```
 
 ## 7. 扩展指引
