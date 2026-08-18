@@ -320,6 +320,26 @@ void UpdateTrayTip() {
     Shell_NotifyIconW(NIM_MODIFY, &nid);
 }
 
+// ---------- 系统通知（纯 Win32 NIF_INFO，不写注册表） ----------
+// 非错误提示（更新开始 / 没有更新 / 更新成功）用系统通知，而不是弹窗；
+// 错误仍用 MessageBox。注：真正的 WinRT Toast 需要注册 AUMID（写注册表），
+// 与便携原则冲突，故采用托盘系统通知。
+void ShowNotify(const std::wstring& title, const std::wstring& body) {
+    if (!g_hwnd) return;
+    NOTIFYICONDATAW nid{};
+    nid.cbSize = sizeof(nid);
+    nid.hWnd = g_hwnd;
+    nid.uID = g_trayId;
+    nid.uFlags = NIF_INFO;
+    nid.dwInfoFlags = NIIF_INFO;
+    nid.uTimeout = 4000;
+    wcsncpy(nid.szInfoTitle, title.c_str(), 63);
+    nid.szInfoTitle[63] = L'\0';
+    wcsncpy(nid.szInfo, body.c_str(), 255);
+    nid.szInfo[255] = L'\0';
+    Shell_NotifyIconW(NIM_MODIFY, &nid);
+}
+
 // ---------- 启动 / 停止 / 重启 ----------
 bool StartDSH() {
     if (IsRunning()) {
@@ -653,6 +673,7 @@ void DoUpdate(bool restartAfter) {
     g_updating = true;
     auto* job = new UpdateJob{ UpdateCommand(), restartAfter };
     Log(L"update: 开始更新，命令 " + job->cmd);
+    ShowNotify(kAppName, L"开始更新 DeepSeek Harness…");
     const HANDLE h = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, UpdateThread, job, 0, nullptr));
     if (!h) {
         delete job;
@@ -797,8 +818,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             MessageBoxW(g_hwnd, L"无法获取 DeepSeek Harness 的更新信息。\n\n请检查网络连接以及 npm 是否可用。",
                         kAppName, MB_ICONWARNING | MB_OK);
         } else if (code == 1) {
-            MessageBoxW(g_hwnd, (L"DeepSeek Harness 已是最新版本（v" + std::wstring(g_checkLatest) + L"）。").c_str(),
-                        kAppName, MB_ICONINFORMATION | MB_OK);
+            ShowNotify(kAppName, L"DeepSeek Harness 已是最新版本（v" + std::wstring(g_checkLatest) + L"）。");
         } else if (code == 3) {
             const std::wstring msg =
                 L"已获取 DeepSeek Harness 最新版本 v" + std::wstring(g_checkLatest) +
@@ -836,11 +856,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             MessageBoxW(g_hwnd, L"DeepSeek Harness 更新失败。\n请检查网络连接后重试。", kAppName, MB_ICONERROR | MB_OK);
         } else {
             Log(L"update: 更新完成");
-            // 更新成功保持静默，不弹任何窗口；需要重启服务时直接启动，
+            // 更新成功用系统通知（不弹窗、不阻塞）；需要重启服务时直接启动，
             // 启动失败会由 StartDSH 内部弹出错误提示
             if (restart) {
                 Log(L"update: 更新完成，正在重新启动 DeepSeek Harness");
+                ShowNotify(kAppName, L"DeepSeek Harness 更新完成，已重新启动。");
                 StartDSH();
+            } else {
+                ShowNotify(kAppName, L"DeepSeek Harness 更新完成。");
             }
         }
         UpdateTrayTip();

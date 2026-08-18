@@ -1,8 +1,12 @@
 # ============================================================================
 # test-update.ps1 — 更新检查功能自动化测试
 #
-# 场景 1：受限 PATH（无 npm）→ 检查失败路径：日志断言 + 警告框自动关闭
-# 场景 2：真实环境 → 检查流程：等待结果对话框出现并关闭，日志断言检查完成
+# 场景 1：受限 PATH（无 npm）→ 检查失败路径：日志断言 + 错误框自动关闭
+# 场景 2：真实环境 → 检查流程：日志断言检查完成（已最新走系统通知，有更新走询问框）
+# 场景 3-5：kMsgUpdateDone 完成通知的提示策略：
+#   * (成功, 重启)  → 系统通知 + 自动重启，不弹窗口
+#   * (失败, _)     → 弹错误框
+#   * (成功, 不重启) → 系统通知，不启动、不弹窗口
 #
 # 注意：本测试不会执行真实更新（避免修改全局 npm 环境），只验证
 # “检查更新 → 结果提示” 的完整链路。
@@ -113,14 +117,26 @@ try {
     # ============ 场景 2：真实环境 → 正常检查链路 ============
     $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', 'User') + ';' + [System.Environment]::GetEnvironmentVariable('PATH', 'Machine')
     Remove-Item $log -ErrorAction SilentlyContinue
-    Write-Host '== 2) 真实环境：检查更新应完成并弹出结果 =='
+    Write-Host '== 2) 真实环境：检查更新应完成（已最新走系统通知，有更新走询问框） =='
     $proc = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
     Start-Sleep -Seconds 2
     $hwnd = [UpdNative]::FindWindow('DSHLauncherWnd', 'DeepSeek Harness Launcher')
     if ($hwnd -eq [IntPtr]::Zero) { throw '找不到 Launcher 窗口' }
     [UpdNative]::PostMessage($hwnd, $kMsgCheckUpdate, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
-    if (-not (Close-MessageBox 40)) { throw '失败：未出现更新检查结果框（网络超时或流程异常）' }
-    Start-Sleep -Milliseconds 500
+    # 等待检查结果写入日志（网络可能需要数秒）；若有询问/提示框出现则关闭
+    $log2 = ''
+    $deadline = (Get-Date).AddSeconds(45)
+    while ((Get-Date) -lt $deadline) {
+        $log2 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
+        if ($log2 -like '*update: 本地版本=*') { break }
+        $mb = [UpdNative]::FindWindow('#32770', 'DeepSeek Harness Launcher')
+        if ($mb -ne [IntPtr]::Zero) {
+            [UpdNative]::PostMessage($mb, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+        }
+        Start-Sleep -Milliseconds 500
+    }
+    # 清理可能残留的询问框（有更新时询问是否更新）
+    Close-MessageBox 3 | Out-Null
     $log2 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log2 -notlike '*update:*') { throw "失败：日志未记录检查结果：$log2" }
     if ($log2 -like '*远端版本=*') {

@@ -151,6 +151,7 @@ Launcher/
 11. **`cmd.exe /c` 的引号规则**：执行带空格路径的 .cmd 时必须用 `cmd /c ""<path>" args"` 双引号套引号形式（已实测含空格路径的 fakebin\dsh.cmd）；无空格命令（如 `npx -y @deepseek-ai/dsh`）无需引号。
 12. **`npx` 语义**：`npx -y @deepseek-ai/dsh` 在未全局安装时会自动拉取并缓存 dsh 包；托盘不主动校验网络，启动失败（端口未开）由状态探测体现。
 13. **子进程输出捕获**：`RunCommandCapture` 必须同时校验退出码与输出格式（版本号含 `.`），否则 `npm` 缺失时的错误文本会被误判为版本；`ReadFile` 读管道在写端关闭后返回 EOF，短输出命令（npm view）无死锁风险。
+14. **系统通知 vs Toast（踩坑）**：非打包桌面应用调用 WinRT `ToastNotificationManager` 会抛 `0x80070490`（`SetCurrentProcessExplicitAppUserModelID` 不够，AUMID 必须注册到注册表或开始菜单快捷方式）。为保持「完全便携、不写注册表」，非错误提示统一用 `Shell_NotifyIcon` 的 `NIF_INFO` 托盘通知（`ShowNotify`，纯 Win32，实测 NIM_MODIFY 返回 TRUE）；仅错误用 `MessageBox`。
 
 ## 6. 测试
 

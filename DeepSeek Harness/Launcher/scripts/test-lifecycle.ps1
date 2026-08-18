@@ -148,8 +148,15 @@ try {
         throw '失败：PostMessage 重启消息发送失败'
     }
     if (-not (Wait-PortState $port $true 15)) { throw '失败：重启后端口未重新打开' }
-    $pidAfter = Get-ListenerPid $port
-    if ($pidAfter -eq $pidBefore) { throw "失败：重启后监听进程未变化（PID $pidBefore）" }
+    # TCP 表刷新有延迟：轮询直到监听 PID 变为新的非零进程
+    $pidAfter = 0
+    $deadline = (Get-Date).AddSeconds(10)
+    while ((Get-Date) -lt $deadline) {
+        $pidAfter = Get-ListenerPid $port
+        if ($pidAfter -ne 0 -and $pidAfter -ne $pidBefore) { break }
+        Start-Sleep -Milliseconds 300
+    }
+    if ($pidAfter -eq 0 -or $pidAfter -eq $pidBefore) { throw "失败：重启后监听进程未变化（PID $pidBefore）" }
     Write-Host "   OK：重启成功（PID $pidBefore -> $pidAfter）"
 
     Write-Host '== 6) 退出托盘即停止 Harness（直接强杀托盘进程，验证 KILL_ON_JOB_CLOSE 兜底） =='
