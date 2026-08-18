@@ -1,4 +1,4 @@
-﻿; DeepSeek Harness Launcher 配置文件（与 Launcher.exe 同目录）
+; DeepSeek Harness Launcher 配置文件（与 Launcher.exe 同目录）
 ; 修改后保存即可；端口修改在下次启动 DeepSeek Harness 时生效
 
 [General]
@@ -6,9 +6,11 @@
 Port=16100
 ; 随托盘程序启动时自动启动 DeepSeek Harness（0=否，1=是）
 AutoStart=0
-; 开机自动启动本托盘程序（0=否，1=是），同步写 HKCU Run 注册表项
-RunAtLogin=0
 ; 高级：node.exe 的完整路径（留空自动查找：PATH → 常见安装目录）
 NodePath=
 ; 高级：dsh 的 lib\bin.js 完整路径（留空自动查找：%APPDATA%\npm 全局安装）
 DshBin=
+
+; 提示：本程序完全便携，不写注册表。托盘程序自身的开机自启请使用
+; 任务计划程序（登录时运行 Launcher.exe），配合 AutoStart=1 即可实现
+; 开机后自动启动 DeepSeek Harness。

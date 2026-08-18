@@ -1,6 +1,6 @@
 # DeepSeek Harness Launcher
 
-DeepSeek Harness 系统托盘启动器 —— **纯 Windows 11 原生代码实现**（C++ / Win32 API，MSVC 编译，静态链接运行时，无任何第三方依赖）。
+DeepSeek Harness 系统托盘启动器 —— **纯 Windows 11 原生代码实现**（C++ / Win32 API，MSVC 编译，静态链接运行时，无任何第三方依赖）。**完全便携：不写注册表、无安装过程**，托盘程序自身的开机自启交由任务计划程序负责。
 
 ## 功能
 
@@ -8,8 +8,7 @@ DeepSeek Harness 系统托盘启动器 —— **纯 Windows 11 原生代码实�
 - **启动 / 停止 DeepSeek Harness**：同一菜单项二选一显示（运行中显示「停止」，已停止显示「启动」）
 - **重启 DeepSeek Harness**（先停止、等端口释放、再启动）
 - **自定义启动端口**：菜单项打开设置对话框，写入 ini，下次启动生效
-- **随托盘程序自启动 DeepSeek Harness**：勾选后，托盘程序一启动就自动拉起 Harness
-- **开机自动启动托盘程序**：勾选后写入 `HKCU\...\Run` 注册表项（配合上一项即可实现开机全自动启动）
+- **随托盘程序自启动 DeepSeek Harness**：勾选后，托盘程序一启动就自动拉起 Harness（配合任务计划程序的登录自启即可实现开机全自动启动）
 - **双击托盘图标**直接打开 Web 界面
 - 托盘提示文字实时显示运行状态与当前端口
 - 所有设置写入 **exe 同目录的 `Launcher.ini`**
@@ -58,6 +57,8 @@ powershell -ExecutionPolicy Bypass -File scripts\make-icon.ps1
 
 > 托盘程序一次只能运行一个实例（互斥体保证）。**退出托盘程序会同时停止 DeepSeek Harness**（若 Harness 由外部启动，退出前会提示并一并结束），托盘完全接管 Harness 的启动状态控制。
 
+**开机自启动（便携方式）**：本程序不写注册表，请用任务计划程序（`taskschd.msc`）新建任务：登录时运行 `Launcher.exe`，并勾选菜单「随托盘程序自启动 DeepSeek Harness」即可实现开机后自动启动 Harness。
+
 ## 配置（Launcher.ini，与 Launcher.exe 同目录）
 
 ```ini
@@ -66,8 +67,6 @@ powershell -ExecutionPolicy Bypass -File scripts\make-icon.ps1
 Port=16100
 ; 随托盘程序启动时自动启动 DeepSeek Harness（0=否，1=是）
 AutoStart=0
-; 开机自动启动本托盘程序（0=否，1=是），同步写 HKCU Run 注册表项
-RunAtLogin=0
 ; 高级：node.exe 的完整路径（留空自动查找：PATH → 常见安装目录）
 NodePath=
 ; 高级：dsh 的 lib\bin.js 完整路径（留空自动查找：%APPDATA%\npm 全局安装）
@@ -112,4 +111,4 @@ powershell -ExecutionPolicy Bypass -File scripts\test-lifecycle.ps1
 会一并停止。托盘程序是 Harness 的唯一启停控制器：菜单「退出」（或托盘进程被强制结束）都会终止 Harness（外部启动的实例退出前会先询问）。
 
 **Q：如何实现开机自动启动 Harness？**
-勾选菜单里的「开机自动启动托盘程序」+「随托盘程序自启动 DeepSeek Harness」即可：开机 → 托盘程序自动运行 → Harness 自动启动。
+本程序完全便携、不写注册表。请用任务计划程序（`taskschd.msc`）新建任务：登录时运行 `Launcher.exe`，并在托盘菜单勾选「随托盘程序自启动 DeepSeek Harness」：开机 → 任务计划启动托盘程序 → Harness 自动启动。

@@ -72,7 +72,6 @@ function Restore-DefaultIni {
 [General]
 Port=16100
 AutoStart=0
-RunAtLogin=0
 NodePath=
 DshBin=
 '@ | Set-Content -Path $ini -Encoding ascii
@@ -106,7 +105,6 @@ server.listen(port, "127.0.0.1", () => console.log("listening " + port));
 [General]
 Port=$port
 AutoStart=1
-RunAtLogin=0
 NodePath=
 DshBin=$($testServer.Replace('\','\\'))
 "@ | Set-Content -Path $ini -Encoding ascii

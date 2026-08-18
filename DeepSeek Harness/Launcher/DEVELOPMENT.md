@@ -8,14 +8,15 @@ DeepSeek Harness Launcher 是一个系统托盘程序，用于**完全接管** D
 
 - 启动 / 停止（同一菜单项二选一显示）、重启
 - 自定义启动端口（写 `Launcher.ini`）
-- 随托盘程序自启动 Harness、开机自启托盘程序
+- 随托盘程序自启动 Harness
 - 退出托盘（含被强杀）时 Harness 一并终止
 
 **硬性约束**：
 
 - 纯 Win32 原生代码（C++20，MSVC 编译），**零第三方运行时依赖**（`/MT` 静态链接 CRT）
 - 目标系统 Windows 10/11（代码以 `_WIN32_WINNT=0x0A00` 编译）
-- 所有设置写入 exe 同目录 `Launcher.ini`，不写注册表设置（仅"开机自启托盘"选项维护 `HKCU\...\Run` 一项，由 ini 驱动）
+- **完全便携**：不写注册表、无安装过程，所有设置写入 exe 同目录 `Launcher.ini`；
+  托盘程序自身的开机自启由外部任务计划程序负责（程序内不再维护任何自启动逻辑）
 
 ## 2. 目录结构
 
@@ -48,7 +49,6 @@ Launcher/
 | 进程管理 | `StartDSH` / `StopDSH` / `RestartDSH` / `StopManaged` | 派生、整树终止、重启 Harness |
 | 托盘 UI | `ShowTrayMenu` / `HandleCommand` / `WndProc` | 托盘图标、右键菜单、命令分发 |
 | 端口对话框 | `PortDlgProc` | 端口输入与校验（1-65535） |
-| 开机自启 | `SyncRunAtLogin` | 同步 `HKCU\...\Run` 注册表项 |
 | 日志 | `Log` | 追加写 `Launcher.log`（UTF-16LE，超 256KB 截断） |
 
 ### 3.1 进程模型（核心）

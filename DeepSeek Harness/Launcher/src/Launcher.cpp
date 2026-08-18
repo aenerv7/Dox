@@ -4,14 +4,15 @@
 // 功能：
 //   * 系统托盘图标 + 右键菜单：启动 / 停止（二选一显示）、重启 DeepSeek Harness
 //   * 自定义启动端口（写入 exe 同目录 Launcher.ini）
-//   * 随托盘程序自启动 DeepSeek Harness、开机自启托盘程序（均写入 ini）
+//   * 随托盘程序自启动 DeepSeek Harness（写入 ini）
 //   * 双击托盘图标打开 Web 界面
 //
 // 实现要点：
 //   * 直接以 node.exe <dsh>/lib/bin.js web --port <N> 派生进程，便于完整管理
 //   * 作业对象整树终止；端口探测识别外部启动的实例
-//   * 所有设置通过 GetPrivateProfileString / WritePrivateProfileString 读写
-//     exe 同目录的 Launcher.ini
+//   * 完全便携：不写注册表、无安装过程，所有设置通过 GetPrivateProfileString /
+//     WritePrivateProfileString 读写 exe 同目录的 Launcher.ini；
+//     托盘程序自身的开机自启交由外部任务计划程序负责
 // ============================================================================
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
@@ -28,7 +29,6 @@
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "shell32.lib")
-#pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "iphlpapi.lib")
 
@@ -39,8 +39,6 @@ constexpr wchar_t kIniName[]      = L"Launcher.ini";
 constexpr wchar_t kLogName[]      = L"Launcher.log";
 constexpr wchar_t kWndClass[]     = L"DSHLauncherWnd";
 constexpr wchar_t kMutexName[]    = L"Local\\DSHLauncher_SingleInstance";
-constexpr wchar_t kRunKeyPath[]   = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-constexpr wchar_t kRunValueName[] = L"DeepSeekHarnessLauncher";
 constexpr UINT    kTrayMsg        = WM_APP + 1;
 constexpr UINT_PTR kTimerState    = 1;
 // 私有消息（自动化 / 调试用，不影响正常使用）
@@ -58,7 +56,6 @@ constexpr UINT g_trayId = 1;
 struct Config {
     int          port       = 16100;
     bool         autoStart  = false;   // 随托盘程序自启动 DeepSeek Harness
-    bool         runAtLogin = false;   // 开机自动启动托盘程序
     std::wstring nodePath;             // 高级：node.exe 完整路径（留空自动查找）
     std::wstring dshBin;               // 高级：dsh 的 lib\bin.js 完整路径（留空自动查找）
 };
@@ -133,7 +130,6 @@ void LoadConfig() {
     g_cfg.port = ReadIniInt(L"General", L"Port", 16100);
     if (g_cfg.port < 1 || g_cfg.port > 65535) g_cfg.port = 16100;
     g_cfg.autoStart  = ReadIniInt(L"General", L"AutoStart", 0) != 0;
-    g_cfg.runAtLogin = ReadIniInt(L"General", L"RunAtLogin", 0) != 0;
     g_cfg.nodePath   = ReadIniStr(L"General", L"NodePath", L"");
     g_cfg.dshBin     = ReadIniStr(L"General", L"DshBin", L"");
 }
@@ -396,24 +392,6 @@ void OpenBrowser() {
     Log(L"open: " + url);
 }
 
-void SyncRunAtLogin() {
-    HKEY hk = nullptr;
-    if (RegCreateKeyExW(HKEY_CURRENT_USER, kRunKeyPath, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &hk, nullptr) != ERROR_SUCCESS)
-        return;
-    if (g_cfg.runAtLogin) {
-        wchar_t exe[MAX_PATH]{};
-        GetModuleFileNameW(nullptr, exe, MAX_PATH);
-        const std::wstring val = L"\"" + std::wstring(exe) + L"\"";
-        RegSetValueExW(hk, kRunValueName, 0, REG_SZ,
-                       reinterpret_cast<const BYTE*>(val.c_str()), (DWORD)((val.size() + 1) * sizeof(wchar_t)));
-        Log(L"login: 已写入开机自启注册表项");
-    } else {
-        RegDeleteValueW(hk, kRunValueName);
-        Log(L"login: 已移除开机自启注册表项");
-    }
-    RegCloseKey(hk);
-}
-
 // ---------- 端口设置对话框 ----------
 INT_PTR CALLBACK PortDlgProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM) {
     switch (msg) {
@@ -468,11 +446,6 @@ void HandleCommand(int cmd) {
         WriteIniStr(L"General", L"AutoStart", g_cfg.autoStart ? L"1" : L"0");
         Log(g_cfg.autoStart ? L"autostart: 已开启随托盘自启动" : L"autostart: 已关闭随托盘自启动");
         break;
-    case IDM_RUNATLOGIN:
-        g_cfg.runAtLogin = !g_cfg.runAtLogin;
-        WriteIniStr(L"General", L"RunAtLogin", g_cfg.runAtLogin ? L"1" : L"0");
-        SyncRunAtLogin();
-        break;
     case IDM_EXIT:
         if (IsRunning()) {
             std::wstring msg;
@@ -519,8 +492,6 @@ void ShowTrayMenu() {
     AppendMenuW(menu, MF_STRING, IDM_PORT, (L"启动端口设置（当前 " + ToStr(g_cfg.port) + L"）...").c_str());
     AppendMenuW(menu, MF_STRING | (g_cfg.autoStart ? MF_CHECKED : 0), IDM_AUTOSTART,
                 L"随托盘程序自启动 DeepSeek Harness");
-    AppendMenuW(menu, MF_STRING | (g_cfg.runAtLogin ? MF_CHECKED : 0), IDM_RUNATLOGIN,
-                L"开机自动启动托盘程序");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, IDM_EXIT, L"退出");
 
@@ -629,14 +600,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
     if (!FileExists(g_iniPath)) {
         WriteIniStr(L"General", L"Port", ToStr(16100));
         WriteIniStr(L"General", L"AutoStart", L"0");
-        WriteIniStr(L"General", L"RunAtLogin", L"0");
         WriteIniStr(L"General", L"NodePath", L"");
         WriteIniStr(L"General", L"DshBin", L"");
         Log(L"init: 已生成默认配置文件 " + g_iniPath);
     }
-
-    // 开机自启与注册表保持同步（ini 可能被外部修改过）
-    SyncRunAtLogin();
 
     // 注册窗口类（隐藏窗口，仅接收托盘消息）
     WNDCLASSW wc{};

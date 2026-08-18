@@ -14,5 +14,4 @@
 #define IDM_OPEN        4003  // 打开 Web 界面
 #define IDM_PORT        4004  // 启动端口设置
 #define IDM_AUTOSTART   4005  // 随托盘程序自启动 DeepSeek Harness
-#define IDM_RUNATLOGIN  4006  // 开机自动启动托盘程序
 #define IDM_EXIT        4007  // 退出
