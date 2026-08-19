@@ -127,7 +127,6 @@ int wmain() {
         kXamlDiagnosticsMaxAttempts != 3 ||
         kXamlDiagnosticsMaxEmptyWalks != 5 ||
         kXamlDiagnosticsEmptyWalkCooldownMilliseconds != 30'000 ||
-        kXamlDiagnosticsMaxCooldownRetries != 3 ||
         GetXamlDiagnosticsModuleFlavor(L"Windows.UI.Xaml.dll") !=
             XamlDiagnosticsFlavor::Windows ||
         GetXamlDiagnosticsModuleFlavor(
@@ -188,34 +187,22 @@ int wmain() {
 
     g_windowsUiXamlDiagnostics.connected.store(true);
     g_windowsUiXamlDiagnostics.blocked.store(true);
-    g_windowsUiXamlDiagnostics.requestGeneration.store(3);
-    g_windowsUiXamlDiagnostics.processedGeneration.store(1);
+    g_windowsUiXamlDiagnostics.pending.store(true);
     g_windowsUiXamlDiagnostics.failureCount.store(
         kXamlDiagnosticsMaxAttempts);
     g_windowsUiXamlDiagnostics.emptyWalkCount.store(
         kXamlDiagnosticsMaxEmptyWalks);
     g_windowsUiXamlDiagnostics.lastEmptyWalkTick.store(1234);
-    g_windowsUiXamlDiagnostics.cooldownRetryCount.store(
-        kXamlDiagnosticsMaxCooldownRetries);
     RearmXamlDiagnosticsConnection(XamlDiagnosticsFlavor::Windows);
     if (g_windowsUiXamlDiagnostics.connected.load() ||
         g_windowsUiXamlDiagnostics.blocked.load() ||
-        g_windowsUiXamlDiagnostics.processedGeneration.load() !=
-            g_windowsUiXamlDiagnostics.requestGeneration.load() ||
+        g_windowsUiXamlDiagnostics.pending.load() ||
         g_windowsUiXamlDiagnostics.failureCount.load() != 0 ||
         g_windowsUiXamlDiagnostics.emptyWalkCount.load() != 0 ||
-        g_windowsUiXamlDiagnostics.cooldownRetryCount.load() != 0 ||
         g_windowsUiXamlDiagnostics.lastEmptyWalkTick.load() != 0) {
         std::wcerr << L"FAIL (XAML diagnostics disconnect re-arm)\n";
         ++failed;
     }
-    connectionState.requestGeneration.store(2);
-    connectionState.processedGeneration.store(1);
-    if (!CanAttemptXamlDiagnosticsConnection(connectionState, GetTickCount64())) {
-        std::wcerr << L"FAIL (XAML diagnostics in-flight notification)\n";
-        ++failed;
-    }
-    connectionState.processedGeneration.store(2);
     connectionState.failureCount.store(
         kXamlDiagnosticsMaxAttempts - 1);
     if (!CanAttemptXamlDiagnosticsConnection(connectionState, GetTickCount64())) {
@@ -251,22 +238,10 @@ int wmain() {
     if (!CanAttemptXamlDiagnosticsConnection(
             connectionState, cooldownExpiredTick) ||
         !RefreshXamlDiagnosticsEmptyWalkBudget(
-            connectionState, cooldownExpiredTick) ||
+            connectionState, cooldownExpiredTick, L"Windows.UI.Xaml") ||
         connectionState.emptyWalkCount.load() != 0 ||
         connectionState.lastEmptyWalkTick.load() != 0) {
         std::wcerr << L"FAIL (XAML diagnostics empty-walk recovery)\n";
-        ++failed;
-    }
-    connectionState.emptyWalkCount.store(
-        kXamlDiagnosticsMaxEmptyWalks);
-    connectionState.lastEmptyWalkTick.store(lastEmptyWalkTick);
-    if (!IsXamlDiagnosticsFlavorCoolingDown(
-            connectionState,
-            lastEmptyWalkTick +
-                kXamlDiagnosticsEmptyWalkCooldownMilliseconds - 1) ||
-        IsXamlDiagnosticsFlavorCoolingDown(
-            connectionState, cooldownExpiredTick)) {
-        std::wcerr << L"FAIL (XAML diagnostics cooldown detection)\n";
         ++failed;
     }
     connectionState.emptyWalkCount.store(0);
@@ -275,47 +250,6 @@ int wmain() {
     if (CanAttemptXamlDiagnosticsConnection(connectionState, GetTickCount64())) {
         std::wcerr << L"FAIL (XAML diagnostics blocked state)\n";
         ++failed;
-    }
-
-    // RetryXamlDiagnosticsAfterCooldown must retry only the flavor that
-    // exhausted its empty-walk budget and scheduled the timeout. A flavor
-    // still waiting for its first host or module trigger must not be probed
-    // from another flavor's retry, which would spend its walk budget on a
-    // connection nothing asked for.
-    {
-        const uint64_t now = GetTickCount64();
-        g_windowsUiXamlDiagnostics.emptyWalkCount.store(
-            kXamlDiagnosticsMaxEmptyWalks);
-        g_windowsUiXamlDiagnostics.lastEmptyWalkTick.store(
-            now - kXamlDiagnosticsEmptyWalkCooldownMilliseconds - 1);
-        g_windowsUiXamlDiagnostics.cooldownRetryCount.store(0);
-        g_microsoftUiXamlDiagnostics.emptyWalkCount.store(0);
-        g_microsoftUiXamlDiagnostics.cooldownRetryCount.store(0);
-
-        RetryXamlDiagnosticsAfterCooldown();
-
-        if (g_windowsUiXamlDiagnostics.cooldownRetryCount.load() != 1 ||
-            g_microsoftUiXamlDiagnostics.cooldownRetryCount.load() != 0 ||
-            g_microsoftUiXamlDiagnostics.emptyWalkCount.load() != 0) {
-            std::wcerr << L"FAIL (XAML diagnostics cooldown retry "
-                          L"flavor selection)\n";
-            ++failed;
-        }
-
-        // A flavor whose cooldown retries are exhausted stays quiet.
-        g_windowsUiXamlDiagnostics.cooldownRetryCount.store(
-            kXamlDiagnosticsMaxCooldownRetries);
-        RetryXamlDiagnosticsAfterCooldown();
-        if (g_windowsUiXamlDiagnostics.cooldownRetryCount.load() !=
-                kXamlDiagnosticsMaxCooldownRetries ||
-            g_microsoftUiXamlDiagnostics.cooldownRetryCount.load() != 0) {
-            std::wcerr << L"FAIL (XAML diagnostics cooldown retry cap)\n";
-            ++failed;
-        }
-
-        g_windowsUiXamlDiagnostics.emptyWalkCount.store(0);
-        g_windowsUiXamlDiagnostics.lastEmptyWalkTick.store(0);
-        g_windowsUiXamlDiagnostics.cooldownRetryCount.store(0);
     }
 
     struct ElementTestState final : ModernTextStateBase {
@@ -394,14 +328,10 @@ int wmain() {
         WaitForXamlWatcherThreads();
         if (g_xamlDiagnosticsWorkerThread ||
             g_xamlDiagnosticsWorkerWakeEvent ||
-            g_windowsUiXamlDiagnostics.requestGeneration.load(
-                std::memory_order_acquire) !=
-                g_windowsUiXamlDiagnostics.processedGeneration.load(
-                    std::memory_order_acquire) ||
-            g_microsoftUiXamlDiagnostics.requestGeneration.load(
-                std::memory_order_acquire) !=
-                g_microsoftUiXamlDiagnostics.processedGeneration.load(
-                    std::memory_order_acquire) ||
+            g_windowsUiXamlDiagnostics.pending.load(
+                std::memory_order_acquire) ||
+            g_microsoftUiXamlDiagnostics.pending.load(
+                std::memory_order_acquire) ||
             g_xamlWatcherThreads) {
             std::wcerr << L"FAIL (managed XAML worker cleanup)\n";
             ++failed;
