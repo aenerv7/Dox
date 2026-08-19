@@ -188,8 +188,11 @@ export async function setFeedError(feedId: string, message: string): Promise<voi
 
 export type ItemFilter = "all" | "unread" | "starred" | string;
 
+/** 列表一次最多加载的文章数。仅限制列表展示，避免一次渲染过多节点；计数请用 getItemCounts()。 */
+const MAX_ITEMS_PER_LIST = 2000;
+
 export async function listItems(filter: ItemFilter, query = ""): Promise<ItemRecord[]> {
-  const items = await db.items.orderBy("publishedAt").reverse().limit(2000).toArray();
+  const items = await db.items.orderBy("publishedAt").reverse().limit(MAX_ITEMS_PER_LIST).toArray();
   const normalizedQuery = query.trim().toLocaleLowerCase();
   return items.filter((item) => {
     if (filter === "unread" && item.read) return false;
@@ -198,6 +201,32 @@ export async function listItems(filter: ItemFilter, query = ""): Promise<ItemRec
     if (!normalizedQuery) return true;
     return `${item.title} ${item.author} ${item.snippet}`.toLocaleLowerCase().includes(normalizedQuery);
   });
+}
+
+export interface ItemCounts {
+  total: number;
+  unread: number;
+  starred: number;
+}
+
+/** 全库真实计数（不受列表 limit 影响）。 */
+export async function getItemCounts(): Promise<ItemCounts> {
+  const [total, unread, starred] = await Promise.all([
+    db.items.count(),
+    db.items.filter((item) => !item.read).count(),
+    db.items.filter((item) => item.starred).count(),
+  ]);
+  return { total, unread, starred };
+}
+
+/** 每个订阅的未读文章数（真实计数，按 feedId 分组）。 */
+export async function getFeedUnreadCounts(): Promise<Record<string, number>> {
+  const unreadItems = await db.items.filter((item) => !item.read).toArray();
+  const counts: Record<string, number> = {};
+  for (const item of unreadItems) {
+    counts[item.feedId] = (counts[item.feedId] ?? 0) + 1;
+  }
+  return counts;
 }
 
 export async function getItem(id: string): Promise<ItemRecord | undefined> {

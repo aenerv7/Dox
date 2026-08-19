@@ -31,6 +31,8 @@ import { renderArticleContent } from "./article-content";
 import {
   addFeed,
   clearAllData,
+  getFeedUnreadCounts,
+  getItemCounts,
   getLastRefreshAllAt,
   listFeeds,
   listItems,
@@ -125,6 +127,8 @@ function feedName(feed: FeedRecord): string {
 export function App() {
   const [feeds, setFeeds] = useState<FeedRecord[]>([]);
   const [items, setItems] = useState<ItemRecord[]>([]);
+  const [counts, setCounts] = useState({ total: 0, unread: 0, starred: 0 });
+  const [feedUnread, setFeedUnread] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -142,9 +146,16 @@ export function App() {
   const itemListRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
-    const [nextFeeds, nextItems] = await Promise.all([listFeeds(), listItems("all")]);
+    const [nextFeeds, nextItems, nextCounts, nextFeedUnread] = await Promise.all([
+      listFeeds(),
+      listItems("all"),
+      getItemCounts(),
+      getFeedUnreadCounts(),
+    ]);
     setFeeds(nextFeeds);
     setItems(nextItems);
+    setCounts(nextCounts);
+    setFeedUnread(nextFeedUnread);
   }, []);
 
   const performSync = useCallback(async (currentSettings = settings, quiet = false) => {
@@ -206,11 +217,9 @@ export function App() {
 
   const selectedItem = items.find((item) => item.id === selectedItemId) ?? null;
   const selectedFeed = feeds.find((feed) => feed.id === filter);
-  const selectedFeedUnread = selectedFeed
-    ? items.filter((item) => item.feedId === selectedFeed.id && !item.read).length
-    : 0;
-  const unreadCount = items.filter((item) => !item.read).length;
-  const starredCount = items.filter((item) => item.starred).length;
+  const selectedFeedUnread = selectedFeed ? (feedUnread[selectedFeed.id] ?? 0) : 0;
+  const unreadCount = counts.unread;
+  const starredCount = counts.starred;
 
   async function chooseItem(item: ItemRecord) {
     setSelectedItemId(item.id);
@@ -218,23 +227,37 @@ export function App() {
     if (!item.read) {
       await setItemState(item.id, { read: true });
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
+      setCounts((current) => ({ ...current, unread: Math.max(0, current.unread - 1) }));
+      setFeedUnread((current) => ({
+        ...current,
+        [item.feedId]: Math.max(0, (current[item.feedId] ?? 0) - 1),
+      }));
       queueSync();
     }
   }
 
   async function toggleStar(item: ItemRecord) {
-    await setItemState(item.id, { starred: !item.starred });
+    const nextStarred = !item.starred;
+    await setItemState(item.id, { starred: nextStarred });
     setItems((current) => current.map((entry) =>
-      entry.id === item.id ? { ...entry, starred: !entry.starred } : entry
+      entry.id === item.id ? { ...entry, starred: nextStarred } : entry
     ));
+    setCounts((current) => ({ ...current, starred: current.starred + (nextStarred ? 1 : -1) }));
     queueSync();
   }
 
   async function toggleRead(item: ItemRecord) {
-    await setItemState(item.id, { read: !item.read });
+    const nextRead = !item.read;
+    await setItemState(item.id, { read: nextRead });
     setItems((current) => current.map((entry) =>
-      entry.id === item.id ? { ...entry, read: !entry.read } : entry
+      entry.id === item.id ? { ...entry, read: nextRead } : entry
     ));
+    const delta = nextRead ? -1 : 1;
+    setCounts((current) => ({ ...current, unread: Math.max(0, current.unread + delta) }));
+    setFeedUnread((current) => ({
+      ...current,
+      [item.feedId]: Math.max(0, (current[item.feedId] ?? 0) + delta),
+    }));
     queueSync();
   }
 
@@ -475,7 +498,7 @@ export function App() {
           <span>资料库</span>
         </div>
         <nav class="feed-nav">
-          <NavItem icon={<Inbox size={17} />} label="全部文章" count={items.length} active={filter === "all"} onClick={() => { setFilter("all"); setMobilePane("items"); }} />
+          <NavItem icon={<Inbox size={17} />} label="全部文章" count={counts.total} active={filter === "all"} onClick={() => { setFilter("all"); setMobilePane("items"); }} />
           <NavItem icon={<Check size={17} />} label="未读" count={unreadCount} active={filter === "unread"} onClick={() => { setFilter("unread"); setMobilePane("items"); }} />
           <NavItem icon={<Star size={17} />} label="收藏" count={starredCount} active={filter === "starred"} onClick={() => { setFilter("starred"); setMobilePane("items"); }} />
         </nav>
@@ -485,7 +508,7 @@ export function App() {
         </div>
         <nav class="feed-nav feed-list">
           {feeds.map((feed) => {
-            const count = items.filter((item) => item.feedId === feed.id && !item.read).length;
+            const count = feedUnread[feed.id] ?? 0;
             return (
               <div class={`feed-row ${filter === feed.id ? "active" : ""}`} key={feed.id}>
                 <button onClick={() => { setFilter(feed.id); setMobilePane("items"); }}>
