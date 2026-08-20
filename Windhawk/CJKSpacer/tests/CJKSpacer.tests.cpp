@@ -307,6 +307,8 @@ int wmain() {
             SetEvent(watcherReleaseEvent);
         }
 
+        g_xamlDiagnosticsHostDiscoveryPending.store(
+            true, std::memory_order_release);
         g_stoppingModernUi.store(true, std::memory_order_release);
         StopModernXamlDiagnosticsWorker();
         WaitForXamlWatcherThreads();
@@ -315,6 +317,8 @@ int wmain() {
             g_windowsUiXamlDiagnostics.pending.load(
                 std::memory_order_acquire) ||
             g_microsoftUiXamlDiagnostics.pending.load(
+                std::memory_order_acquire) ||
+            g_xamlDiagnosticsHostDiscoveryPending.load(
                 std::memory_order_acquire) ||
             g_xamlWatcherThreads) {
             std::wcerr << L"FAIL (managed XAML worker cleanup)\n";
