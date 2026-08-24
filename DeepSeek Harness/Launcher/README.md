@@ -85,13 +85,13 @@ DshBin=
 
 | 环境 | 启动方式 | 实际执行命令 |
 |---|---|---|
-| dsh 已全局安装（PATH 上有 `dsh` 命令，如 `npm i -g @deepseek-ai/dsh`） | dsh | `dsh web --host <Host> --port <Port>` |
-| dsh 未全局安装 | npx | `npx -y @deepseek-ai/dsh web --host <Host> --port <Port>` |
-| ini 显式指定了 `DshBin` | 自定义 | `node.exe <DshBin> web --host <Host> --port <Port>` |
+| dsh 已全局安装（PATH 上有 `dsh` 命令，如 `npm i -g @deepseek-ai/dsh`） | dsh | `dsh web --no-open --host <Host> --port <Port>` |
+| dsh 未全局安装 | npx | `npx -y @deepseek-ai/dsh web --no-open --host <Host> --port <Port>` |
+| ini 显式指定了 `DshBin` | 自定义 | `node.exe <DshBin> web --no-open --host <Host> --port <Port>` |
 
 ## 实现要点
 
-- **进程管理**：以 `dsh web --host <Host> --port <Port>` / `npx -y @deepseek-ai/dsh web --host <Host> --port <Port>` 派生进程（经 cmd.exe，作业对象整树管理），进程句柄可直接判断存活；停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
+- **进程管理**：以 `dsh web --no-open --host <Host> --port <Port>` / `npx -y @deepseek-ai/dsh web --no-open --host <Host> --port <Port>` 在后台派生进程（经 cmd.exe，作业对象整树管理），不会自动打开浏览器；进程句柄可直接判断存活。停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
 - **启动环境自检**：启动时检测 Node.js（缺失则弹窗提示并自动退出），并判定 dsh 是否全局安装（PATH 上存在 dsh 命令）：全局 → `dsh` 命令；未全局 → `npx` 方式。托盘菜单顶部以浅色不可编辑文本显示当前启动方式与监听地址。
 - **端口收束**：`Launcher.ini` 的 `Port` 读取后校验 1-65535；无效（非数字 / 越界）自动改为**随机可用端口**（按配置的 Host 探测未占用）并写回 ini，避免错误端口导致 Harness 起不来。
 - **更新检查**：后台线程执行 `npm view @deepseek-ai/dsh version` 获取最新版本，本地版本读取全局 dsh 的 `package.json`；有更新时按场景询问。更新命令：dsh 模式 `npm i -g @deepseek-ai/dsh@latest`，npx 模式 `npx -y @deepseek-ai/dsh@latest --version`（刷新缓存）；更新在后台线程执行，完成后按用户选择自动重新启动。

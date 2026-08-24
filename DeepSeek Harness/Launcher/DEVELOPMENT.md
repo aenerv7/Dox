@@ -72,11 +72,12 @@ Launcher/
 
 | 模式 | 实际命令 |
 |---|---|
-| dsh | `cmd.exe /c ""<dsh 命令全路径>" web --host <Host> --port <Port>"` |
-| npx | `cmd.exe /c npx -y @deepseek-ai/dsh web --host <Host> --port <Port>` |
-| 自定义 | `"<node.exe>" "<DshBin>" web --host <Host> --port <Port>` |
+| dsh | `cmd.exe /c ""<dsh 命令全路径>" web --no-open --host <Host> --port <Port>"` |
+| npx | `cmd.exe /c npx -y @deepseek-ai/dsh web --no-open --host <Host> --port <Port>` |
+| 自定义 | `"<node.exe>" "<DshBin>" web --no-open --host <Host> --port <Port>` |
 
 - 命令统一经 `cmd.exe` 派生（dsh / npx 均为 npm 的 .cmd shim）；`cmd /c` 会等待子进程，因此进程句柄在 Harness 存活期间有效，可直接判断存活。
+- 所有启动方式都传递 `--no-open`，仅在后台启动 Web 服务，不抢占前台或自动打开默认浏览器。
 - 派生时用 `CREATE_SUSPENDED` 先创建，**AssignProcessToJobObject 后再 ResumeThread**，保证 Harness 及其全部子进程（pwsh 沙箱、vision-router 等）都进入作业对象。
 - 作业对象设置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`：
   - 停止 = `TerminateJobObject`（整树终止）；
