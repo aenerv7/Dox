@@ -1,10 +1,10 @@
 # Dox Reader
 
-A local-first RSS/Atom reader for Firefox desktop and Firefox for Android. Subscriptions, read state, and starred state synchronize through a user-provided WebDAV JSON file; article bodies remain in each browser's IndexedDB.
+A local-first RSS/Atom reader for the web, Firefox desktop, and Firefox for Android. Subscriptions, read state, and starred state synchronize through a user-provided WebDAV JSON file; article bodies remain in each browser's IndexedDB.
 
 ## Scope
 
-- One responsive WebExtension for desktop and Android Firefox
+- One responsive UI for a self-hosted Cloudflare Worker web app and a Firefox WebExtension
 - Manual feed refresh; no background polling or notifications
 - RSS 2.0, Atom, and common RDF feed parsing
 - Local article cache, search, read/unread state, and starring
@@ -12,9 +12,11 @@ A local-first RSS/Atom reader for Firefox desktop and Firefox for Android. Subsc
 - WebDAV sync with ETag/`If-Match` conflict retries
 - Deterministic per-field merge using Lamport versions and device IDs
 - OPML import and export
-- System, light, and dark themes with five selectable color schemes (ink, ocean, violet, amber, graphite), each auto-adapting between light and dark palettes
+- System, light, and dark themes with ten selectable color schemes, including Material Design 3 and four Chinese-inspired palettes (cinnabar, celadon, bamboo, lotus), each auto-adapting between light and dark variants
+- Optional custom accent color with automatic contrast, synced through WebDAV
+- Appearance and reading preferences sync through WebDAV alongside subscriptions and article state
 
-The extension requests access to all HTTP and HTTPS sites because private builds need to fetch arbitrary feed and WebDAV URLs directly. It does not collect or transmit data to the developer.
+The extension requests access to all HTTP and HTTPS sites because it fetches feed and WebDAV URLs directly. The web build sends those requests through the same-origin Worker deployed in the user's own Cloudflare account. Neither build transmits data to a server operated by the developer.
 
 ## Development
 
@@ -25,6 +27,8 @@ npm ci
 npm run check
 npm run dev
 ```
+
+`npm run dev` targets extension UI development. For the complete web app, run `npm run build:web` followed by `npx wrangler dev`.
 
 To reproduce the submitted extension archive from a clean source package:
 
@@ -51,6 +55,36 @@ npm run build
 npx --yes web-ext@10.6.0 run --source-dir dist --target firefox-android --android-device <device-id> --firefox-apk org.mozilla.firefox
 ```
 
+## Cloudflare Worker web app
+
+The web build uses [Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/) for the Preact application and invokes Worker code only for `/api/feed` and `/api/webdav`. IndexedDB remains the source of truth; Cloudflare storage products are not used.
+
+Requirements: a free Cloudflare account and Node.js 24 or later. On Windows, double-click:
+
+```text
+deploy-cloudflare.cmd
+```
+
+Alternatively, run:
+
+```powershell
+pwsh -File deploy-cloudflare.ps1
+```
+
+The script installs the locked dependencies, runs all tests and both builds, validates the generated Worker types, and deploys with Wrangler. The first deployment opens Cloudflare sign-in. Wrangler prints the resulting `https://dox-reader.<account>.workers.dev` URL when deployment completes.
+
+Useful variants:
+
+```powershell
+pwsh -File deploy-cloudflare.ps1 -DryRun       # validate without uploading
+pwsh -File deploy-cloudflare.ps1 -SkipInstall  # reuse current node_modules
+npm run deploy:worker                          # npm equivalent
+```
+
+The default configuration uses no KV, D1, R2, Durable Objects, Queues, Workers AI, or paid binding. Static asset requests do not invoke Worker code; only feed refresh and WebDAV synchronization consume the Workers Free request/CPU allowance. See Cloudflare's current [Static Assets billing](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) and [Workers limits](https://developers.cloudflare.com/workers/platform/limits/) before serving a large public audience.
+
+The proxy accepts only the operations Dox Reader needs. It rejects cross-site browser requests, credentials embedded in URLs, private/reserved IP targets, nonstandard ports, oversized bodies, excessive redirects, and unsupported WebDAV methods. WebDAV credentials pass through the self-hosted Worker for authentication but are not logged or stored by the application.
+
 ## WebDAV setup
 
 Enter the URL prefix of an existing WebDAV location. For example:
@@ -59,9 +93,9 @@ Enter the URL prefix of an existing WebDAV location. For example:
 https://dav.example.com/remote.php/dav/files/user/
 ```
 
-The extension creates `Dox Reader/` under that location and stores the sync document at `Dox Reader/state.json`. HTTPS is required. Use an application-specific password where the provider supports one. The folder and file are created automatically when testing the connection or synchronizing for the first time.
+Dox Reader creates `Dox Reader/` under that location and stores the sync document at `Dox Reader/state.json`. HTTPS is required. Use an application-specific password where the provider supports one. The folder and file are created automatically when testing the connection or synchronizing for the first time.
 
-The remote file contains subscription metadata and item state only. The WebDAV username and password remain in `browser.storage.local` on each device.
+The remote file contains subscription metadata, item state, and appearance/reading preferences. The WebDAV username and password remain in `browser.storage.local` in the extension or `localStorage` in the web app on each device.
 
 ## Private AMO distribution
 

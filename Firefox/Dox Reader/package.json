@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:web": "vite --mode web --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "build:web": "tsc --noEmit && vite build --mode web",
     "test": "vitest run",
-    "check": "npm run test && npm run build",
+    "check": "npm run test && npm run check:worker && npm run build:web && npm run build",
+    "check:worker": "wrangler types --include-runtime=false --check && tsc -p worker/tsconfig.json --noEmit",
+    "types:worker": "wrangler types --include-runtime=false",
     "release": "pwsh -NoProfile -ExecutionPolicy Bypass -File release.ps1",
     "release:push": "pwsh -NoProfile -ExecutionPolicy Bypass -File release.ps1 -Push",
-    "package": "npm run check && npx --yes web-ext@10.6.0 build --source-dir dist --artifacts-dir web-ext-artifacts --overwrite-dest"
+    "package": "npm run test && npm run build && npx --yes web-ext@10.6.0 build --source-dir dist --artifacts-dir web-ext-artifacts --overwrite-dest",
+    "deploy:worker": "npm run check && npm run build:web && wrangler deploy"
   },
   "dependencies": {
     "dexie": "^4.4.5",
@@ -19,11 +24,13 @@
     "preact": "^10.29.8"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260825.1",
     "@preact/preset-vite": "^2.10.6",
     "@types/firefox-webext-browser": "^143.0.0",
     "@types/node": "^26.2.0",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.125.0"
   }
 }

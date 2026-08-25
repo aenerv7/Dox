@@ -43,9 +43,10 @@ import {
   renameFeed,
   setItemState,
   setLastRefreshAllAt,
+  updateSyncedPreferences,
 } from "./database";
 import { refreshFeed, refreshFeeds } from "./feed-service";
-import type { AppSettings, ColorScheme, FeedRecord, ItemRecord } from "./model";
+import type { AppSettings, ColorScheme, FeedRecord, ItemRecord, PreferenceValues } from "./model";
 import { DEFAULT_SETTINGS } from "./model";
 import { createOpml, parseOpml } from "./opml";
 import { applyAppearance, loadSettings, saveSettings } from "./settings";
@@ -56,12 +57,39 @@ type MobilePane = "feeds" | "items" | "reader";
 type SyncStatus = "idle" | "syncing" | "ok" | "error";
 type ResizeTarget = "feeds" | "items";
 
-const COLOR_SCHEMES: ReadonlyArray<{ id: ColorScheme; label: string; swatch: string; dot: string }> = [
-  { id: "ink", label: "墨绿", swatch: "#e9ece8", dot: "#c8423d" },
-  { id: "ocean", label: "海洋蓝", swatch: "#e4eaf2", dot: "#2563eb" },
-  { id: "violet", label: "紫罗兰", swatch: "#eae5f1", dot: "#7c3aed" },
-  { id: "amber", label: "暖橙", swatch: "#efe7d8", dot: "#c05621" },
-  { id: "graphite", label: "石墨灰", swatch: "#e6e6e6", dot: "#4f6176" },
+interface ColorSchemeOption {
+  id: ColorScheme;
+  label: string;
+  light: string;
+  dark: string;
+  accent: string;
+  darkAccent: string;
+}
+
+const COLOR_SCHEME_GROUPS: ReadonlyArray<{
+  label: string;
+  schemes: ReadonlyArray<ColorSchemeOption>;
+}> = [
+  {
+    label: "经典设计",
+    schemes: [
+      { id: "ink", label: "墨韵", light: "#edf1ee", dark: "#1c231f", accent: "#b64038", darkAccent: "#e8786f" },
+      { id: "ocean", label: "海潮", light: "#eaf0f6", dark: "#19232d", accent: "#2d62bd", darkAccent: "#82adee" },
+      { id: "violet", label: "藤紫", light: "#efecf5", dark: "#211c29", accent: "#7350a4", darkAccent: "#b796dc" },
+      { id: "amber", label: "琥珀", light: "#f3ede2", dark: "#252019", accent: "#ad5c25", darkAccent: "#e9a064" },
+      { id: "graphite", label: "石墨", light: "#eceff1", dark: "#1c1e20", accent: "#53687d", darkAccent: "#9fb4c7" },
+      { id: "material", label: "Material 3", light: "#f1f1f1", dark: "#1b1c1e", accent: "#3f4143", darkAccent: "#c5c6c9" },
+    ],
+  },
+  {
+    label: "东方传统色",
+    schemes: [
+      { id: "cinnabar", label: "宣纸朱砂", light: "#ece8dd", dark: "#211e19", accent: "#b23a32", darkAccent: "#df766a" },
+      { id: "celadon", label: "雨过天青", light: "#e3ece9", dark: "#1a2321", accent: "#3d7470", darkAccent: "#7fb4aa" },
+      { id: "bamboo", label: "竹青", light: "#e8eee1", dark: "#1d241a", accent: "#4d7450", darkAccent: "#91b28a" },
+      { id: "lotus", label: "藕荷", light: "#f0e6ea", dark: "#241c20", accent: "#8b5b70", darkAccent: "#c38ba3" },
+    ],
+  },
 ];
 
 const FEED_PANE_MIN = 0.13;
@@ -70,6 +98,15 @@ const ITEM_PANE_MIN = 0.22;
 const ITEM_PANE_MAX = 0.5;
 const READER_PANE_MIN = 0.3;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function preferenceValues(settings: AppSettings): PreferenceValues {
+  return {
+    theme: settings.theme,
+    colorScheme: settings.colorScheme,
+    customAccent: settings.customAccent,
+    showItemSnippet: settings.showItemSnippet,
+  };
+}
 
 function resizedPanes(
   target: ResizeTarget,
@@ -159,16 +196,24 @@ export function App() {
   }, []);
 
   const performSync = useCallback(async (currentSettings = settings, quiet = false) => {
-    if (!currentSettings.webdavUrl) return;
+    if (!currentSettings.webdavUrl) return currentSettings;
     setSyncStatus("syncing");
     try {
       const result = await syncWithWebDav(currentSettings);
+      const syncedSettings = result.preferences
+        ? { ...currentSettings, ...result.preferences }
+        : currentSettings;
+      await saveSettings(syncedSettings);
+      setSettingsState(syncedSettings);
+      applyAppearance(syncedSettings);
       await loadData();
       setSyncStatus("ok");
       if (!quiet) setToast(`已同步 ${result.subscriptions} 个订阅和 ${result.itemStates} 条状态`);
+      return syncedSettings;
     } catch (error) {
       setSyncStatus("error");
       if (!quiet) setToast(error instanceof Error ? error.message : String(error));
+      return currentSettings;
     }
   }, [loadData, settings]);
 
@@ -355,11 +400,21 @@ export function App() {
   }
 
   async function handleSaveSettings(next: AppSettings) {
+    await updateSyncedPreferences(preferenceValues(next));
     await saveSettings(next);
     setSettingsState(next);
     applyAppearance(next);
     setShowSettings(false);
     setToast("设置已保存");
+    if (next.webdavUrl) void performSync(next, true);
+  }
+
+  async function handleSettingsSync(next: AppSettings): Promise<AppSettings> {
+    await updateSyncedPreferences(preferenceValues(next));
+    await saveSettings(next);
+    setSettingsState(next);
+    applyAppearance(next);
+    return performSync(next);
   }
 
   async function toggleLayoutLock() {
@@ -656,7 +711,7 @@ export function App() {
           settings={settings}
           onClose={() => setShowSettings(false)}
           onSave={handleSaveSettings}
-          onSync={async (draft) => { await saveSettings(draft); setSettingsState(draft); await performSync(draft); }}
+          onSync={handleSettingsSync}
           onTest={testWebDav}
           onImport={handleImport}
           onExport={handleExport}
@@ -789,7 +844,7 @@ function SettingsDialog(props: {
   settings: AppSettings;
   onClose: () => void;
   onSave: (settings: AppSettings) => Promise<void>;
-  onSync: (settings: AppSettings) => Promise<void>;
+  onSync: (settings: AppSettings) => Promise<AppSettings>;
   onTest: (settings: AppSettings) => Promise<string>;
   onImport: (file: File) => Promise<void>;
   onExport: () => void;
@@ -800,13 +855,20 @@ function SettingsDialog(props: {
   const [testResult, setTestResult] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const update = (patch: Partial<AppSettings>) => setDraft((current) => ({ ...current, ...patch }));
+  const closeWithoutSaving = () => {
+    applyAppearance(props.settings);
+    props.onClose();
+  };
+  useEffect(() => {
+    applyAppearance(draft);
+  }, [draft.theme, draft.colorScheme, draft.customAccent]);
   return (
-    <div class="dialog-backdrop settings-backdrop" onMouseDown={(event) => event.target === event.currentTarget && props.onClose()}>
+    <div class="dialog-backdrop settings-backdrop" onMouseDown={(event) => event.target === event.currentTarget && closeWithoutSaving()}>
       <div class="dialog settings-dialog">
-        <div class="dialog-title"><div><Settings size={20} /><h2>设置</h2></div><button class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
+        <div class="dialog-title"><div><Settings size={20} /><h2>设置</h2></div><button class="icon-button" title="关闭" onClick={closeWithoutSaving}><X size={18} /></button></div>
         <div class="settings-scroll">
           <section class="settings-section">
-            <div class="section-heading"><Cloud size={18} /><div><h3>WebDAV 同步</h3><p>订阅、已读和收藏状态</p></div></div>
+            <div class="section-heading"><Cloud size={18} /><div><h3>WebDAV 同步</h3><p>订阅、文章状态与偏好设置</p></div></div>
             <label class="field"><span>WebDAV URL 前缀</span><input type="url" value={draft.webdavUrl} onInput={(event) => update({ webdavUrl: event.currentTarget.value })} placeholder="https://dav.example.com/remote.php/dav/files/user/" /></label>
             <div class="field-row">
               <label class="field"><span>用户名</span><input value={draft.webdavUsername} onInput={(event) => update({ webdavUsername: event.currentTarget.value })} autoComplete="username" /></label>
@@ -818,25 +880,59 @@ function SettingsDialog(props: {
                 setTesting(true); setTestResult("");
                 void props.onTest(draft).then(setTestResult).catch((error) => setTestResult(error instanceof Error ? error.message : String(error))).finally(() => setTesting(false));
               }}>{testing ? <LoaderCircle size={16} class="spin" /> : <Wifi size={16} />}测试连接</button>
-              <button class="secondary-button" disabled={!draft.webdavUrl} onClick={() => void props.onSync(draft)}><Upload size={16} />立即同步</button>
+              <button class="secondary-button" disabled={!draft.webdavUrl} onClick={() => void props.onSync(draft).then(setDraft)}><Upload size={16} />立即同步</button>
             </div>
           </section>
           <section class="settings-section">
-            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色，深色/浅色自动适配</p></div></div>
+            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色 · 跨设备同步</p></div></div>
             <div class="segmented" aria-label="主题">
               {(["system", "light", "dark"] as const).map((theme) => <button key={theme} class={draft.theme === theme ? "active" : ""} onClick={() => update({ theme })}>{theme === "system" ? "跟随系统" : theme === "light" ? "浅色" : "深色"}</button>)}
             </div>
-            <div class="scheme-grid" aria-label="配色">
-              {COLOR_SCHEMES.map((scheme) => (
-                <button key={scheme.id} type="button" class={`scheme-option ${draft.colorScheme === scheme.id ? "active" : ""}`} onClick={() => update({ colorScheme: scheme.id })} title={scheme.label}>
-                  <span class="scheme-swatch" style={{ background: scheme.swatch }}><i style={{ background: scheme.dot }} /></span>
-                  <span class="scheme-label">{scheme.label}</span>
-                </button>
+            <div class="scheme-groups">
+              {COLOR_SCHEME_GROUPS.map((group) => (
+                <div class="scheme-group" key={group.label}>
+                  <span class="scheme-group-label">{group.label}</span>
+                  <div class="scheme-grid" aria-label={`${group.label}配色`}>
+                    {group.schemes.map((scheme) => (
+                      <button key={scheme.id} type="button" class={`scheme-option ${draft.colorScheme === scheme.id ? "active" : ""}`} onClick={() => update({ colorScheme: scheme.id })} title={scheme.label} aria-pressed={draft.colorScheme === scheme.id}>
+                        <span class="scheme-swatch" aria-hidden="true">
+                          <span style={{ background: scheme.light }} />
+                          <span style={{ background: scheme.dark }} />
+                          <i style={{ background: scheme.accent }} />
+                        </span>
+                        <span class="scheme-label">{scheme.label}</span>
+                        {draft.colorScheme === scheme.id && <Check class="scheme-check" size={14} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
+            </div>
+            <div class="accent-control">
+              <label class="toggle-row">
+                <span>自定义强调色</span>
+                <input type="checkbox" checked={Boolean(draft.customAccent)} onChange={(event) => {
+                  const scheme = COLOR_SCHEME_GROUPS
+                    .flatMap((group) => group.schemes)
+                    .find((option) => option.id === draft.colorScheme);
+                  const useDarkAccent = draft.theme === "dark"
+                    || (draft.theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+                  const schemeAccent = useDarkAccent
+                    ? scheme?.darkAccent ?? "#c5c6c9"
+                    : scheme?.accent ?? "#3f4143";
+                  update({ customAccent: event.currentTarget.checked ? schemeAccent : "" });
+                }} />
+              </label>
+              {draft.customAccent && (
+                <label class="accent-picker">
+                  <input type="color" value={draft.customAccent} aria-label="强调色" onInput={(event) => update({ customAccent: event.currentTarget.value })} />
+                  <span><strong>选择颜色</strong><small>{draft.customAccent.toUpperCase()}</small></span>
+                </label>
+              )}
             </div>
           </section>
           <section class="settings-section">
-            <div class="section-heading"><BookOpen size={18} /><div><h3>阅读</h3><p>文章列表与正文显示</p></div></div>
+            <div class="section-heading"><BookOpen size={18} /><div><h3>阅读</h3><p>文章列表与正文显示 · 跨设备同步</p></div></div>
             <label class="toggle-row">
               <span>文章列表显示简介</span>
               <input type="checkbox" checked={draft.showItemSnippet} onChange={(event) => update({ showItemSnippet: event.currentTarget.checked })} />
@@ -854,7 +950,7 @@ function SettingsDialog(props: {
             <button class="danger-button" onClick={() => void props.onClear()}><Trash2 size={16} />清除本机数据</button>
           </section>
         </div>
-        <div class="dialog-actions"><button class="secondary-button" onClick={props.onClose}>取消</button><button class="primary-button" onClick={() => void props.onSave(draft)}><Check size={17} />保存</button></div>
+        <div class="dialog-actions"><button class="secondary-button" onClick={closeWithoutSaving}>取消</button><button class="primary-button" onClick={() => void props.onSave(draft)}><Check size={17} />保存</button></div>
       </div>
     </div>
   );

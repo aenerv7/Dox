@@ -6,6 +6,8 @@ import type {
   ItemStateRecord,
   MetaRecord,
   ParsedFeed,
+  PreferenceValues,
+  SyncedPreferences,
   SyncDocument,
   Version,
 } from "./model";
@@ -31,6 +33,7 @@ export const db = new ReaderDatabase();
 const ZERO_VERSION: Version = [0, ""];
 /** meta 标记：旧数据实体解码迁移是否已执行 */
 const LEGACY_ENTITY_DECODE_KEY = "legacyEntityDecode";
+const SYNCED_PREFERENCES_KEY = "syncedPreferences";
 
 /**
  * 一次性迁移：早期版本未解码数字字符引用（如 &#038;）和常见 HTML 命名实体，
@@ -303,11 +306,46 @@ export async function setLastRefreshAllAt(value: number): Promise<void> {
   await db.meta.put({ key: "lastRefreshAllAt", value });
 }
 
+export async function getSyncedPreferences(): Promise<SyncedPreferences | undefined> {
+  const record = await db.meta.get(SYNCED_PREFERENCES_KEY);
+  return record?.value as SyncedPreferences | undefined;
+}
+
+export async function updateSyncedPreferences(values: PreferenceValues): Promise<SyncedPreferences> {
+  const current = await getSyncedPreferences();
+  if (current
+    && current.theme.value === values.theme
+    && current.colorScheme.value === values.colorScheme
+    && current.customAccent?.value === values.customAccent
+    && current.showItemSnippet.value === values.showItemSnippet) {
+    return current;
+  }
+
+  const version = await nextVersion();
+  const preferences: SyncedPreferences = {
+    theme: current?.theme.value === values.theme
+      ? current.theme
+      : { value: values.theme, version },
+    colorScheme: current?.colorScheme.value === values.colorScheme
+      ? current.colorScheme
+      : { value: values.colorScheme, version },
+    customAccent: current?.customAccent?.value === values.customAccent
+      ? current.customAccent
+      : { value: values.customAccent, version },
+    showItemSnippet: current?.showItemSnippet.value === values.showItemSnippet
+      ? current.showItemSnippet
+      : { value: values.showItemSnippet, version },
+  };
+  await db.meta.put({ key: SYNCED_PREFERENCES_KEY, value: preferences });
+  return preferences;
+}
+
 export async function exportSyncDocument(): Promise<SyncDocument> {
-  const [actor, clockRecord, refreshRecord, feeds, states] = await Promise.all([
+  const [actor, clockRecord, refreshRecord, preferenceRecord, feeds, states] = await Promise.all([
     getActor(),
     db.meta.get("clock"),
     db.meta.get("lastRefreshAllAt"),
+    db.meta.get(SYNCED_PREFERENCES_KEY),
     db.feeds.toArray(),
     db.itemStates.toArray(),
   ]);
@@ -330,6 +368,7 @@ export async function exportSyncDocument(): Promise<SyncDocument> {
     subscriptions,
     itemStates: Object.fromEntries(states.map((state) => [state.id, state])),
     lastRefreshAllAt: typeof refreshRecord?.value === "number" ? refreshRecord.value : 0,
+    preferences: preferenceRecord?.value as SyncedPreferences | undefined,
   };
 }
 
@@ -375,6 +414,9 @@ export async function applySyncDocument(document: SyncDocument): Promise<void> {
         key: "lastRefreshAllAt",
         value: Math.max(localRefresh, document.lastRefreshAllAt),
       });
+    }
+    if (document.preferences) {
+      await db.meta.put({ key: SYNCED_PREFERENCES_KEY, value: document.preferences });
     }
   });
 }

@@ -1,4 +1,13 @@
-import type { ItemStateRecord, Register, SubscriptionSync, SyncDocument, Version } from "./model";
+import type {
+  ColorScheme,
+  ItemStateRecord,
+  Register,
+  SubscriptionSync,
+  SyncedPreferences,
+  SyncDocument,
+  Theme,
+  Version,
+} from "./model";
 
 export function compareVersion(left: Version, right: Version): number {
   if (left[0] !== right[0]) {
@@ -41,6 +50,23 @@ function mergeItemState(left: ItemStateRecord, right: ItemStateRecord): ItemStat
   };
 }
 
+function mergePreferences(
+  left: SyncedPreferences | undefined,
+  right: SyncedPreferences | undefined,
+): SyncedPreferences | undefined {
+  if (!left) return right;
+  if (!right) return left;
+  const customAccent = left.customAccent && right.customAccent
+    ? latest(left.customAccent, right.customAccent)
+    : left.customAccent ?? right.customAccent;
+  return {
+    theme: latest(left.theme, right.theme),
+    colorScheme: latest(left.colorScheme, right.colorScheme),
+    showItemSnippet: latest(left.showItemSnippet, right.showItemSnippet),
+    ...(customAccent ? { customAccent } : {}),
+  };
+}
+
 export function mergeSyncDocuments(local: SyncDocument, remote: SyncDocument): SyncDocument {
   const subscriptions: Record<string, SubscriptionSync> = { ...local.subscriptions };
   const itemStates: Record<string, ItemStateRecord> = { ...local.itemStates };
@@ -63,6 +89,7 @@ export function mergeSyncDocuments(local: SyncDocument, remote: SyncDocument): S
     subscriptions,
     itemStates,
     lastRefreshAllAt: Math.max(local.lastRefreshAllAt ?? 0, remote.lastRefreshAllAt ?? 0),
+    preferences: mergePreferences(local.preferences, remote.preferences),
   };
 }
 
@@ -72,6 +99,34 @@ function isVersion(value: unknown): value is Version {
     && Number.isSafeInteger(value[0])
     && value[0] >= 0
     && typeof value[1] === "string";
+}
+
+function isRegister<T>(value: unknown, isValue: (candidate: unknown) => candidate is T): value is Register<T> {
+  return Boolean(value)
+    && typeof value === "object"
+    && isValue((value as Partial<Register<T>>).value)
+    && isVersion((value as Partial<Register<T>>).version);
+}
+
+function isTheme(value: unknown): value is Theme {
+  return value === "system" || value === "light" || value === "dark";
+}
+
+const COLOR_SCHEMES: ReadonlySet<ColorScheme> = new Set([
+  "ink",
+  "ocean",
+  "violet",
+  "amber",
+  "graphite",
+  "cinnabar",
+  "celadon",
+  "bamboo",
+  "lotus",
+  "material",
+]);
+
+function isColorScheme(value: unknown): value is ColorScheme {
+  return typeof value === "string" && COLOR_SCHEMES.has(value as ColorScheme);
 }
 
 export function parseSyncDocument(value: unknown): SyncDocument {
@@ -109,6 +164,16 @@ export function parseSyncDocument(value: unknown): SyncDocument {
       || !Number.isFinite(candidate.lastRefreshAllAt)
       || candidate.lastRefreshAllAt < 0)) {
     throw new Error("WebDAV 同步文件包含无效刷新时间");
+  }
+  if (candidate.preferences !== undefined
+    && (!isRegister(candidate.preferences.theme, isTheme)
+      || !isRegister(candidate.preferences.colorScheme, isColorScheme)
+      || (candidate.preferences.customAccent !== undefined
+        && !isRegister(candidate.preferences.customAccent, (value): value is string => (
+          typeof value === "string" && (value === "" || /^#[0-9a-f]{6}$/i.test(value))
+        )))
+      || !isRegister(candidate.preferences.showItemSnippet, (value): value is boolean => typeof value === "boolean"))) {
+    throw new Error("WebDAV 同步文件包含无效外观或阅读设置");
   }
 
   return candidate as SyncDocument;

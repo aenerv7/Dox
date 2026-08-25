@@ -6,16 +6,16 @@
 
 ## 1. 项目概览
 
-本地优先（local-first）的 RSS/Atom 阅读器，作为 Firefox WebExtension（Manifest V3）同时支持桌面版和 Android 版。订阅、已读/收藏状态通过用户自备的 WebDAV 同步；文章正文仅存本机 IndexedDB。
+本地优先（local-first）的 RSS/Atom 阅读器，同一套 Preact 客户端同时构建为 Cloudflare Worker 网页应用和 Firefox WebExtension（Manifest V3）。订阅、已读/收藏状态通过用户自备的 WebDAV 同步；文章正文仅存浏览器 IndexedDB。
 
 | 项 | 值 |
 |---|---|
 | 扩展 ID | `dox-rss-reader@dox.local`（固定，升级保留数据分区） |
-| 当前版本 | 0.3.1 |
+| 当前版本 | 0.3.3 |
 | 最低 Firefox | 142.0（桌面 + Android） |
 | 运行时依赖 | preact 10、dexie 4、fast-xml-parser 5、lucide-preact |
 | 构建 | Vite 8 + TypeScript 7（`tsc --noEmit` 先做类型检查） |
-| 测试 | Vitest 4（当前 11 个用例） |
+| 测试 | Vitest 4（当前 34 个用例，含 Worker 代理安全边界与偏好同步） |
 | 环境要求 | Node.js ≥ 24、npm ≥ 11、PowerShell 7（仅发布脚本需要）、Firefox（调试需要） |
 
 > 注意：`package.json` 中 `typescript` 为 `^7.0.2`（TS 7 原生支持 TS 语法检查），开发时请勿降级。
@@ -28,6 +28,7 @@ Firefox/Dox Reader/
 ├── public/
 │   ├── manifest.json       # MV3 清单（ID / update_url / 权限）
 │   └── icons/icon.svg
+├── public-web/             # 网页版静态文件、CSP/安全响应头（不含扩展 manifest）
 ├── src/
 │   ├── main.tsx            # Preact 挂载
 │   ├── app.tsx             # 主 UI（三栏布局、弹窗、刷新/同步触发）
@@ -36,12 +37,20 @@ Firefox/Dox Reader/
 │   ├── database.ts         # Dexie 层：表、Lamport 版本、同步文档导出/应用
 │   ├── feed-parser.ts      # RSS 2.0 / Atom / RDF 解析，稳定 ID，摘要
 │   ├── feed-service.ts     # 抓取订阅源（4 并发）
+│   ├── runtime-fetch.ts    # 扩展直连 / 网页同源 Worker API 适配
 │   ├── article-content.tsx # 文章 HTML 白名单净化渲染
 │   ├── opml.ts             # OPML 导入/导出
 │   ├── settings.ts         # 设置持久化（storage.local，降级 localStorage）+ 主题与配色
 │   ├── sync-model.ts       # 同步文档合并/校验（LWW）
 │   ├── webdav.ts           # WebDAV 客户端（PROPFIND/MKCOL/GET/PUT + ETag）
 │   └── styles.css          # 全部样式（含移动端响应式）
+├── worker/
+│   ├── index.ts            # RSS/WebDAV 受限代理（无持久化绑定）
+│   └── index.test.ts       # SSRF、跨站、方法/头部转发测试
+├── wrangler.jsonc          # Worker + Static Assets 配置
+├── worker-configuration.d.ts # Wrangler 从配置生成的 Env 类型
+├── deploy-cloudflare.ps1   # 测试、双构建并部署 Worker
+├── deploy-cloudflare.cmd   # Windows 双击入口
 ├── test/fixtures/demo-feed.xml
 ├── release.ps1             # 一键发布（构建→AMO 签名→下载→更新 updates.json→推送）
 ├── updates.json            # 自托管更新清单（raw GitHub 提供）
@@ -58,11 +67,11 @@ Firefox/Dox Reader/
 ### 数据流
 
 ```
-[Feed URL] ──fetch──> feed-parser ──> database.saveParsedFeed ──> IndexedDB(items)
+[Feed URL] ──扩展直连 / 网页 Worker 代理──> feed-parser ──> database.saveParsedFeed ──> IndexedDB(items)
                                                                       │
 [UI 操作: 已读/收藏/整源标已读] ──> database.setItemState ────────> IndexedDB(itemStates)
                                                                       │
-[WebDAV] ◄──syncWithWebDav── database.exportSyncDocument（合并后）──┘
+[WebDAV] ◄──扩展直连 / 网页 Worker 代理──syncWithWebDav── database.exportSyncDocument（合并后）──┘
    ▲  │                                    │
    │  └── getRemote(ETag) → mergeSyncDocuments → applySyncDocument → IndexedDB
    └── putRemote(If-Match, 412 冲突重试 ≤4 次)
@@ -77,7 +86,9 @@ Firefox/Dox Reader/
 |---|---|---|
 | `database.ts` | 唯一的持久层入口 | `addFeed / removeFeed / listFeeds / saveParsedFeed / setItemState / markFeedRead / listItems / exportSyncDocument / applySyncDocument / clearAllData / get|setLastRefreshAllAt` |
 | `feed-service.ts` | 网络抓取 + 批量 | `refreshFeed / refreshFeeds` |
+| `runtime-fetch.ts` | 运行时网络适配 | `fetchFeed / fetchWebDav / isExtensionRuntime` |
 | `webdav.ts` | WebDAV 协议 | `syncWithWebDav / testWebDav` |
+| `worker/index.ts` | 网页版受限网络网关 | `handleRequest` + Worker 默认导出 |
 | `sync-model.ts` | 纯函数合并/校验 | `mergeSyncDocuments / parseSyncDocument / compareVersion` |
 | `app.tsx` | 全部 UI 状态与交互 | `App` 组件 |
 | `article-content.tsx` | 富文本净化 | `renderArticleContent` |
@@ -128,7 +139,7 @@ interface SyncDocument {
 
 - 由设置里的 URL 前缀推导：`{prefix}/Dox Reader/state.json`（目录 `Dox Reader`，文件名 `state.json`）。
 - 强制 HTTPS（`resolveWebDavLocations` 里校验，非 https 直接抛错）。
-- 凭证 `username:password` 拼 `Basic` 头，只存 `browser.storage.local`，**永不写入同步文档**。
+- 凭证 `username:password` 拼 `Basic` 头，扩展存 `browser.storage.local`，网页存部署域名下的 `localStorage`，**永不写入同步文档**。网页请求会经过用户自己部署的 Worker，但 Worker 不记录或持久化凭证。
 
 ### 流程（`syncWithWebDav`）
 
@@ -203,6 +214,9 @@ interface SyncDocument {
 npm ci                 # 按 lock 安装（Node 24+）
 npm run check          # 测试 + 类型检查 + 构建（发布前必跑）
 npm run dev            # Vite dev server（仅 UI 调试，非扩展环境）
+npm run build:web      # 生成不含扩展 manifest/background 的网页构建
+npx wrangler dev       # 本地运行完整 Worker + Static Assets 网页应用
+npm run deploy:worker  # 检查、网页构建并部署到 Cloudflare
 npm run package        # check + web-ext 打包未签名 ZIP
 npm run release        # 自动发布（不含 git push）
 npm run release:push   # 自动发布 + git 提交推送
@@ -217,7 +231,7 @@ npm run release:push   # 自动发布 + git 提交推送
 ### 常见坑（跨设备开发务必知道）
 
 1. **临时加载 = 随机临时 ID**：`about:debugging` 每次加载的数据分区都不同（和 manifest 的 ID 无关），本地数据不保留；调试 WebDAV/同步要装正式签名版或接受空数据。
-2. **dev 服务器不是扩展环境**：`npm run dev` 的普通标签页里没有 `host_permissions`，对 WebDAV 的跨域 PROPFIND/GET 会被 CORS 拦截，报 `NetworkError when attempting to fetch resource`。**WebDAV 只能在实际扩展里测**。
+2. **Vite dev 服务器没有 Worker API**：`npm run dev` 只适合 UI 调试，跨域 RSS/WebDAV 会失败。完整网页版网络流程用 `npm run build:web` 后的 `npx wrangler dev` 测试；扩展网络流程仍需实际加载扩展。
 3. **`.env.release` 禁止提交**：内含 AMO JWT Secret，已 gitignore；新设备上从旧设备复制或重新生成。
 4. **改版本号要三处一致**：`package.json` + `public/manifest.json` +（`npm install` 刷新）`package-lock.json`。
 5. **WebDAV 强制 HTTPS**，且 URL 前缀要带结尾 `/`（代码会自动补）。

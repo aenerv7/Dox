@@ -1,5 +1,6 @@
 node_modules/
 dist/
 web-ext-artifacts/
+.wrangler/
 *.log
 .env.release

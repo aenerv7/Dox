@@ -1,5 +1,6 @@
-import { applySyncDocument, exportSyncDocument } from "./database";
-import type { AppSettings, SyncDocument } from "./model";
+import { applySyncDocument, exportSyncDocument, updateSyncedPreferences } from "./database";
+import type { AppSettings, PreferenceValues, SyncDocument } from "./model";
+import { fetchWebDav } from "./runtime-fetch";
 import { mergeSyncDocuments, parseSyncDocument } from "./sync-model";
 
 interface RemoteFile {
@@ -17,6 +18,16 @@ export interface SyncResult {
   subscriptions: number;
   itemStates: number;
   etag: string | null;
+  preferences?: PreferenceValues;
+}
+
+function preferenceValues(settings: AppSettings): PreferenceValues {
+  return {
+    theme: settings.theme,
+    colorScheme: settings.colorScheme,
+    customAccent: settings.customAccent,
+    showItemSnippet: settings.showItemSnippet,
+  };
 }
 
 const SYNC_DIRECTORY = "Dox Reader";
@@ -55,7 +66,7 @@ async function ensureDirectory(settings: AppSettings): Promise<{ locations: WebD
   const locations = resolveWebDavLocations(settings);
   const requestHeaders = headers(settings);
   requestHeaders.set("Depth", "0");
-  const probe = await fetch(locations.directory, {
+  const probe = await fetchWebDav(locations.directory.toString(), {
     method: "PROPFIND",
     headers: requestHeaders,
     cache: "no-store",
@@ -63,13 +74,13 @@ async function ensureDirectory(settings: AppSettings): Promise<{ locations: WebD
   if (probe.ok) return { locations, created: false };
   if (probe.status !== 404) throw new Error(`WebDAV 目录检查失败（HTTP ${probe.status}）`);
 
-  const create = await fetch(locations.directory, {
+  const create = await fetchWebDav(locations.directory.toString(), {
     method: "MKCOL",
     headers: headers(settings),
   });
   if (create.ok) return { locations, created: true };
   if (create.status === 405) {
-    const retry = await fetch(locations.directory, {
+    const retry = await fetchWebDav(locations.directory.toString(), {
       method: "PROPFIND",
       headers: requestHeaders,
       cache: "no-store",
@@ -80,7 +91,7 @@ async function ensureDirectory(settings: AppSettings): Promise<{ locations: WebD
 }
 
 async function getRemote(settings: AppSettings, url: URL): Promise<RemoteFile> {
-  const response = await fetch(url, {
+  const response = await fetchWebDav(url.toString(), {
     method: "GET",
     headers: headers(settings),
     cache: "no-store",
@@ -111,7 +122,7 @@ async function putRemote(
   requestHeaders.set("Content-Type", "application/json; charset=utf-8");
   if (remote.exists && remote.etag) requestHeaders.set("If-Match", remote.etag);
   if (!remote.exists) requestHeaders.set("If-None-Match", "*");
-  return fetch(url, {
+  return fetchWebDav(url.toString(), {
     method: "PUT",
     headers: requestHeaders,
     body: JSON.stringify(document),
@@ -120,7 +131,7 @@ async function putRemote(
 
 export async function testWebDav(settings: AppSettings): Promise<string> {
   const { locations, created } = await ensureDirectory(settings);
-  const response = await fetch(locations.file, {
+  const response = await fetchWebDav(locations.file.toString(), {
     method: "GET",
     headers: headers(settings),
     cache: "no-store",
@@ -138,7 +149,11 @@ export async function syncWithWebDav(settings: AppSettings): Promise<SyncResult>
   const { locations } = await ensureDirectory(settings);
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const remote = await getRemote(settings, locations.file);
-    const local = await exportSyncDocument();
+    let local = await exportSyncDocument();
+    if (!local.preferences && !remote.document?.preferences) {
+      await updateSyncedPreferences(preferenceValues(settings));
+      local = await exportSyncDocument();
+    }
     const merged = remote.document ? mergeSyncDocuments(local, remote.document) : local;
     await applySyncDocument(merged);
     const response = await putRemote(settings, locations.file, merged, remote);
@@ -148,6 +163,12 @@ export async function syncWithWebDav(settings: AppSettings): Promise<SyncResult>
       subscriptions: Object.keys(merged.subscriptions).length,
       itemStates: Object.keys(merged.itemStates).length,
       etag: response.headers.get("etag"),
+      preferences: merged.preferences ? {
+        theme: merged.preferences.theme.value,
+        colorScheme: merged.preferences.colorScheme.value,
+        customAccent: merged.preferences.customAccent?.value ?? settings.customAccent,
+        showItemSnippet: merged.preferences.showItemSnippet.value,
+      } : undefined,
     };
   }
   throw new Error("WebDAV 文件持续被其他设备修改，请稍后重试");

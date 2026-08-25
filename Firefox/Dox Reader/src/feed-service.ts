@@ -1,12 +1,13 @@
 import { getFeed, saveParsedFeed, setFeedError } from "./database";
 import { parseFeedXml } from "./feed-parser";
+import { fetchFeed } from "./runtime-fetch";
 
 export async function refreshFeed(feedId: string): Promise<number> {
   const feed = await getFeed(feedId);
   if (!feed || feed.deleted) throw new Error("订阅源不存在");
 
   try {
-    const response = await fetch(feed.url, {
+    const response = await fetchFeed(feed.url, {
       method: "GET",
       headers: {
         Accept: "application/atom+xml, application/rss+xml, application/rdf+xml, application/xml, text/xml, */*;q=0.5",
@@ -15,7 +16,11 @@ export async function refreshFeed(feedId: string): Promise<number> {
       redirect: "follow",
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const parsed = await parseFeedXml(await response.text(), feed.id, response.url || feed.url);
+    const parsed = await parseFeedXml(
+      await response.text(),
+      feed.id,
+      response.headers.get("X-Dox-Upstream-URL") || response.url || feed.url,
+    );
     await saveParsedFeed(feed.id, parsed);
     return parsed.items.length;
   } catch (error) {

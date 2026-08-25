@@ -73,6 +73,58 @@ describe("sync model", () => {
     expect(mergeSyncDocuments(local, document("android")).lastRefreshAllAt).toBe(1000);
   });
 
+  it("merges appearance and reading preferences independently", () => {
+    const local = document("desktop");
+    local.preferences = {
+      theme: { value: "dark", version: [5, "desktop"] },
+      colorScheme: { value: "cinnabar", version: [1, "desktop"] },
+      customAccent: { value: "#b64038", version: [7, "desktop"] },
+      showItemSnippet: { value: false, version: [2, "desktop"] },
+    };
+    const remote = document("mobile");
+    remote.preferences = {
+      theme: { value: "light", version: [4, "mobile"] },
+      colorScheme: { value: "celadon", version: [6, "mobile"] },
+      customAccent: { value: "#0066cc", version: [3, "mobile"] },
+      showItemSnippet: { value: true, version: [1, "mobile"] },
+    };
+
+    expect(mergeSyncDocuments(local, remote).preferences).toEqual({
+      theme: local.preferences.theme,
+      colorScheme: remote.preferences.colorScheme,
+      customAccent: local.preferences.customAccent,
+      showItemSnippet: local.preferences.showItemSnippet,
+    });
+  });
+
+  it("accepts legacy documents and validates synced preferences", () => {
+    expect(parseSyncDocument(document("desktop")).preferences).toBeUndefined();
+    const withPreferences = document("desktop");
+    withPreferences.preferences = {
+      theme: { value: "system", version: [3, "desktop"] },
+      colorScheme: { value: "material", version: [3, "desktop"] },
+      customAccent: { value: "#334455", version: [3, "desktop"] },
+      showItemSnippet: { value: true, version: [3, "desktop"] },
+    };
+    expect(parseSyncDocument(withPreferences).preferences).toEqual(withPreferences.preferences);
+
+    expect(() => parseSyncDocument({
+      ...withPreferences,
+      preferences: {
+        ...withPreferences.preferences,
+        colorScheme: { value: "neon", version: [4, "desktop"] },
+      },
+    })).toThrow("无效外观或阅读设置");
+
+    expect(() => parseSyncDocument({
+      ...withPreferences,
+      preferences: {
+        ...withPreferences.preferences,
+        customAccent: { value: "red", version: [4, "desktop"] },
+      },
+    })).toThrow("无效外观或阅读设置");
+  });
+
   it("accepts a missing or valid lastRefreshAllAt and rejects invalid values", () => {
     expect(parseSyncDocument(document("desktop")).lastRefreshAllAt).toBeUndefined();
     const withValue = document("desktop");

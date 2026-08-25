@@ -3,234 +3,371 @@
   font-family: Inter, "Segoe UI", "Noto Sans SC", system-ui, sans-serif;
   font-synthesis: none;
   letter-spacing: 0;
-  /* 配色：墨绿（默认）· 浅色 */
-  --bg: #f7f8f6;
-  --surface: #ffffff;
-  --surface-soft: #f0f2ef;
-  --surface-hover: #e9ece8;
-  --text: #202323;
-  --text-soft: #606866;
-  --border: #d9ddda;
-  --border-strong: #c4cac6;
-  --accent: #c8423d;
-  --accent-soft: #f7e5e3;
-  --accent-contrast: #ffffff;
-  --gold: #a06b05;
-  --danger: #b82f35;
-  --shadow: 0 14px 38px rgb(24 32 29 / 18%);
+  /* 墨韵：所有方案同时提供浅色和深色语义变量。 */
+  --light-bg: #f5f7f5;
+  --light-surface: #ffffff;
+  --light-reader: #fbfcfa;
+  --light-surface-soft: #edf1ee;
+  --light-surface-hover: #e4eae6;
+  --light-text: #202522;
+  --light-text-soft: #5e6963;
+  --light-border: #d4ddd7;
+  --light-border-strong: #bcc9c0;
+  --light-accent: #b64038;
+  --light-accent-soft: #f4e2df;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #956a16;
+  --light-danger: #b52f39;
+  --light-shadow: rgb(27 39 32 / 17%);
+  --dark-bg: #151a17;
+  --dark-surface: #1c231f;
+  --dark-reader: #181e1b;
+  --dark-surface-soft: #252e29;
+  --dark-surface-hover: #303a34;
+  --dark-text: #edf2ee;
+  --dark-text-soft: #a6b2aa;
+  --dark-border: #354139;
+  --dark-border-strong: #49584f;
+  --dark-accent: #e8786f;
+  --dark-accent-soft: #482c29;
+  --dark-accent-contrast: #261311;
+  --dark-gold: #e0b45c;
+  --dark-danger: #ff7b82;
+  --dark-shadow: rgb(0 0 0 / 46%);
+  --backdrop: rgb(8 12 10 / 58%);
+  --busy-overlay: rgb(8 12 10 / 78%);
+  --bg: var(--light-bg);
+  --surface: var(--light-surface);
+  --reader: var(--light-reader);
+  --surface-soft: var(--light-surface-soft);
+  --surface-hover: var(--light-surface-hover);
+  --text: var(--light-text);
+  --text-soft: var(--light-text-soft);
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+  --accent: var(--light-accent);
+  --accent-soft: var(--light-accent-soft);
+  --accent-contrast: var(--light-accent-contrast);
+  --gold: var(--light-gold);
+  --danger: var(--light-danger);
+  --shadow: 0 14px 38px var(--light-shadow);
 }
 
-/* 配色：其他方案 · 浅色（--gold / --danger 沿用墨绿基色） */
 :root[data-scheme="ocean"] {
-  --bg: #f5f7fa;
-  --surface: #ffffff;
-  --surface-soft: #eef2f7;
-  --surface-hover: #e4eaf2;
-  --text: #1f2429;
-  --text-soft: #5d6b7a;
-  --border: #d6dee9;
-  --border-strong: #bfcad8;
-  --accent: #2563eb;
-  --accent-soft: #e2ebfb;
-  --accent-contrast: #ffffff;
-  --shadow: 0 14px 38px rgb(23 38 61 / 16%);
+  --light-bg: #f3f6fa;
+  --light-surface: #ffffff;
+  --light-reader: #fafcff;
+  --light-surface-soft: #eaf0f6;
+  --light-surface-hover: #e0e8f1;
+  --light-text: #20262d;
+  --light-text-soft: #5d6a79;
+  --light-border: #d2dce8;
+  --light-border-strong: #b8c7d8;
+  --light-accent: #2d62bd;
+  --light-accent-soft: #dfe9f9;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #9a6c17;
+  --light-shadow: rgb(23 38 61 / 16%);
+  --dark-bg: #121921;
+  --dark-surface: #19232d;
+  --dark-reader: #151e27;
+  --dark-surface-soft: #222e3a;
+  --dark-surface-hover: #2d3b49;
+  --dark-text: #eaf0f6;
+  --dark-text-soft: #a2b1c1;
+  --dark-border: #334250;
+  --dark-border-strong: #475a6c;
+  --dark-accent: #82adee;
+  --dark-accent-soft: #243a56;
+  --dark-accent-contrast: #0d1824;
+  --dark-gold: #dfb35c;
 }
 
 :root[data-scheme="violet"] {
-  --bg: #f8f6fa;
-  --surface: #ffffff;
-  --surface-soft: #f2eff7;
-  --surface-hover: #eae5f1;
-  --text: #242129;
-  --text-soft: #655f72;
-  --border: #dcd7e7;
-  --border-strong: #c6bdd8;
-  --accent: #7c3aed;
-  --accent-soft: #f0e8fd;
-  --accent-contrast: #ffffff;
-  --shadow: 0 14px 38px rgb(43 30 68 / 16%);
+  --light-bg: #f7f5fa;
+  --light-surface: #ffffff;
+  --light-reader: #fcfbfe;
+  --light-surface-soft: #efecf5;
+  --light-surface-hover: #e7e1ef;
+  --light-text: #27222c;
+  --light-text-soft: #686071;
+  --light-border: #dad3e3;
+  --light-border-strong: #c3b8d1;
+  --light-accent: #7350a4;
+  --light-accent-soft: #ece3f7;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #9a6b18;
+  --light-shadow: rgb(43 30 68 / 16%);
+  --dark-bg: #18151f;
+  --dark-surface: #211c29;
+  --dark-reader: #1b1723;
+  --dark-surface-soft: #2a2435;
+  --dark-surface-hover: #352e43;
+  --dark-text: #f0ecf4;
+  --dark-text-soft: #ada5b8;
+  --dark-border: #3b3347;
+  --dark-border-strong: #51445f;
+  --dark-accent: #b796dc;
+  --dark-accent-soft: #382b49;
+  --dark-accent-contrast: #1b1025;
+  --dark-gold: #deb25c;
 }
 
 :root[data-scheme="amber"] {
-  --bg: #faf7f2;
-  --surface: #ffffff;
-  --surface-soft: #f5f0e6;
-  --surface-hover: #efe7d8;
-  --text: #29241d;
-  --text-soft: #72695a;
-  --border: #e3dbcb;
-  --border-strong: #cfc3ad;
-  --accent: #c05621;
-  --accent-soft: #fbe9dc;
-  --accent-contrast: #ffffff;
-  --shadow: 0 14px 38px rgb(64 46 21 / 16%);
+  --light-bg: #faf7f1;
+  --light-surface: #ffffff;
+  --light-reader: #fffdf8;
+  --light-surface-soft: #f3ede2;
+  --light-surface-hover: #ece3d3;
+  --light-text: #2b261e;
+  --light-text-soft: #706759;
+  --light-border: #dfd6c6;
+  --light-border-strong: #cbbca5;
+  --light-accent: #ad5c25;
+  --light-accent-soft: #f7e5d6;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #8f661a;
+  --light-shadow: rgb(64 46 21 / 16%);
+  --dark-bg: #1c1914;
+  --dark-surface: #252019;
+  --dark-reader: #201c16;
+  --dark-surface-soft: #30291f;
+  --dark-surface-hover: #3b3327;
+  --dark-text: #f2eee5;
+  --dark-text-soft: #b3aa99;
+  --dark-border: #463d30;
+  --dark-border-strong: #5b4f3d;
+  --dark-accent: #e9a064;
+  --dark-accent-soft: #4b3423;
+  --dark-accent-contrast: #231207;
+  --dark-gold: #e6bb65;
 }
 
 :root[data-scheme="graphite"] {
-  --bg: #f6f6f6;
-  --surface: #ffffff;
-  --surface-soft: #efefef;
-  --surface-hover: #e6e6e6;
-  --text: #222222;
-  --text-soft: #646464;
-  --border: #d9d9d9;
-  --border-strong: #c2c2c2;
-  --accent: #4f6176;
-  --accent-soft: #e7ebf0;
-  --accent-contrast: #ffffff;
-  --shadow: 0 14px 38px rgb(32 32 32 / 16%);
+  --light-bg: #f5f6f7;
+  --light-surface: #ffffff;
+  --light-reader: #fafbfc;
+  --light-surface-soft: #eceff1;
+  --light-surface-hover: #e3e7ea;
+  --light-text: #242628;
+  --light-text-soft: #62686d;
+  --light-border: #d5dade;
+  --light-border-strong: #bec6cc;
+  --light-accent: #53687d;
+  --light-accent-soft: #e2e8ed;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #956a19;
+  --light-shadow: rgb(32 36 40 / 16%);
+  --dark-bg: #151617;
+  --dark-surface: #1c1e20;
+  --dark-reader: #181a1c;
+  --dark-surface-soft: #25282b;
+  --dark-surface-hover: #303438;
+  --dark-text: #eceeef;
+  --dark-text-soft: #a5aaae;
+  --dark-border: #34383b;
+  --dark-border-strong: #484e53;
+  --dark-accent: #9fb4c7;
+  --dark-accent-soft: #2b3741;
+  --dark-accent-contrast: #10171c;
+  --dark-gold: #dcb15e;
 }
 
-/* 深色 · 墨绿（默认） */
+/* Material Design 3 neutral：黑灰强调色与中性表面层级。 */
+:root[data-scheme="material"] {
+  --light-bg: #f5f5f5;
+  --light-surface: #fdfdfd;
+  --light-reader: #ffffff;
+  --light-surface-soft: #f0f0f0;
+  --light-surface-hover: #e4e4e4;
+  --light-text: #1b1c1e;
+  --light-text-soft: #45474a;
+  --light-border: #c5c6c8;
+  --light-border-strong: #75777a;
+  --light-accent: #3f4143;
+  --light-accent-soft: #e1e2e4;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #795900;
+  --light-danger: #b3261e;
+  --light-shadow: rgb(27 28 30 / 18%);
+  --dark-bg: #111315;
+  --dark-surface: #1b1c1e;
+  --dark-reader: #17191b;
+  --dark-surface-soft: #222325;
+  --dark-surface-hover: #2c2e30;
+  --dark-text: #e3e3e6;
+  --dark-text-soft: #c5c6c9;
+  --dark-border: #45474a;
+  --dark-border-strong: #8f9194;
+  --dark-accent: #c5c6c9;
+  --dark-accent-soft: #45474a;
+  --dark-accent-contrast: #1b1c1e;
+  --dark-gold: #e9c349;
+  --dark-danger: #f2b8b5;
+  --dark-shadow: rgb(0 0 0 / 48%);
+}
+
+/* 东方传统色：宣纸朱砂、雨过天青、竹青、藕荷。 */
+:root[data-scheme="cinnabar"] {
+  --light-bg: #f4f1e8;
+  --light-surface: #fbfaf5;
+  --light-reader: #fffef9;
+  --light-surface-soft: #ece8dd;
+  --light-surface-hover: #e4ded0;
+  --light-text: #292722;
+  --light-text-soft: #6e685e;
+  --light-border: #dbd4c5;
+  --light-border-strong: #c5baa7;
+  --light-accent: #b23a32;
+  --light-accent-soft: #f1deda;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #94691b;
+  --light-danger: #a82f38;
+  --light-shadow: rgb(53 43 31 / 18%);
+  --dark-bg: #191713;
+  --dark-surface: #211e19;
+  --dark-reader: #1c1a16;
+  --dark-surface-soft: #2b2720;
+  --dark-surface-hover: #373128;
+  --dark-text: #f1ede3;
+  --dark-text-soft: #b4ac9c;
+  --dark-border: #40392e;
+  --dark-border-strong: #554b3c;
+  --dark-accent: #df766a;
+  --dark-accent-soft: #492b27;
+  --dark-accent-contrast: #25110f;
+  --dark-gold: #deb565;
+  --dark-danger: #ff7e84;
+}
+
+:root[data-scheme="celadon"] {
+  --light-bg: #edf3f1;
+  --light-surface: #f9fbfa;
+  --light-reader: #fcfefd;
+  --light-surface-soft: #e3ece9;
+  --light-surface-hover: #d8e4e0;
+  --light-text: #202a27;
+  --light-text-soft: #5d6c67;
+  --light-border: #ccd9d4;
+  --light-border-strong: #b3c7c0;
+  --light-accent: #3d7470;
+  --light-accent-soft: #d7e8e4;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #9a7022;
+  --light-shadow: rgb(28 55 50 / 16%);
+  --dark-bg: #131a19;
+  --dark-surface: #1a2321;
+  --dark-reader: #161e1c;
+  --dark-surface-soft: #23302d;
+  --dark-surface-hover: #2d3c38;
+  --dark-text: #e9f0ed;
+  --dark-text-soft: #9fb1ab;
+  --dark-border: #34443f;
+  --dark-border-strong: #485b55;
+  --dark-accent: #7fb4aa;
+  --dark-accent-soft: #27423c;
+  --dark-accent-contrast: #0d1c19;
+  --dark-gold: #d7ad61;
+}
+
+:root[data-scheme="bamboo"] {
+  --light-bg: #f2f5ed;
+  --light-surface: #fcfdf9;
+  --light-reader: #fffefb;
+  --light-surface-soft: #e8eee1;
+  --light-surface-hover: #dfe8d6;
+  --light-text: #252a22;
+  --light-text-soft: #626d5b;
+  --light-border: #d1dbc8;
+  --light-border-strong: #bac9ad;
+  --light-accent: #4d7450;
+  --light-accent-soft: #deeadb;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #987121;
+  --light-shadow: rgb(38 56 30 / 16%);
+  --dark-bg: #151a13;
+  --dark-surface: #1d241a;
+  --dark-reader: #181f16;
+  --dark-surface-soft: #273022;
+  --dark-surface-hover: #323d2b;
+  --dark-text: #edf1e9;
+  --dark-text-soft: #a7b19f;
+  --dark-border: #394433;
+  --dark-border-strong: #4d5c45;
+  --dark-accent: #91b28a;
+  --dark-accent-soft: #2e442d;
+  --dark-accent-contrast: #101c0f;
+  --dark-gold: #d7af5d;
+}
+
+:root[data-scheme="lotus"] {
+  --light-bg: #f7f2f4;
+  --light-surface: #fdfafb;
+  --light-reader: #fffdfd;
+  --light-surface-soft: #f0e6ea;
+  --light-surface-hover: #e8dce1;
+  --light-text: #2c2529;
+  --light-text-soft: #74636b;
+  --light-border: #dfd2d7;
+  --light-border-strong: #c9b7bf;
+  --light-accent: #8b5b70;
+  --light-accent-soft: #eedde4;
+  --light-accent-contrast: #ffffff;
+  --light-gold: #9b712c;
+  --light-shadow: rgb(62 38 49 / 16%);
+  --dark-bg: #1b1618;
+  --dark-surface: #241c20;
+  --dark-reader: #1f191c;
+  --dark-surface-soft: #30252a;
+  --dark-surface-hover: #3c2f35;
+  --dark-text: #f2ecef;
+  --dark-text-soft: #b5a5ac;
+  --dark-border: #44353c;
+  --dark-border-strong: #5b4650;
+  --dark-accent: #c38ba3;
+  --dark-accent-soft: #482d39;
+  --dark-accent-contrast: #211017;
+  --dark-gold: #d9af67;
+}
+
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #171a1a;
-  --surface: #1e2221;
-  --surface-soft: #262b29;
-  --surface-hover: #303634;
-  --text: #eef1ed;
-  --text-soft: #a9b0ac;
-  --border: #363c39;
-  --border-strong: #4a524e;
-  --accent: #ef716b;
-  --accent-soft: #492b2a;
-  --accent-contrast: #231313;
-  --gold: #e8b64e;
-  --danger: #ff777d;
-  --shadow: 0 16px 44px rgb(0 0 0 / 45%);
+  --bg: var(--dark-bg);
+  --surface: var(--dark-surface);
+  --reader: var(--dark-reader);
+  --surface-soft: var(--dark-surface-soft);
+  --surface-hover: var(--dark-surface-hover);
+  --text: var(--dark-text);
+  --text-soft: var(--dark-text-soft);
+  --border: var(--dark-border);
+  --border-strong: var(--dark-border-strong);
+  --accent: var(--dark-accent);
+  --accent-soft: var(--dark-accent-soft);
+  --accent-contrast: var(--dark-accent-contrast);
+  --gold: var(--dark-gold);
+  --danger: var(--dark-danger);
+  --shadow: 0 16px 44px var(--dark-shadow);
 }
 
-/* 深色 · 其他配色 */
-:root[data-theme="dark"][data-scheme="ocean"] {
-  --bg: #141a21;
-  --surface: #1b232c;
-  --surface-soft: #242e3a;
-  --surface-hover: #2f3b4a;
-  --text: #e9eff6;
-  --text-soft: #a2b0c1;
-  --border: #35414f;
-  --border-strong: #49586a;
-  --accent: #7dabf5;
-  --accent-soft: #253650;
-  --accent-contrast: #0e1826;
-}
-
-:root[data-theme="dark"][data-scheme="violet"] {
-  --bg: #191622;
-  --surface: #201c2b;
-  --surface-soft: #29243a;
-  --surface-hover: #332d49;
-  --text: #f0edf6;
-  --text-soft: #aca6bd;
-  --border: #3a3449;
-  --border-strong: #4d4561;
-  --accent: #b28df7;
-  --accent-soft: #362a50;
-  --accent-contrast: #170f2a;
-}
-
-:root[data-theme="dark"][data-scheme="amber"] {
-  --bg: #1d1a15;
-  --surface: #25211b;
-  --surface-soft: #2f2a22;
-  --surface-hover: #3a342a;
-  --text: #f3efe7;
-  --text-soft: #b3ab9c;
-  --border: #463e31;
-  --border-strong: #59503e;
-  --accent: #f2a057;
-  --accent-soft: #4b3522;
-  --accent-contrast: #221207;
-}
-
-:root[data-theme="dark"][data-scheme="graphite"] {
-  --bg: #151515;
-  --surface: #1c1c1c;
-  --surface-soft: #252525;
-  --surface-hover: #2f2f2f;
-  --text: #ededed;
-  --text-soft: #a6a6a6;
-  --border: #333333;
-  --border-strong: #464646;
-  --accent: #9fb0c4;
-  --accent-soft: #2c333d;
-  --accent-contrast: #10151c;
-}
-
-/* 跟随系统：OS 为深色时，除显式“浅色”外的所有配色自动切换到深色变体 */
+/* 跟随系统：OS 为深色时，除显式“浅色”外自动切换到深色变体。 */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #171a1a;
-    --surface: #1e2221;
-    --surface-soft: #262b29;
-    --surface-hover: #303634;
-    --text: #eef1ed;
-    --text-soft: #a9b0ac;
-    --border: #363c39;
-    --border-strong: #4a524e;
-    --accent: #ef716b;
-    --accent-soft: #492b2a;
-    --accent-contrast: #231313;
-    --gold: #e8b64e;
-    --danger: #ff777d;
-    --shadow: 0 16px 44px rgb(0 0 0 / 45%);
-  }
-
-  :root:not([data-theme="light"])[data-scheme="ocean"] {
-    --bg: #141a21;
-    --surface: #1b232c;
-    --surface-soft: #242e3a;
-    --surface-hover: #2f3b4a;
-    --text: #e9eff6;
-    --text-soft: #a2b0c1;
-    --border: #35414f;
-    --border-strong: #49586a;
-    --accent: #7dabf5;
-    --accent-soft: #253650;
-    --accent-contrast: #0e1826;
-  }
-
-  :root:not([data-theme="light"])[data-scheme="violet"] {
-    --bg: #191622;
-    --surface: #201c2b;
-    --surface-soft: #29243a;
-    --surface-hover: #332d49;
-    --text: #f0edf6;
-    --text-soft: #aca6bd;
-    --border: #3a3449;
-    --border-strong: #4d4561;
-    --accent: #b28df7;
-    --accent-soft: #362a50;
-    --accent-contrast: #170f2a;
-  }
-
-  :root:not([data-theme="light"])[data-scheme="amber"] {
-    --bg: #1d1a15;
-    --surface: #25211b;
-    --surface-soft: #2f2a22;
-    --surface-hover: #3a342a;
-    --text: #f3efe7;
-    --text-soft: #b3ab9c;
-    --border: #463e31;
-    --border-strong: #59503e;
-    --accent: #f2a057;
-    --accent-soft: #4b3522;
-    --accent-contrast: #221207;
-  }
-
-  :root:not([data-theme="light"])[data-scheme="graphite"] {
-    --bg: #151515;
-    --surface: #1c1c1c;
-    --surface-soft: #252525;
-    --surface-hover: #2f2f2f;
-    --text: #ededed;
-    --text-soft: #a6a6a6;
-    --border: #333333;
-    --border-strong: #464646;
-    --accent: #9fb0c4;
-    --accent-soft: #2c333d;
-    --accent-contrast: #10151c;
+    --bg: var(--dark-bg);
+    --surface: var(--dark-surface);
+    --reader: var(--dark-reader);
+    --surface-soft: var(--dark-surface-soft);
+    --surface-hover: var(--dark-surface-hover);
+    --text: var(--dark-text);
+    --text-soft: var(--dark-text-soft);
+    --border: var(--dark-border);
+    --border-strong: var(--dark-border-strong);
+    --accent: var(--dark-accent);
+    --accent-soft: var(--dark-accent-soft);
+    --accent-contrast: var(--dark-accent-contrast);
+    --gold: var(--dark-gold);
+    --danger: var(--dark-danger);
+    --shadow: 0 16px 44px var(--dark-shadow);
   }
 }
 
@@ -734,7 +871,7 @@ input:focus-visible {
 
 .reader-pane {
   overflow: hidden;
-  background: var(--bg);
+  background: var(--reader);
 }
 
 .resize-handle {
@@ -966,7 +1103,7 @@ body.layout-resizing {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgb(10 14 13 / 52%);
+  background: var(--backdrop);
 }
 
 .dialog {
@@ -1068,7 +1205,7 @@ body.layout-resizing {
 .settings-scroll {
   min-height: 0;
   overflow-y: auto;
-  max-height: 50dvh;
+  scrollbar-gutter: stable;
 }
 
 .settings-section {
@@ -1138,23 +1275,46 @@ body.layout-resizing {
   box-shadow: 0 1px 3px rgb(20 25 23 / 12%);
 }
 
+.scheme-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(470px, 100%);
+}
+
+.scheme-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.scheme-group-label {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
+
 .scheme-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  width: min(430px, 100%);
+  width: 100%;
 }
 
 .scheme-option {
+  position: relative;
   display: flex;
   align-items: center;
-  flex-direction: column;
-  gap: 6px;
-  padding: 7px 6px 8px;
+  gap: 8px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 6px 24px 6px 6px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--surface);
   cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .scheme-option.active {
@@ -1164,31 +1324,103 @@ body.layout-resizing {
 
 .scheme-swatch {
   position: relative;
-  display: block;
-  width: 100%;
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: 1fr 1fr;
+  width: 48px;
   height: 30px;
+  overflow: hidden;
+  border: 1px solid var(--border);
   border-radius: 5px;
+}
+
+.scheme-swatch > span {
+  display: block;
 }
 
 .scheme-swatch i {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 11px;
-  height: 11px;
-  border: 2px solid rgb(255 255 255 / 75%);
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgb(255 255 255 / 82%);
   border-radius: 50%;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 28%);
   transform: translate(-50%, -50%);
 }
 
 .scheme-label {
+  overflow: hidden;
   color: var(--text-soft);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .scheme-option.active .scheme-label {
   color: var(--text);
+}
+
+.scheme-check {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  color: var(--accent);
+  transform: translateY(-50%);
+}
+
+.accent-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(330px, 100%);
+  padding-top: 2px;
+}
+
+.accent-picker {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.accent-picker input[type="color"] {
+  width: 48px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.accent-picker input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.accent-picker input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 3px;
+}
+
+.accent-picker > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.accent-picker strong {
+  font-size: 12px;
+}
+
+.accent-picker small {
+  color: var(--text-soft);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
 }
 
 .toggle-row {
@@ -1264,14 +1496,14 @@ body.layout-resizing {
   justify-content: center;
   flex-direction: column;
   gap: 10px;
-  background: rgb(14 18 17 / 72%);
-  color: #f5f7f4;
+  background: var(--busy-overlay);
+  color: var(--surface);
   cursor: wait;
   text-align: center;
 }
 
 .global-refresh-overlay svg {
-  color: #f07a73;
+  color: var(--accent);
 }
 
 .global-refresh-overlay strong {
@@ -1279,7 +1511,7 @@ body.layout-resizing {
 }
 
 .global-refresh-overlay span {
-  color: #c4cbc7;
+  color: var(--border);
   font-size: 12px;
 }
 
@@ -1490,6 +1722,10 @@ body.layout-resizing {
 
   .settings-section > :not(.section-heading) {
     margin-left: 0;
+  }
+
+  .scheme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toast {
