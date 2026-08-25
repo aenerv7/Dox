@@ -155,6 +155,15 @@ export async function listFeeds(): Promise<FeedRecord[]> {
     ));
 }
 
+export async function hasLocalReaderData(): Promise<boolean> {
+  const [feeds, items, itemStates] = await Promise.all([
+    db.feeds.count(),
+    db.items.count(),
+    db.itemStates.count(),
+  ]);
+  return feeds > 0 || items > 0 || itemStates > 0;
+}
+
 export async function getFeed(id: string): Promise<FeedRecord | undefined> {
   return db.feeds.get(id);
 }

@@ -40,9 +40,6 @@ try {
     Write-Host "Testing and building Dox Reader..."
     Invoke-Checked -Command "npm.cmd" -Arguments @("run", "check")
 
-    # npm run check leaves the Firefox extension in dist; deploy the web target instead.
-    Invoke-Checked -Command "npm.cmd" -Arguments @("run", "build:web")
-
     if ($DryRun) {
         Write-Host "Validating the Cloudflare deployment without uploading..."
         Invoke-Checked -Command "npx.cmd" -Arguments @("wrangler", "deploy", "--dry-run")

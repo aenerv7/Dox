@@ -1,16 +1,12 @@
 const WEB_REQUEST_HEADER = "X-Dox-Reader-Request";
 const WEB_TARGET_HEADER = "X-Dox-Target";
 
-export function isExtensionRuntime(): boolean {
-  return typeof browser !== "undefined" && typeof browser.runtime?.getURL === "function";
-}
-
 function proxyUrl(path: "/api/feed" | "/api/webdav"): string {
   return new URL(path, window.location.origin).toString();
 }
 
 export function fetchFeed(target: string, init?: RequestInit): Promise<Response> {
-  if (isExtensionRuntime() || typeof window === "undefined") return fetch(target, init);
+  if (typeof window === "undefined") return fetch(target, init);
 
   const headers = new Headers(init?.headers);
   headers.set(WEB_REQUEST_HEADER, "1");
@@ -19,7 +15,7 @@ export function fetchFeed(target: string, init?: RequestInit): Promise<Response>
 }
 
 export function fetchWebDav(target: string, init?: RequestInit): Promise<Response> {
-  if (isExtensionRuntime() || typeof window === "undefined") return fetch(new URL(target), init);
+  if (typeof window === "undefined") return fetch(new URL(target), init);
 
   const headers = new Headers(init?.headers);
   headers.set(WEB_REQUEST_HEADER, "1");

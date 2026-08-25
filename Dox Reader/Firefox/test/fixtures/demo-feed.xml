@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Dox Design Notes</title>
+    <link>https://example.com/notes</link>
+    <description>Interface and engineering notes</description>
+    <item>
+      <guid>responsive-reading-surfaces</guid>
+      <title>Designing a reading surface that works at every width</title>
+      <link>https://example.com/notes/responsive-reading-surfaces</link>
+      <pubDate>Fri, 15 Aug 2026 05:30:00 GMT</pubDate>
+      <content:encoded><![CDATA[
+        <p>A good reading interface keeps navigation close without allowing it to compete with the article.</p>
+        <h2>One information model, two compositions</h2>
+        <p>Desktop screens can expose subscriptions, headlines, and the current article at once. A phone should preserve the same hierarchy as a sequence of focused views.</p>
+        <blockquote>The layout changes, but the reader's place in the information architecture does not.</blockquote>
+        <p>Stable controls and restrained typography make repeated reading feel calm rather than ornamental.</p>
+      ]]></content:encoded>
+    </item>
+    <item>
+      <guid>local-first-sync</guid>
+      <title>Local-first state and small, predictable sync files</title>
+      <link>https://example.com/notes/local-first-sync</link>
+      <pubDate>Thu, 14 Aug 2026 11:00:00 GMT</pubDate>
+      <description><![CDATA[<p>Keep article bodies local and synchronize only subscriptions and user-authored state.</p>]]></description>
+    </item>
+    <item>
+      <guid>feed-identities</guid>
+      <title>Stable identities for imperfect feeds</title>
+      <link>https://example.com/notes/feed-identities</link>
+      <pubDate>Wed, 13 Aug 2026 09:20:00 GMT</pubDate>
+      <description><![CDATA[<p>Prefer GUIDs, then canonical links, and use content fingerprints only as a final fallback.</p>]]></description>
+    </item>
+  </channel>
+</rss>

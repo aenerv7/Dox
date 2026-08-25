@@ -1,9 +1,8 @@
 import { render } from "preact";
 import { App } from "./app";
-import { isExtensionRuntime } from "./runtime-fetch";
 import "./styles.css";
 
-if (!isExtensionRuntime() && navigator.storage?.persist) {
+if (navigator.storage?.persist) {
   void navigator.storage.persist().catch(() => false);
 }
 

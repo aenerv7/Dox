@@ -6,6 +6,8 @@ import {
   Cloud,
   CloudOff,
   Download,
+  Eye,
+  EyeOff,
   ExternalLink,
   FileUp,
   Inbox,
@@ -34,6 +36,7 @@ import {
   getFeedUnreadCounts,
   getItemCounts,
   getLastRefreshAllAt,
+  hasLocalReaderData,
   listFeeds,
   listItems,
   markAllRead,
@@ -46,6 +49,8 @@ import {
   updateSyncedPreferences,
 } from "./database";
 import { refreshFeed, refreshFeeds } from "./feed-service";
+import { needsInitialArticleRefresh } from "./initial-sync";
+import { formatItemSource, matchesItemView } from "./item-list";
 import type { AppSettings, ColorScheme, FeedRecord, ItemRecord, PreferenceValues } from "./model";
 import { DEFAULT_SETTINGS } from "./model";
 import { createOpml, parseOpml } from "./opml";
@@ -98,6 +103,12 @@ const ITEM_PANE_MIN = 0.22;
 const ITEM_PANE_MAX = 0.5;
 const READER_PANE_MIN = 0.3;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const MIN_ASYNC_FEEDBACK_MS = 400;
+
+async function keepFeedbackVisible(startedAt: number): Promise<void> {
+  const remaining = MIN_ASYNC_FEEDBACK_MS - (Date.now() - startedAt);
+  if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+}
 
 function preferenceValues(settings: AppSettings): PreferenceValues {
   return {
@@ -168,6 +179,7 @@ export function App() {
   const [feedUnread, setFeedUnread] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [retainedUnreadIds, setRetainedUnreadIds] = useState<ReadonlySet<string>>(() => new Set());
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [mobilePane, setMobilePane] = useState<MobilePane>("items");
   const [showAdd, setShowAdd] = useState(false);
@@ -199,6 +211,7 @@ export function App() {
     if (!currentSettings.webdavUrl) return currentSettings;
     setSyncStatus("syncing");
     try {
+      const localHadReaderData = await hasLocalReaderData();
       const result = await syncWithWebDav(currentSettings);
       const syncedSettings = result.preferences
         ? { ...currentSettings, ...result.preferences }
@@ -207,8 +220,40 @@ export function App() {
       setSettingsState(syncedSettings);
       applyAppearance(syncedSettings);
       await loadData();
+
+      const syncedFeeds = localHadReaderData ? [] : await listFeeds();
+      let initialRefresh: Awaited<ReturnType<typeof refreshFeeds>> | null = null;
+      let initialRefreshError = "";
+      if (needsInitialArticleRefresh(localHadReaderData, syncedFeeds.length)) {
+        setRefreshing(true);
+        setRefreshScope("all");
+        try {
+          initialRefresh = await refreshFeeds(syncedFeeds.map((feed) => feed.id));
+          await setLastRefreshAllAt(Date.now());
+          try {
+            await syncWithWebDav(syncedSettings);
+          } catch {
+            // The initial sync and article refresh succeeded; a later sync can retry this metadata update.
+          }
+        } catch (error) {
+          initialRefreshError = error instanceof Error ? error.message : String(error);
+        } finally {
+          setRefreshing(false);
+          setRefreshScope(null);
+          await loadData();
+        }
+      }
+
       setSyncStatus("ok");
-      if (!quiet) setToast(`已同步 ${result.subscriptions} 个订阅和 ${result.itemStates} 条状态`);
+      if (!quiet) {
+        if (initialRefresh) {
+          setToast(`首次同步完成：刷新 ${initialRefresh.succeeded} 个订阅，读取 ${initialRefresh.updated} 篇文章，失败 ${initialRefresh.errors.length} 个`);
+        } else if (initialRefreshError) {
+          setToast(`同步完成，但首次刷新失败：${initialRefreshError}`);
+        } else {
+          setToast(`已同步 ${result.subscriptions} 个订阅和 ${result.itemStates} 条状态`);
+        }
+      }
       return syncedSettings;
     } catch (error) {
       setSyncStatus("error");
@@ -247,20 +292,16 @@ export function App() {
 
   // 切换订阅源/视图后，文章列表滚动位置回到顶部。
   useLayoutEffect(() => {
+    setRetainedUnreadIds(new Set());
     if (itemListRef.current) itemListRef.current.scrollTop = 0;
   }, [filter]);
 
   const visibleItems = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase();
-    return items.filter((item) => {
-      if (filter === "unread" && item.read) return false;
-      if (filter === "starred" && !item.starred) return false;
-      if (!["all", "unread", "starred"].includes(filter) && item.feedId !== filter) return false;
-      return !needle || `${item.title} ${item.author} ${item.snippet}`.toLocaleLowerCase().includes(needle);
-    });
-  }, [filter, items, query]);
+    return items.filter((item) => matchesItemView(item, filter, query, retainedUnreadIds));
+  }, [filter, items, query, retainedUnreadIds]);
 
   const selectedItem = items.find((item) => item.id === selectedItemId) ?? null;
+  const feedsById = useMemo(() => new Map(feeds.map((feed) => [feed.id, feed])), [feeds]);
   const selectedFeed = feeds.find((feed) => feed.id === filter);
   const selectedFeedUnread = selectedFeed ? (feedUnread[selectedFeed.id] ?? 0) : 0;
   const unreadCount = counts.unread;
@@ -270,6 +311,9 @@ export function App() {
     setSelectedItemId(item.id);
     setMobilePane("reader");
     if (!item.read) {
+      if (filter === "unread") {
+        setRetainedUnreadIds((current) => new Set(current).add(item.id));
+      }
       await setItemState(item.id, { read: true });
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
       setCounts((current) => ({ ...current, unread: Math.max(0, current.unread - 1) }));
@@ -613,10 +657,12 @@ export function App() {
           {query && <button title="清除搜索" onClick={() => setQuery("")}><X size={15} /></button>}
         </label>
         <div class={`item-list ${settings.showItemSnippet ? "" : "compact"}`} ref={itemListRef}>
-          {visibleItems.map((item) => (
-            <button class={`item-row ${selectedItemId === item.id ? "selected" : ""} ${item.read ? "read" : ""}`} key={item.id} onClick={() => void chooseItem(item)}>
+          {visibleItems.map((item) => {
+            const itemFeed = feedsById.get(item.feedId);
+            const source = formatItemSource(filter, itemFeed ? feedName(itemFeed) : "", sourceHost(item));
+            return <button class={`item-row ${selectedItemId === item.id ? "selected" : ""} ${item.read ? "read" : ""}`} key={item.id} onClick={() => void chooseItem(item)}>
               <div class="item-meta">
-                <span>{sourceHost(item)}</span>
+                <span title={source}>{source}</span>
                 <time>{formatDate(item.publishedAt)}</time>
               </div>
               <h2>{item.title}</h2>
@@ -625,8 +671,8 @@ export function App() {
                 {!item.read && <span class="unread-dot" title="未读" />}
                 {item.starred && <Star size={14} fill="currentColor" />}
               </div>
-            </button>
-          ))}
+            </button>;
+          })}
           {!visibleItems.length && ready && (
             <div class="empty-state">
               <Inbox size={30} />
@@ -851,7 +897,9 @@ function SettingsDialog(props: {
   onClear: () => Promise<void>;
 }) {
   const [draft, setDraft] = useState(props.settings);
+  const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [testResult, setTestResult] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const update = (patch: Partial<AppSettings>) => setDraft((current) => ({ ...current, ...patch }));
@@ -862,6 +910,32 @@ function SettingsDialog(props: {
   useEffect(() => {
     applyAppearance(draft);
   }, [draft.theme, draft.colorScheme, draft.customAccent]);
+  const handleTest = async () => {
+    const startedAt = Date.now();
+    setTesting(true);
+    setTestResult("");
+    try {
+      setTestResult(await props.onTest(draft));
+    } catch (error) {
+      setTestResult(error instanceof Error ? error.message : String(error));
+    } finally {
+      await keepFeedbackVisible(startedAt);
+      setTesting(false);
+    }
+  };
+  const handleSync = async () => {
+    const startedAt = Date.now();
+    setSyncing(true);
+    setTestResult("");
+    try {
+      setDraft(await props.onSync(draft));
+    } catch (error) {
+      setTestResult(error instanceof Error ? error.message : String(error));
+    } finally {
+      await keepFeedbackVisible(startedAt);
+      setSyncing(false);
+    }
+  };
   return (
     <div class="dialog-backdrop settings-backdrop" onMouseDown={(event) => event.target === event.currentTarget && closeWithoutSaving()}>
       <div class="dialog settings-dialog">
@@ -872,15 +946,12 @@ function SettingsDialog(props: {
             <label class="field"><span>WebDAV URL 前缀</span><input type="url" value={draft.webdavUrl} onInput={(event) => update({ webdavUrl: event.currentTarget.value })} placeholder="https://dav.example.com/remote.php/dav/files/user/" /></label>
             <div class="field-row">
               <label class="field"><span>用户名</span><input value={draft.webdavUsername} onInput={(event) => update({ webdavUsername: event.currentTarget.value })} autoComplete="username" /></label>
-              <label class="field"><span>应用密码</span><input type="password" value={draft.webdavPassword} onInput={(event) => update({ webdavPassword: event.currentTarget.value })} autoComplete="current-password" /></label>
+              <div class="field"><label for="webdav-password">应用密码</label><div class="password-field"><input id="webdav-password" type={showPassword ? "text" : "password"} value={draft.webdavPassword} onInput={(event) => update({ webdavPassword: event.currentTarget.value })} autoComplete="current-password" /><button type="button" class="password-toggle" title={showPassword ? "隐藏应用密码" : "查看应用密码"} aria-label={showPassword ? "隐藏应用密码" : "查看应用密码"} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></div>
             </div>
             {testResult && <div class="connection-result">{testResult}</div>}
             <div class="inline-actions">
-              <button class="secondary-button" disabled={testing || !draft.webdavUrl} onClick={() => {
-                setTesting(true); setTestResult("");
-                void props.onTest(draft).then(setTestResult).catch((error) => setTestResult(error instanceof Error ? error.message : String(error))).finally(() => setTesting(false));
-              }}>{testing ? <LoaderCircle size={16} class="spin" /> : <Wifi size={16} />}测试连接</button>
-              <button class="secondary-button" disabled={!draft.webdavUrl} onClick={() => void props.onSync(draft).then(setDraft)}><Upload size={16} />立即同步</button>
+              <button class="secondary-button" aria-busy={testing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => void handleTest()}>{testing ? <LoaderCircle size={16} class="spin" /> : <Wifi size={16} />}{testing ? "正在测试" : "测试连接"}</button>
+              <button class="secondary-button" aria-busy={syncing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => void handleSync()}>{syncing ? <LoaderCircle size={16} class="spin" /> : <Upload size={16} />}{syncing ? "正在同步" : "立即同步"}</button>
             </div>
           </section>
           <section class="settings-section">

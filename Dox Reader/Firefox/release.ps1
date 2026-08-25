@@ -41,7 +41,8 @@ $pkg = Get-Content (Join-Path $root 'package.json') -Raw | ConvertFrom-Json
 $version = $pkg.version
 $id = 'dox-rss-reader@dox.local'
 $xpiName = 'bb7581fa1bbf4b928862.xpi'
-$updateLink = "https://raw.githubusercontent.com/aenerv7/Dox/main/Firefox/Dox%20Reader/$xpiName"
+$updateLink = "https://raw.githubusercontent.com/aenerv7/Dox/main/Dox%20Reader/Firefox/$xpiName"
+$legacyUpdateRoot = [IO.Path]::GetFullPath((Join-Path $root '..\..\Firefox\Dox Reader'))
 $sourceZip = Join-Path $root "web-ext-artifacts\dox_reader-$version-source.zip"
 
 # Load credentials from a gitignored .env.release file when the environment
@@ -197,9 +198,16 @@ if (-not $exists) {
   Write-Host "==> updates.json: $version already present, leaving as-is"
 }
 
+# Existing installs through 0.3.3 still request the original raw GitHub URL.
+# Keep that endpoint current until all of them have crossed to the new manifest.
+New-Item -ItemType Directory -Path $legacyUpdateRoot -Force | Out-Null
+Copy-Item (Join-Path $root $xpiName) (Join-Path $legacyUpdateRoot $xpiName) -Force
+Copy-Item $updatesPath (Join-Path $legacyUpdateRoot 'updates.json') -Force
+Write-Host "==> Legacy update bridge synchronized"
+
 # 7. Optionally commit and push so the raw update links go live.
 if ($Push) {
-  git add -A -- $root
+  git add -A -- $root $legacyUpdateRoot
   git commit -m "Release $version"
   git push
   if ($LASTEXITCODE -ne 0) { throw 'git push failed' }
