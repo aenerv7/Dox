@@ -231,6 +231,10 @@ for /f "delims=" %%d in ('dir /b /ad "%LOCALAPPDATA%\Microsoft\EdgeWebView\Appli
 	)
 )
 
+:uninstall.webview.evergreen.done
+echo [uninstall().webview.evergreen.done] %bat_dbg%
+
+
 echo - Removing AppX
 echo [uninstall().appx.init] %bat_dbg%
 set "LOC_APPREPO_DB=%AllUsersProfile%\Microsoft\Windows\AppRepository\StateRepository-Machine.srd"
