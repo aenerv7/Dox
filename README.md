@@ -209,3 +209,5 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 - 使用 `/Y` 或 `-Y` 跳过确认和结束暂停
 - 同名项目不会覆盖，原文件及其所在目录会保留
 - 操作不可撤销，脚本会拒绝处理磁盘根目录、共享根目录以及符号链接/目录联接
+
+[`Batch files/RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) 和 [`Batch files/RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) 基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge) 项目，并保留其来源链接。

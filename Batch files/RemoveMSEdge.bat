@@ -1,4 +1,6 @@
 @echo off & setlocal
+REM Based on ShadowWhisperer's Remove-MS-Edge project:
+REM https://github.com/ShadowWhisperer/Remove-MS-Edge
 REM land "clever" users back to native env (Win Vista and up; start /b not used due to some oddities)
 if defined PROCESSOR_ARCHITEW6432 "%WinDir%\SysNative\cmd.exe" /c ""%~0" %*" & exit /b 0
 
