@@ -1,6 +1,10 @@
 AutoHotkey/Test/Test.exe
 .DS_Store
 
+# Batch script logs
+Batch files/*_dbg.log
+Batch files/*_hlpr.log
+
 # Swift
 SizerSwift/.build/
 SizerSwift/build/

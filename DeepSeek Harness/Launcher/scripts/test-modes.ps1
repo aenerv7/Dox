@@ -126,6 +126,7 @@ DshBin=
     $log1 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log1 -notlike '*启动方式=dsh*')    { throw "失败：日志未显示启动方式=dsh：$log1" }
     if ($log1 -notlike '*dsh.cmd*')        { throw '失败：日志未包含 dsh.cmd 命令' }
+    if ($log1 -notlike '*web --no-open*')  { throw '失败：dsh 模式未通过 --no-open 禁止自动打开浏览器' }
     if ($log1 -notlike '*--host 127.0.0.1*') { throw '失败：日志未包含 --host 参数' }
     if ($log1 -notlike "*--port $port*")   { throw '失败：日志未包含端口参数' }
     Write-Host '   OK：以 dsh.cmd 启动，日志确认 启动方式=dsh 与 --host/--port 参数'
@@ -149,6 +150,7 @@ DshBin=
     $log2 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log2 -notlike '*启动方式=npx*')    { throw "失败：日志未显示启动方式=npx：$log2" }
     if ($log2 -notlike '*npx -y @deepseek-ai/dsh*') { throw '失败：日志未包含 npx -y @deepseek-ai/dsh 命令' }
+    if ($log2 -notlike '*web --no-open*')  { throw '失败：npx 模式未通过 --no-open 禁止自动打开浏览器' }
     if ($log2 -notlike '*--host 127.0.0.1*') { throw '失败：日志未包含 --host 参数' }
     if ($log2 -notlike "*--port $port*")   { throw '失败：日志未包含端口参数' }
     Write-Host '   OK：以 npx -y @deepseek-ai/dsh 启动，日志确认 启动方式=npx 与 --host/--port 参数'

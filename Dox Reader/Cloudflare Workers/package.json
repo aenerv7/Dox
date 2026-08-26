@@ -1,0 +1,31 @@
+{
+  "name": "dox-reader-cloudflare-worker",
+  "private": true,
+  "version": "0.3.3",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build && wrangler dev",
+    "dev:ui": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "check": "npm run test && npm run check:worker && npm run build",
+    "check:worker": "wrangler types --include-runtime=false --check && tsc -p worker/tsconfig.json --noEmit",
+    "types:worker": "wrangler types --include-runtime=false",
+    "deploy": "npm run check && wrangler deploy"
+  },
+  "dependencies": {
+    "dexie": "^4.4.5",
+    "fast-xml-parser": "^5.10.1",
+    "lucide-preact": "^1.31.0",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260825.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.125.0"
+  }
+}

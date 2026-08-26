@@ -370,16 +370,16 @@ bool StartDSH() {
     switch (g_mode) {
     case LaunchMode::Dsh: {
         const std::wstring dshCmd = FindDshCmd();
-        cmd = L"cmd.exe /c \"\"" + dshCmd + L"\" web --host " + g_cfg.host +
+        cmd = L"cmd.exe /c \"\"" + dshCmd + L"\" web --no-open --host " + g_cfg.host +
               L" --port " + ToStr(g_cfg.port) + L"\"";
         break;
     }
     case LaunchMode::Npx:
-        cmd = L"cmd.exe /c npx -y @deepseek-ai/dsh web --host " + g_cfg.host +
+        cmd = L"cmd.exe /c npx -y @deepseek-ai/dsh web --no-open --host " + g_cfg.host +
               L" --port " + ToStr(g_cfg.port);
         break;
     default:  // 自定义：node.exe 直接执行 DshBin（.js 脚本）
-        cmd = L"\"" + node + L"\" \"" + g_cfg.dshBin + L"\" web --host " + g_cfg.host +
+        cmd = L"\"" + node + L"\" \"" + g_cfg.dshBin + L"\" web --no-open --host " + g_cfg.host +
               L" --port " + ToStr(g_cfg.port);
         break;
     }
