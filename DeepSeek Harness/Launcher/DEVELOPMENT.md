@@ -27,6 +27,7 @@ Launcher/
 │   ├── Resource.h          # 资源与菜单命令 ID
 │   ├── Launcher.rc         # 图标 / 清单 / 版本信息（必须 UTF-8 BOM）
 │   ├── app.manifest        # DPI 感知、Win11 兼容、长路径、Common-Controls v6
+│   ├── DeepSeekHarness.svg # DeepSeek Harness 官方 Web UI favicon 矢量源
 │   └── Launcher.ico        # 托盘图标（由 scripts\make-icon.ps1 生成，纳入版本库）
 ├── scripts/
 │   ├── build.ps1           # MSVC 构建脚本（rc + cl /c + link 三步）
@@ -147,7 +148,7 @@ Launcher/
 6. **PowerShell 的 `$null` 编组**：P/Invoke 传 `$null` 给 `FindWindow` 会被编组成空字符串而非通配 NULL，必须同时传类名与标题（测试脚本已固化此写法）。
 7. **`New-Object TypeName(a, b, c)` 多参构造是陷阱**：会按单数组参数绑定，改用 `[TypeName]::new(a, b, c)`（图标脚本中已修正）。
 8. **`$PID` 是只读变量**，测试脚本中不要对其赋值。
-9. **图标**：`Launcher.ico` 由 `scripts\make-icon.ps1` 生成（PNG 压缩多尺寸 ICO，含 16/20/24/32/48/64/256），已纳入版本库，改图标后需重新生成并提交。
+9. **图标**：`DeepSeekHarness.svg` 取自 DeepSeek Harness 官方仓库 `apps/web/public/favicon.svg`；`Launcher.ico` 由 `scripts\make-icon.ps1` 以官方品牌蓝 `#4D6BFE` 渲染生成（PNG 压缩多尺寸 ICO，含 16/20/24/32/48/64/256）。两个文件均纳入版本库，更新矢量源后需重新生成并提交 ICO。
 10. **清理残留**：托盘派生进程用作业对象管理后，测试/调试结束务必确认无残留 `node.exe`（`KILL_ON_JOB_CLOSE` 已保证托盘进程死亡即清理，但手工杀进程的场景要注意）。
 11. **`cmd.exe /c` 的引号规则**：执行带空格路径的 .cmd 时必须用 `cmd /c ""<path>" args"` 双引号套引号形式（已实测含空格路径的 fakebin\dsh.cmd）；无空格命令（如 `npx -y @deepseek-ai/dsh`）无需引号。
 12. **`npx` 语义**：`npx -y @deepseek-ai/dsh` 在未全局安装时会自动拉取并缓存 dsh 包；托盘不主动校验网络，启动失败（端口未开）由状态探测体现。

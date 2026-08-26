@@ -26,6 +26,7 @@ Launcher/
 │   ├── Resource.h          # 资源 / 命令 ID
 │   ├── Launcher.rc         # 图标、清单、版本信息
 │   ├── app.manifest        # DPI 感知、Win11 兼容、长路径
+│   ├── DeepSeekHarness.svg # DeepSeek Harness 官方图标矢量源
 │   └── Launcher.ico        # 托盘图标（脚本生成）
 ├── scripts/
 │   ├── build.ps1           # Visual Studio (MSVC) 构建脚本
@@ -46,7 +47,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 
 产物：`bin\Launcher.exe`（x64，`/MT` 静态链接，目标机器无需安装 VC++ 运行库）。
 
-重新生成托盘图标（可选）：
+从 DeepSeek Harness 官方 Web UI favicon 重新生成品牌蓝色多尺寸托盘图标（可选）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\make-icon.ps1
