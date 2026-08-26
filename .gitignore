@@ -23,3 +23,6 @@ Firefox/**/web-ext-artifacts/
 
 # DeepSeek Harness Launcher（构建产物）
 DeepSeek Harness/Launcher/bin/
+
+# ApkRename（自动下载的工具）
+Android/ApkRename/tools/

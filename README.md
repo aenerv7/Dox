@@ -15,6 +15,7 @@
 | [`css`](./css) | 中文字体映射和 VS Code 外观自定义 CSS |
 | [`Userscript`](./Userscript) | Tampermonkey/Greasemonkey 用户脚本 |
 | [`Stash`](./Stash) | Stash 磁贴脚本 |
+| [`Android/ApkRename`](./Android/ApkRename) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
 | [`Batch files/Flatten.bat`](./Batch%20files/Flatten.bat) | Windows 目录展平工具 |
 
 ## 中文字体映射
@@ -193,6 +194,10 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 ## Stash
 
 [`Stash/external-ip-address-tile.js`](./Stash/external-ip-address-tile.js) 是 Stash 外部 IP 地址磁贴脚本，通过 `ip-api.com` 获取 IP 和国家/地区信息，显示为 `IP @ 国家/地区`；请求失败时显示“获取失败”。
+
+## Android
+
+[`Android/ApkRename`](./Android/ApkRename) 是只修改 Android APK 应用名称的 PowerShell 脚本：基于 apktool 反编译，仅改动名称相关的清单/字符串资源，重新打包并用原 keystore 重新签名，包名、代码与其余资源保持不变，最后还会做逐文件哈希校验。工具（apktool、apksigner、zipalign、aapt）可自动下载到脚本目录 `tools\` 下（`.\rename-apk.ps1 -SetupTools`）。签名“字节”必然变化（内容变了），但只要使用原 keystore，签名“身份”（同一证书）保持不变，可覆盖安装。
 
 ## Batch files
 
