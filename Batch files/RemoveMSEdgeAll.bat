@@ -27,7 +27,7 @@ if /i "%PROCESSOR_ARCHITECTURE%" equ "x86" goto arch.pass
 echo "%PROCESSOR_ARCHITECTURE%" platform is unsupported & echo. & pause & exit /b %ISSUE_ARCH%
 :arch.pass
 
-set "SCRIPT_VERSION=11/26/2025"
+set "SCRIPT_VERSION=08/26/2026"
 REM set logging verbosity ( log_lvl.none, log_lvl.errors, log_lvl.debug )
 REM also set elevated cmd mode (%ecm% var; /c or /k )
 REM log_lvl.debug checks for argument, but due to the call, batch args "hidden", so pass it
@@ -790,11 +790,20 @@ echo function main() {^
 		while ($attempts) { --$attempts; Unlock-Packages $locked_pkgs ([ref]$rslt); if ($rslt) { break }; Start-Sleep 3 }^
 		if ($rslt) { $pkgs += $locked_pkgs } else { "package(s) still locked, exclude:`n" + ($locked_pkgs -join "`n")%psl_dbg% }^
 	}^
+	Start-Service StateRepository -ErrorAction SilentlyContinue;^
 	^
 	"removing"%psl_dbg%;^
 	foreach ($pkg in $pkgs) {^
 		"package: $pkg`nremove"%psl_dbg%;^
+		$pkg_objects = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue);^
+		$pkg_obj = $pkg_objects.Where({$_.PackageFullName -eq $pkg}, 'First');^
+		$pkg_family = if ($pkg_obj.Count -gt 0) { $pkg_obj[0].PackageFamilyName } else { $null };^
+		if ($pkg_family -and (Get-Command Set-NonRemovableAppsPolicy -ErrorAction SilentlyContinue)) {^
+			try { Set-NonRemovableAppsPolicy -Online -PackageFamilyName $pkg_family -NonRemovable 0 -ErrorAction Stop; "package policy unlocked"%psl_dbg% }^
+			catch { "package policy unlock failed: $($_.Exception.Message)"%psl_dbg% }^
+		}^
 		Remove-AppxPackage -Package $pkg -User $env:USER_SID;^
+		Remove-AppxPackage -Package $pkg -User 'S-1-5-18' -ErrorAction SilentlyContinue;^
 		Remove-AppxPackage -Package $pkg -AllUsers;^
 		^
 		$pkg_parts = $pkg.Split('_');^
@@ -812,7 +821,7 @@ echo function main() {^
 		reg add "$env:REG_APPX_STORE\EndOfLife\S-1-5-18\$pkg" /f;^
 		reg add "$env:REG_APPX_STORE\Deprovisioned\$pkg" /f;^
 		^
-		"package removed"%psl_dbg%;^
+		^
 	}^
 }^
 function Unlock-Packages($pkgs, [ref]$rslt) {^
@@ -876,7 +885,57 @@ function RegCleanup-Package($pkg_fname_parts) {^
 main;^
 ;| powershell -noprofile - 
 
+call :_appx_remove_as_system
+
 :_appx_unlock_and_delete.end
 echo [appx_unlock_and_delete().end] %cll_dbg%
+exit /b 0
+
+:_appx_remove_as_system
+echo [appx_remove_as_system()] %cll_dbg%
+echo function main() {^
+	$pkgs = $env:pkgs_list.Split(' ', [StringSplitOptions]::RemoveEmptyEntries).ForEach({$_.Substring(1)});^
+	$all_appx = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue);^
+	$pkgs = $pkgs.Where({ $pkg = $_; $all_appx.Where({$_.PackageFullName -eq $pkg}, 'First').Count -gt 0 });^
+	if ($pkgs.Count -eq 0) { "no staged packages remain"%psl_dbg%; return };^
+	$task_id = [guid]::NewGuid().ToString('N');^
+	$task_name = "RemoveMSEdgeAppx-$task_id";^
+	$pkg_expr = '@(' + ($pkgs.ForEach({ "'" + $_.Replace("'", "''") + "'" }) -join ',') + ')';^
+	$task_script = ('$ErrorActionPreference = ''Continue''' + [Environment]::NewLine + '$pkgs = __PKGS__' + [Environment]::NewLine + 'Start-Service StateRepository -ErrorAction SilentlyContinue; Start-Service AppXSvc -ErrorAction SilentlyContinue' + [Environment]::NewLine + 'foreach ($pkg in $pkgs) { $appx = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue); $appx = $appx.Where({$_.PackageFullName -eq $pkg}, ''First''); if ($appx.Count -eq 0) { continue }; $family = $appx[0].PackageFamilyName; if (Get-Command Set-NonRemovableAppsPolicy -ErrorAction SilentlyContinue) { Set-NonRemovableAppsPolicy -Online -PackageFamilyName $family -NonRemovable 0 -ErrorAction SilentlyContinue }; Remove-AppxPackage -Package $pkg -ErrorAction SilentlyContinue; Remove-AppxPackage -Package $pkg -AllUsers -ErrorAction SilentlyContinue }').Replace('__PKGS__', $pkg_expr);^
+	$encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($task_script));^
+	$registered = $false;^
+	try {^
+		$action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand $encoded";^
+		$principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest;^
+		$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1);^
+		$null = Register-ScheduledTask -TaskName $task_name -Action $action -Principal $principal -Trigger $trigger -Force;^
+		$registered = $true;^
+		$run_started_at = (Get-Date).AddSeconds(-2);^
+		Start-ScheduledTask -TaskName $task_name;^
+		$started = $false;^
+		$deadline = (Get-Date).AddSeconds(60);^
+		while ((Get-Date) -lt $deadline) {^
+			$task = Get-ScheduledTask -TaskName $task_name -ErrorAction SilentlyContinue;^
+			$info = Get-ScheduledTaskInfo -TaskName $task_name -ErrorAction SilentlyContinue;^
+			if ($task.State -eq 'Running') { $started = $true };^
+			if ($info.LastRunTime -ge $run_started_at) { $started = $true };^
+			if ($started -and $task.State -ne 'Running') { break };^
+			Start-Sleep -Milliseconds 500^
+		};^
+		if ($started -and $task.State -ne 'Running') { "SYSTEM staged cleanup task completed; result: $($info.LastTaskResult)"%psl_dbg% } else { "SYSTEM staged cleanup task timed out"%psl_dbg% }^
+	} catch { "SYSTEM staged cleanup failed: $($_.Exception.Message)"%psl_dbg% } finally {^
+		if ($registered) { Stop-ScheduledTask -TaskName $task_name -ErrorAction SilentlyContinue };^
+		if ($registered) { Unregister-ScheduledTask -TaskName $task_name -Confirm:$false -ErrorAction SilentlyContinue };^
+	}^
+	Start-Sleep -Seconds 2;^
+	$all_appx = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue);^
+	foreach ($pkg in $pkgs) {^
+		$remaining = $all_appx.Where({$_.PackageFullName -eq $pkg});^
+		if ($remaining.Count -eq 0) { "package removed: $pkg"%psl_dbg% } else { "package still present: $pkg"%psl_dbg%; foreach ($info in $remaining) { "NonRemovable: $($info.NonRemovable); PackageUserInformation: $($info.PackageUserInformation)"%psl_dbg% } }^
+	}^
+}^
+main;^
+;| powershell -noprofile -
+echo [appx_remove_as_system().end] %cll_dbg%
 exit /b 0
 
