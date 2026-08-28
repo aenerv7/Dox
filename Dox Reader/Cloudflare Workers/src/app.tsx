@@ -12,6 +12,7 @@ import {
   FileUp,
   Inbox,
   List,
+  ListChecks,
   LoaderCircle,
   Lock,
   LockOpen,
@@ -618,7 +619,7 @@ export function App() {
                 </button>
                 <div class="feed-row-actions">
                   <button class="feed-action" title="全部标为已读" disabled={refreshing || count === 0} onClick={() => void handleMarkFeedRead(feed)}>
-                    <CheckCheck size={14} />
+                    <ListChecks size={14} />
                   </button>
                   <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
                     <RefreshCw size={14} class={refreshScope === feed.id ? "spin" : ""} />
@@ -645,7 +646,7 @@ export function App() {
           {selectedFeed && (
             <div class="items-header-actions">
               <button class="icon-button" title="全部标为已读" disabled={refreshing || selectedFeedUnread === 0} onClick={() => void handleMarkFeedRead(selectedFeed)}>
-                <CheckCheck size={16} />
+                <ListChecks size={16} />
               </button>
               <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
                 <RefreshCw size={16} class={refreshScope === selectedFeed.id ? "spin" : ""} />
