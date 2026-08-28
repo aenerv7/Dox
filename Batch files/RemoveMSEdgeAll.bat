@@ -9,6 +9,7 @@ REM Check permissions and elevate if required
 REM Obtain required files (from cache or from repo with hash validation)
 REM Remove Edge
 REM Remove WebView
+REM Remove machine-level and per-user WebView2 Runtime components
 REM Remove AppX
 REM Remove Edge remains
 REM Remove WebView remains
@@ -29,7 +30,7 @@ if /i "%PROCESSOR_ARCHITECTURE%" equ "x86" goto arch.pass
 echo "%PROCESSOR_ARCHITECTURE%" platform is unsupported & echo. & pause & exit /b %ISSUE_ARCH%
 :arch.pass
 
-set "SCRIPT_VERSION=08/26/2026"
+set "SCRIPT_VERSION=08/28/2026"
 REM set logging verbosity ( log_lvl.none, log_lvl.errors, log_lvl.debug )
 REM also set elevated cmd mode (%ecm% var; /c or /k )
 REM log_lvl.debug checks for argument, but due to the call, batch args "hidden", so pass it
@@ -196,13 +197,31 @@ REM #Uninstall
 echo [uninstall()] %bat_dbg%
 echo - Removing Edge
 echo [uninstall().edge.init] %bat_dbg%
-where "%x86ProgramsFolder%\Microsoft\Edge\Application:*" %bat_log%
-if %errorlevel% neq 0 goto uninstall.edge.done
-
-echo [uninstall().edge] %bat_dbg%
+taskkill /im msedge.exe /f /t %bat_log%
 taskkill /im MicrosoftEdgeUpdate.exe /f /t %bat_log%
+
+set "edge_install_found=0"
+call :edge_install_check_dir "%x86ProgramsFolder%\Microsoft\Edge\Application" %bat_log%
+if defined ProgramFiles call :edge_install_check_dir "%ProgramFiles%\Microsoft\Edge\Application" %bat_log%
+if "%edge_install_found%" equ "0" goto uninstall.edge.machine.done
+
+echo [uninstall().edge.machine] %bat_dbg%
 start /w "" "%file_setup%" --uninstall --system-level --force-uninstall %stp_dbg_arg% %bat_log%
 %stp_dbg_get%
+
+:uninstall.edge.machine.done
+echo [uninstall().edge.machine.done] %bat_dbg%
+
+set "edge_install_found=0"
+call :edge_install_check_dir "%LOCALAPPDATA%\Microsoft\Edge\Application" %bat_log%
+if "%edge_install_found%" equ "0" goto uninstall.edge.user.done
+
+echo [uninstall().edge.user] %bat_dbg%
+start /w "" "%file_setup%" --uninstall --force-uninstall %stp_dbg_arg% %bat_log%
+%stp_dbg_get%
+
+:uninstall.edge.user.done
+echo [uninstall().edge.user.done] %bat_dbg%
 
 :uninstall.edge.done
 echo [uninstall().edge.done] %bat_dbg%
@@ -210,6 +229,7 @@ echo [uninstall().edge.done] %bat_dbg%
 
 echo - Removing WebView
 echo [uninstall().webview.init] %bat_dbg%
+taskkill /im msedgewebview2.exe /f /t %bat_log%
 where "%x86ProgramsFolder%\Microsoft\EdgeWebView\Application:*" %bat_log%
 if %errorlevel% neq 0 goto uninstall.webview.done
 
@@ -319,6 +339,8 @@ echo [cleanup().webview] %bat_dbg%
 REM Delete WebView empty folders
 echo [cleanup().webview.dirs] %bat_dbg%
 rd /s /q "%x86ProgramsFolder%\Microsoft\EdgeWebView" %bat_log%
+rd /s /q "%LOCALAPPDATA%\Microsoft\EdgeWebView" %bat_log%
+rd /s /q "%LOCALAPPDATA%\Microsoft\EdgeCore" %bat_log%
 
 echo [cleanup().webview.done] %bat_dbg%
 
@@ -366,6 +388,8 @@ reg delete "HKLM\SOFTWARE\Microsoft\Internet Explorer\EdgeIntegration" /f %bat_l
 reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Edge" /f %bat_log%
 reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate" /f %bat_log%
 reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\MicrosoftEdge" /f %bat_log%
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView" /f %bat_log%
+reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView" /f %bat_log%
 
 set "reg_HKLM_keys_del="
 REM Keys for TakeOwn+FullControl and deleting, max length after batch vars expanding - 8167(8191 - 24; 24 - "set "reg_HKLM_keys_del="")
@@ -571,6 +595,17 @@ echo [file_obtain().check.fail] %cll_dbg%
 exit /b %ISSUE_HASH%
 
 
+REM Detect an Edge browser installation without treating WebView2 or shared update components as Edge.
+:edge_install_check_dir
+set "edge_install_dir_found=0"
+if exist "%~1\msedge.exe" set "edge_install_dir_found=1"
+for /d %%d in ("%~1\*") do if exist "%%~d\msedge.exe" set "edge_install_dir_found=1"
+if "%edge_install_dir_found%" equ "0" exit /b 0
+echo Edge browser detected: "%~1" %cll_dbg%
+set "edge_install_found=1"
+exit /b 0
+
+
 REM remove task by name if name match pattern
 :task_remove
 set "task_name=%~1"
@@ -610,9 +645,22 @@ if /i "%1" equ "S-1-5-19" goto _user_cleanup_by_sid.end
 if /i "%1" equ "S-1-5-20" goto _user_cleanup_by_sid.end
 
 echo accepted %cll_dbg%
+set "profile_path="
 for /f "skip=2 tokens=2*" %%c in ('reg query "%REG_USERS_PATH%\%1" /v ProfileImagePath') do ( set "profile_path=%%~d" )
+if not defined profile_path (
+	echo profile path not found %cll_dbg%
+	goto _user_cleanup_by_sid.end
+)
+if not exist "%profile_path%\" (
+	echo profile path does not exist: "%profile_path%" %cll_dbg%
+	goto _user_cleanup_by_sid.end
+)
 call :user_lnks_remove_by_path "%profile_path%"
 call :user_reg_cleanup %1 "%profile_path%"
+rd /s /q "%profile_path%\AppData\Local\Microsoft\Edge" %cll_dbg%
+rd /s /q "%profile_path%\AppData\Local\Microsoft\EdgeCore" %cll_dbg%
+rd /s /q "%profile_path%\AppData\Local\Microsoft\EdgeUpdate" %cll_dbg%
+rd /s /q "%profile_path%\AppData\Local\Microsoft\EdgeWebView" %cll_dbg%
 
 :_user_cleanup_by_sid.end
 echo [user_cleanup_by_sid().end] %cll_dbg%
@@ -656,6 +704,8 @@ reg delete "HKU\%1\SOFTWARE\Microsoft\Internet Explorer\EdgeIntegration" /f
 reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\Edge" /f
 reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate" /f
 reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\MicrosoftEdge" /f
+reg delete "HKU\%1\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView" /f
+reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView" /f
 
 reg delete "HKU\%1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge" /f
 reg delete "HKU\%1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge-holographic" /f

@@ -6,8 +6,10 @@ if defined PROCESSOR_ARCHITEW6432 "%WinDir%\SysNative\cmd.exe" /c ""%~0" %*" & e
 
 REM
 REM Check permissions and elevate if required
+REM With -guard, exit before preparation unless Edge browser files or related AppX are detected
 REM Obtain required files (from cache or from repo with hash validation)
 REM Remove Edge
+REM Preserve WebView2 Runtime and all shared Edge Update components
 REM Remove AppX
 REM Remove Edge remains
 REM Remove AppX remains
@@ -21,13 +23,17 @@ set "ISSUE_DOWNLOAD=4"
 set "ISSUE_HASH=5"
 set "ISSUE_ARCH=6"
 
+set "RUN_MODE=normal"
+if /i "%~1" equ "-guard" set "RUN_MODE=guard"
+if /i "%~2" equ "guard" set "RUN_MODE=guard"
+
 REM check for architecture (x86 and amd64 are supported, arm - not)
 if /i "%PROCESSOR_ARCHITECTURE%" equ "amd64" goto arch.pass
 if /i "%PROCESSOR_ARCHITECTURE%" equ "x86" goto arch.pass
 echo "%PROCESSOR_ARCHITECTURE%" platform is unsupported & echo. & pause & exit /b %ISSUE_ARCH%
 :arch.pass
 
-set "SCRIPT_VERSION=08/26/2026"
+set "SCRIPT_VERSION=08/28/2026"
 REM set logging verbosity ( log_lvl.none, log_lvl.errors, log_lvl.debug )
 REM also see RemoveMSEdgeAll.bat for details
 call :log_lvl.debug "%~1"
@@ -56,7 +62,7 @@ if /i "%USER_SID:~0,6%" equ "S-1-5-" (
 	echo Built-in Admin account possibly corrupted & echo. & pause & exit /b %ISSUE_UAC%
 )
 REM Elevate with psl (don't try go around cmd /c; see RemoveMSEdgeAll.bat for quotes details)
-echo Start-Process -Verb RunAs """$env:COMSpec""" "%ecm% """"%~0"" ""%EXEC_SID%"""""|powershell -noprofile - %bat_log%
+echo Start-Process -Verb RunAs """$env:COMSpec""" "%ecm% """"%~0"" ""%EXEC_SID%"" ""%RUN_MODE%"""""|powershell -noprofile - %bat_log%
 echo [uac().elevated] err: "%errorlevel%" %bat_dbg%
 exit /b %errorlevel%
 
@@ -69,8 +75,9 @@ REM 1st arg does not look like valid SID (elevation NOT by script)
 set "USER_SID=%EXEC_SID%"
 REM When Built-in Admin account disabled, SID does not change on elevation and usually match the condition
 if "%EXEC_SID:~-4%" neq "-500" goto uac.done
-REM For automaters: when Built-in Admin account enabled, specify "-auto" as 1st argument to bypass confirmation
+REM For automaters: "-auto" and scheduled-task "-guard" bypass this confirmation
 if /i "%~1" equ "-auto" goto uac.done
+if /i "%~1" equ "-guard" goto uac.done
 REM Built-in Admin account enabled and script not self elevated nor automated
 choice /c yn /n /m "Logged as Admin? [Y,N]"
 REM Check for positive answer, anything else considered as No
@@ -80,6 +87,25 @@ echo Please, run script without elevation & echo. & pause & exit /b %ISSUE_UAC%
 
 :uac.done
 echo [uac().done] %bat_dbg%
+
+
+
+set "REG_USERS_PATH=HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
+if /i not "%RUN_MODE%" equ "guard" goto guard.done
+
+echo [guard()] %bat_dbg%
+call :edge_guard_detect %bat_log%
+if "%edge_guard_found%" equ "1" goto guard.found
+echo - Edge is not installed; nothing to remove
+echo [guard().not_found] %bat_dbg%
+exit /b 0
+
+:guard.found
+echo - Edge installation detected
+echo [guard().found] %bat_dbg%
+
+:guard.done
+echo [guard().done] %bat_dbg%
 
 
 
@@ -180,13 +206,30 @@ REM #Uninstall
 echo [uninstall()] %bat_dbg%
 echo - Removing Edge
 echo [uninstall().edge.init] %bat_dbg%
-where "%x86ProgramsFolder%\Microsoft\Edge\Application:*" %bat_log%
-if %errorlevel% neq 0 goto uninstall.edge.done
+taskkill /im msedge.exe /f /t %bat_log%
 
-echo [uninstall().edge] %bat_dbg%
-taskkill /im MicrosoftEdgeUpdate.exe /f /t %bat_log%
+set "edge_guard_found=0"
+call :edge_guard_check_dir "%x86ProgramsFolder%\Microsoft\Edge\Application" %bat_log%
+if defined ProgramFiles call :edge_guard_check_dir "%ProgramFiles%\Microsoft\Edge\Application" %bat_log%
+if "%edge_guard_found%" equ "0" goto uninstall.edge.machine.done
+
+echo [uninstall().edge.machine] %bat_dbg%
 start /w "" "%file_setup%" --uninstall --system-level --force-uninstall %stp_dbg_arg% %bat_log%
 %stp_dbg_get%
+
+:uninstall.edge.machine.done
+echo [uninstall().edge.machine.done] %bat_dbg%
+
+set "edge_guard_found=0"
+call :edge_guard_check_dir "%LOCALAPPDATA%\Microsoft\Edge\Application" %bat_log%
+if "%edge_guard_found%" equ "0" goto uninstall.edge.user.done
+
+echo [uninstall().edge.user] %bat_dbg%
+start /w "" "%file_setup%" --uninstall --force-uninstall %stp_dbg_arg% %bat_log%
+%stp_dbg_get%
+
+:uninstall.edge.user.done
+echo [uninstall().edge.user.done] %bat_dbg%
 
 :uninstall.edge.done
 echo [uninstall().edge.done] %bat_dbg%
@@ -240,19 +283,9 @@ echo [cleanup().edge] %bat_dbg%
 REM Delete Edge empty folders
 echo [cleanup().edge.dirs] %bat_dbg%
 rd /s /q "%x86ProgramsFolder%\Microsoft\Edge" %bat_log%
-call :edgecore_cleanup %bat_log%
-rd /s /q "%x86ProgramsFolder%\Microsoft\EdgeUpdate" %bat_log%
-rd /s /q "%x86ProgramsFolder%\Microsoft\Temp" %bat_log%
-rd /s /q "%AllUsersProfile%\Microsoft\EdgeUpdate" %bat_log%
-
-REM Delete Edge Update Tasks
-echo [cleanup().edge.tasks] %bat_dbg%
-for /f "tokens=1 delims=," %%n in ('schtasks /query /fo csv') do ( call :task_remove "%%~n" %bat_log% )
-
-REM Delete Edge Update Services
-echo [cleanup().edge.services] %bat_dbg%
-set "service_names=edgeupdate edgeupdatem microsoftedgeelevationservice"
-for %%n in (%service_names%) do ( call :service_remove "%%~n" %bat_log% )
+rd /s /q "%ProgramFiles%\Microsoft\Edge" %bat_log%
+REM EdgeCore, EdgeUpdate, their tasks and services are shared with WebView2.
+REM Leave them untouched; Edge Update removes unused components on its own.
 
 REM Delete Desktop, StartMenu and TaskBar shortcuts; cleanup user registry
 echo [cleanup().edge.users] %bat_dbg%
@@ -299,22 +332,11 @@ echo [extra_cleanup()] %bat_dbg%
 REM Registry
 echo [extra_cleanup().registry.regular] %bat_dbg%
 
-REM -- Backup keys that are need for :edgecore_cleanup
-set "wv2_guid={F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
-reg export "HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\%wv2_guid%" "%TEMP%\wv2_wow.reg" /y %bat_log%
-reg export "HKLM\SOFTWARE\Microsoft\EdgeUpdate\Clients\%wv2_guid%" "%TEMP%\wv2_native.reg" /y %bat_log%
-
-reg delete "HKLM\SOFTWARE\Classes\AppID\MicrosoftEdgeUpdate.exe" /f %bat_log%
-reg delete "HKLM\SOFTWARE\Classes\AppID\{1FCBE96C-1697-43AF-9140-2897C7C69767}" /f %bat_log%
-reg delete "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components\{9459C573-B17A-45AE-9F64-1857B5D58CEE}" /f %bat_log%
 reg delete "HKLM\SOFTWARE\Microsoft\Edge" /f %bat_log%
-reg delete "HKLM\SOFTWARE\Microsoft\EdgeUpdate" /f %bat_log%
 reg delete "HKLM\SOFTWARE\Microsoft\MicrosoftEdge" /f %bat_log%
-reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\MicrosoftEdgeUpdate.exe" /f %bat_log%
 reg delete "HKLM\SOFTWARE\Microsoft\Internet Explorer\EdgeDebugActivation" /f %bat_log%
 reg delete "HKLM\SOFTWARE\Microsoft\Internet Explorer\EdgeIntegration" /f %bat_log%
 reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\Edge" /f %bat_log%
-reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate" /f %bat_log%
 reg delete "HKLM\SOFTWARE\WOW6432Node\Microsoft\MicrosoftEdge" /f %bat_log%
 
 set "reg_HKLM_keys_del="
@@ -326,10 +348,6 @@ set "reg_HKLM_keys_del=%reg_HKLM_keys_del%\\SOFTWARE\WOW6432Node\Microsoft\Windo
 set "reg_HKLM_keys_del=%reg_HKLM_keys_del%\\SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.BCHostServer" %bat_log%
 set "reg_HKLM_keys_del=%reg_HKLM_keys_del%\\SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.ContentProcessServer" %bat_log%
 set "reg_HKLM_keys_del=%reg_HKLM_keys_del%\\SOFTWARE\Microsoft\WindowsRuntime\Server\Windows.Internal.WebRuntime.F12Server" %bat_log%
-
-REM -- Restore above keys :edgecore_cleanup
-if exist "%TEMP%\wv2_wow.reg" reg import "%TEMP%\wv2_wow.reg" %bat_log% & del /f /q "%TEMP%\wv2_wow.reg"
-if exist "%TEMP%\wv2_native.reg" reg import "%TEMP%\wv2_native.reg" %bat_log% & del /f /q "%TEMP%\wv2_native.reg"
 
 echo [extra_cleanup().registry.inaccessible] %bat_dbg%
 call :reg_HKLM_keys_access_and_delete %bat_log%
@@ -460,6 +478,7 @@ timeout /t 1 /nobreak >NUL 2>&1
 REM reset log file if this is not elevation re-run (bad check, cuz someone may pass an argument)
 if "%~1" equ "" echo %~nx0 %SCRIPT_VERSION% >"%~dpn0_dbg.log"
 if /i "%~1" equ "-auto" echo %~nx0 %SCRIPT_VERSION% >"%~dpn0_dbg.log"
+if /i "%~1" equ "-guard" echo %~nx0 %SCRIPT_VERSION% >"%~dpn0_dbg.log"
 exit /b 0
 
 
@@ -525,78 +544,45 @@ echo [file_obtain().check.fail] %cll_dbg%
 exit /b %ISSUE_HASH%
 
 
-REM remove task by name if name match pattern
-:task_remove
-set "task_name=%~1"
-if "%task_name:~0,1%" neq "\" goto _task_remove.end
-if /i "%task_name:\MicrosoftEdge=%" equ "%task_name%" goto _task_remove.end
-echo [task_remove()] "%task_name%" %cll_dbg%
-schtasks /end /tn "%task_name%"
-schtasks /delete /tn "%task_name%" /f
-del /f /q "%SystemRoot%\System32\Tasks%task_name%"
-echo [task_remove().end] %cll_dbg%
+REM Scheduled-task guard: detect Edge browser files for machine/all profiles and Edge AppX for all users.
+REM WebView2, EdgeCore and EdgeUpdate are deliberately excluded from the detection criteria.
+:edge_guard_detect
+echo [edge_guard_detect()] %cll_dbg%
+set "edge_guard_found=0"
 
-:_task_remove.end
+if defined ProgramFiles(x86) call :edge_guard_check_dir "%ProgramFiles(x86)%\Microsoft\Edge\Application"
+if defined ProgramFiles call :edge_guard_check_dir "%ProgramFiles%\Microsoft\Edge\Application"
+if defined LOCALAPPDATA call :edge_guard_check_dir "%LOCALAPPDATA%\Microsoft\Edge\Application"
+for /f "skip=1 tokens=7 delims=\" %%s in ('reg query "%REG_USERS_PATH%" /k /f "*"') do ( call :edge_guard_check_profile %%s )
+
+set "edge_guard_appx="
+for /f "delims=" %%p in ('powershell -noprofile -c "try { if (@(Get-AppxPackage -AllUsers -ErrorAction Stop).Where({$_.PackageFullName -like '*MicrosoftEdge*'}).Count -gt 0) { '1' } else { '0' } } catch { exit 1 }"') do ( set "edge_guard_appx=%%~p" )
+if not defined edge_guard_appx (
+	echo AppX detection failed; continue with removal %cll_dbg%
+	set "edge_guard_found=1"
+)
+if "%edge_guard_appx%" equ "1" (
+	echo Edge AppX detected %cll_dbg%
+	set "edge_guard_found=1"
+)
+
+echo [edge_guard_detect().end] found: "%edge_guard_found%" %cll_dbg%
 exit /b 0
 
-
-REM remove service by name
-:service_remove
-echo [service_remove()] "%~1" %cll_dbg%
-sc stop "%~1"
-if %errorlevel% equ 1060 goto _service_remove.end
-sc delete "%~1"
-reg delete "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /f
-echo service removed %cll_dbg%
-
-:_service_remove.end
-echo [service_remove().end] %cll_dbg%
+:edge_guard_check_profile
+set "edge_guard_profile_path="
+for /f "skip=2 tokens=2*" %%c in ('reg query "%REG_USERS_PATH%\%1" /v ProfileImagePath') do ( set "edge_guard_profile_path=%%~d" )
+if not defined edge_guard_profile_path exit /b 0
+call :edge_guard_check_dir "%edge_guard_profile_path%\AppData\Local\Microsoft\Edge\Application"
 exit /b 0
 
-
-REM EdgeCore holds the actual Edge/WebView2 engine binaries: each installed
-REM version (Edge browser and/or WebView2 Runtime) gets its own subfolder there.
-REM This script does not touch WebView2, but a blanket "rd /s /q" on EdgeCore
-REM deletes WebView2's active engine files too, breaking it (and anything
-REM depending on it, e.g. Windows Search, many Electron/embedded-browser apps).
-REM Only delete subfolders that do not match the currently registered WebView2
-REM Runtime version.
-:edgecore_cleanup
-echo [edgecore_cleanup()] %cll_dbg%
-if not exist "%x86ProgramsFolder%\Microsoft\EdgeCore" goto _edgecore_cleanup.end
-
-set "webview2_ver="
-for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" /v pv 2^>NUL ^| findstr /i "REG_SZ"') do set "webview2_ver=%%b"
-if not defined webview2_ver (
-	for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" /v pv 2^>NUL ^| findstr /i "REG_SZ"') do set "webview2_ver=%%b"
-)
-if not defined webview2_ver (
-	for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView" /v DisplayVersion 2^>NUL ^| findstr /i "REG_SZ"') do set "webview2_ver=%%b"
-)
-if not defined webview2_ver (
-	for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView" /v DisplayVersion 2^>NUL ^| findstr /i "REG_SZ"') do set "webview2_ver=%%b"
-)
-echo webview2_ver: "%webview2_ver%" %cll_dbg%
-
-REM If unknown in-use version, don't delete anything.
-if not defined webview2_ver (
-	echo webview2_ver not found - skipping EdgeCore cleanup to avoid breaking WebView2 %cll_dbg%
-	goto _edgecore_cleanup.end
-)
-
-for /d %%d in ("%x86ProgramsFolder%\Microsoft\EdgeCore\*") do (
-	if /i not "%%~nxd" equ "%webview2_ver%" (
-		echo removing: "%%~d" %cll_dbg%
-		rd /s /q "%%~d" %cll_dbg%
-	) else (
-		echo keeping ^(in use by WebView2^): "%%~d" %cll_dbg%
-	)
-)
-REM remove the now-empty parent folder; fails silently (as intended) if WebView2's subfolder is still there
-rd "%x86ProgramsFolder%\Microsoft\EdgeCore" 2>NUL
-
-:_edgecore_cleanup.end
-echo [edgecore_cleanup().end] %cll_dbg%
+:edge_guard_check_dir
+set "edge_guard_dir_found=0"
+if exist "%~1\msedge.exe" set "edge_guard_dir_found=1"
+for /d %%d in ("%~1\*") do if exist "%%~d\msedge.exe" set "edge_guard_dir_found=1"
+if "%edge_guard_dir_found%" equ "0" exit /b 0
+echo Edge browser detected: "%~1" %cll_dbg%
+set "edge_guard_found=1"
 exit /b 0
 
 
@@ -610,7 +596,17 @@ if /i "%1" equ "S-1-5-19" goto _user_cleanup_by_sid.end
 if /i "%1" equ "S-1-5-20" goto _user_cleanup_by_sid.end
 
 echo accepted %cll_dbg%
+set "profile_path="
 for /f "skip=2 tokens=2*" %%c in ('reg query "%REG_USERS_PATH%\%1" /v ProfileImagePath') do ( set "profile_path=%%~d" )
+if not defined profile_path (
+	echo profile path not found %cll_dbg%
+	goto _user_cleanup_by_sid.end
+)
+if not exist "%profile_path%\" (
+	echo profile path does not exist: "%profile_path%" %cll_dbg%
+	goto _user_cleanup_by_sid.end
+)
+rd /s /q "%profile_path%\AppData\Local\Microsoft\Edge" %cll_dbg%
 call :user_lnks_remove_by_path "%profile_path%"
 call :user_reg_cleanup %1 "%profile_path%"
 
@@ -648,13 +644,10 @@ echo main hive ready %cll_dbg%
 
 echo cleanup main hive %cll_dbg%
 reg delete "HKU\%1\SOFTWARE\Microsoft\Edge" /f
-reg delete "HKU\%1\SOFTWARE\Microsoft\EdgeUpdate" /f
 reg delete "HKU\%1\SOFTWARE\Microsoft\MicrosoftEdge" /f
-reg delete "HKU\%1\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\MicrosoftEdgeUpdate.exe" /f
 reg delete "HKU\%1\SOFTWARE\Microsoft\Internet Explorer\EdgeDebugActivation" /f
 reg delete "HKU\%1\SOFTWARE\Microsoft\Internet Explorer\EdgeIntegration" /f
 reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\Edge" /f
-reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate" /f
 reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\MicrosoftEdge" /f
 
 reg delete "HKU\%1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge" /f
