@@ -109,3 +109,5 @@ cmake --build build --config Release
 - `app.ico` - 应用图标。
 - `CapsLockOSD.rc` / `resource.h` / `CapsLockOSD.manifest` - Windows 资源和 DPI awareness manifest。
 - `build.ps1` / `build.bat` / `CMakeLists.txt` - 构建入口。
+
+架构、实现细节与维护约束见仓库根文档 [`../DEVELOPMENT.md`](../DEVELOPMENT.md)。

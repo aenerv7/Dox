@@ -11,7 +11,7 @@ Dox Reader 是一个 local-first RSS/Atom 阅读器。订阅、已读状态、�
 
 两个目录都是独立 npm 工程，拥有各自的依赖锁、构建配置、测试和发布脚本。它们共享相同的界面、IndexedDB 数据模型与 WebDAV schema，但运行时网络和设置存储实现分别针对 Firefox 与普通网页进行了裁剪。
 
-开发和跨版本同步规则见 [`DEVELOPMENT.md`](DEVELOPMENT.md)。
+产品行为、架构、数据契约、测试发布流程和跨版本同步规则统一见仓库根文档 [`../DEVELOPMENT.md`](../DEVELOPMENT.md)。
 
 ## 快速验证
 

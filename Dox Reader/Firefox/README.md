@@ -51,4 +51,4 @@ pwsh -File release.ps1 -SkipSign
 
 发布脚本会测试、构建、提交 AMO unlisted 签名、下载稳定文件名的 XPI，并更新 `updates.json`。为保障 0.3.3 及更早版本继续升级，它还会同步仓库旧路径 `Firefox/Dox Reader/` 下的兼容更新清单和 XPI；该旧目录不再包含项目源码。
 
-更多实现和审核信息见 [`DEVELOPMENT.md`](DEVELOPMENT.md)、[`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md) 与 [`PRIVACY.md`](PRIVACY.md)。
+统一开发规范见仓库根文档 [`../../DEVELOPMENT.md`](../../DEVELOPMENT.md)；审核与隐私信息见 [`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md) 和 [`PRIVACY.md`](PRIVACY.md)。

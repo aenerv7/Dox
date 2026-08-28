@@ -33,9 +33,10 @@ Launcher/
 │   ├── make-icon.ps1       # 图标生成脚本
 │   └── test-lifecycle.ps1  # 自动化生命周期测试
 ├── Launcher.ini.example    # 配置模板（含注释）
-├── DEVELOPMENT.md          # 开发文档（架构 / 构建 / 陷阱 / 扩展）
 └── bin/                    # 构建产物（Launcher.exe 等，不入库）
 ```
+
+开发架构、构建流程、踩坑记录与扩展指引收归仓库根 [`../../DEVELOPMENT.md`](../../DEVELOPMENT.md) 的“DeepSeek Harness Launcher”小节。
 
 ## 构建
 

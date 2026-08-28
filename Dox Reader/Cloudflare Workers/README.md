@@ -46,4 +46,4 @@ npm run deploy
 
 订阅、文章、设置和凭据保存在访问该部署域名的浏览器中；只有用户选择同步的数据会写入其自己的 `Dox Reader/state.json`。更换部署域名会形成新的浏览器存储分区，迁移前应先完成 WebDAV 同步。
 
-隐私说明见 [`PRIVACY.md`](PRIVACY.md)。根目录的 [`../README.md`](../README.md) 说明两个版本的关系，所有核心修改必须遵循 [`../DEVELOPMENT.md`](../DEVELOPMENT.md) 的跨版本同步要求。
+隐私说明见 [`PRIVACY.md`](PRIVACY.md)。根目录的 [`../README.md`](../README.md) 说明两个版本的关系，所有核心修改必须遵循仓库根文档 [`../../DEVELOPMENT.md`](../../DEVELOPMENT.md) 的跨版本同步要求。

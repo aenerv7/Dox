@@ -18,6 +18,7 @@
 | [`Stash`](./Stash) | Stash 磁贴脚本 |
 | [`Android/ApkRename`](./Android/ApkRename) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
 | [`Batch files/Flatten.bat`](./Batch%20files/Flatten.bat) | Windows 目录展平工具 |
+| [`Batch files/RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 可选择保留或一并删除 WebView2 的 Microsoft Edge 清理脚本 |
 
 ## 中文字体映射
 
@@ -30,13 +31,15 @@
 
 ### 目标字体
 
-| 类别 | 字体 | 回退 |
+按 `local()` 书写顺序的优先级：
+
+| 类别 | 首选 | 回退 |
 |---|---|---|
-| 无衬线 | Noto Sans SC | PingFang SC |
-| 衬线 | Noto Serif SC | — |
+| 无衬线 CJK | PingFang SC / TC | Noto Sans SC |
+| 衬线 CJK | Songti SC / TC | Noto Serif SC |
 | 等宽 | Maple Mono Normal NF CN | — |
-| 手写 | LXGW WenKai | — |
-| 幻想 | Yozai | — |
+| 手写（cursive） | LXGW WenKai | — |
+| 幻想（fantasy） | Yozai | — |
 
 ### 映射范围
 
@@ -94,6 +97,8 @@ cmake -S SizerWin -B SizerWin/build
 cmake --build SizerWin/build --config Release
 ```
 
+完整实现架构、配置格式和维护说明见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+
 ### CapsLockOSD
 
 Windows 原生 Caps Lock 屏幕提示工具，使用 C++、Win32 API 和系统自带 GDI+ 实现，不依赖第三方库或运行时。视觉比例参考 Logitech Options 的 Caps Lock 提示。
@@ -115,6 +120,8 @@ cd CapsLockOSD
 ```
 
 也可使用 `build.bat` 或 CMake 构建。
+
+完整实现架构、实现细节和维护约束见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
 
 ## SizerSwift
 
@@ -210,4 +217,11 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 - 同名项目不会覆盖，原文件及其所在目录会保留
 - 操作不可撤销，脚本会拒绝处理磁盘根目录、共享根目录以及符号链接/目录联接
 
-[`Batch files/RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) 和 [`Batch files/RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) 基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge) 项目，并保留其来源链接。
+Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)，并保留来源链接：
+
+| 脚本 | 用途 |
+|---|---|
+| [`RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 删除机器级、用户级 Edge 和相关 AppX，保留 WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持计划任务参数 `-guard` |
+| [`RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | 全量删除 Edge、相关 AppX、WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务 |
+
+两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留。职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
