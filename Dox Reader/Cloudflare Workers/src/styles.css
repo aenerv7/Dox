@@ -669,6 +669,7 @@ input:focus-visible {
 .items-header {
   display: flex;
   align-items: center;
+  gap: 8px;
   min-width: 0;
   padding: 8px 14px;
   border-bottom: 1px solid var(--border);
@@ -680,10 +681,15 @@ input:focus-visible {
 }
 
 .items-header-actions {
-  display: none;
+  display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   flex: 0 0 auto;
+}
+
+.items-header-actions .icon-button {
+  width: 32px;
+  height: 32px;
 }
 
 .items-header h1 {
@@ -790,12 +796,20 @@ input:focus-visible {
 }
 
 .item-row h2 {
-  display: -webkit-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
   margin: 6px 0 5px;
   overflow: hidden;
   font-size: 14px;
   font-weight: 680;
   line-height: 1.35;
+}
+
+.item-title-text {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -836,6 +850,9 @@ input:focus-visible {
 .item-list.compact .item-row h2 {
   margin: 5px 0 0;
   padding-right: 34px;
+}
+
+.item-list.compact .item-row .item-title-text {
   -webkit-line-clamp: 1;
 }
 
@@ -845,8 +862,10 @@ input:focus-visible {
 }
 
 .unread-dot {
+  flex: 0 0 7px;
   width: 7px;
   height: 7px;
+  margin-top: 6px;
   border-radius: 50%;
   background: var(--accent);
 }
@@ -1655,10 +1674,6 @@ body.layout-resizing {
 
   .items-header {
     padding-left: 6px;
-  }
-
-  .items-header-actions {
-    display: flex;
   }
 
   .mobile-back {

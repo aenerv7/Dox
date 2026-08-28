@@ -15,6 +15,8 @@ import {
   LoaderCircle,
   Lock,
   LockOpen,
+  Mail,
+  MailOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -643,10 +645,16 @@ export function App() {
           {selectedFeed && (
             <div class="items-header-actions">
               <button class="icon-button" title="全部标为已读" disabled={refreshing || selectedFeedUnread === 0} onClick={() => void handleMarkFeedRead(selectedFeed)}>
-                <CheckCheck size={18} />
+                <CheckCheck size={16} />
               </button>
               <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
-                <RefreshCw size={18} class={refreshScope === selectedFeed.id ? "spin" : ""} />
+                <RefreshCw size={16} class={refreshScope === selectedFeed.id ? "spin" : ""} />
+              </button>
+              <button class="icon-button" title="重命名订阅" disabled={refreshing} onClick={() => setRenamingFeed(selectedFeed)}>
+                <Pencil size={16} />
+              </button>
+              <button class="icon-button feed-delete" title="删除订阅" disabled={refreshing} onClick={() => void handleRemoveFeed(selectedFeed)}>
+                <Trash2 size={16} />
               </button>
             </div>
           )}
@@ -665,10 +673,12 @@ export function App() {
                 <span title={source}>{source}</span>
                 <time>{formatDate(item.publishedAt)}</time>
               </div>
-              <h2>{item.title}</h2>
+              <h2>
+                {!item.read && <span class="unread-dot" title="未读" />}
+                <span class="item-title-text">{item.title}</span>
+              </h2>
               {settings.showItemSnippet && <p>{item.snippet}</p>}
               <div class="item-flags">
-                {!item.read && <span class="unread-dot" title="未读" />}
                 {item.starred && <Star size={14} fill="currentColor" />}
               </div>
             </button>;
@@ -802,7 +812,7 @@ function Article(props: {
         <span>{props.feed ? feedName(props.feed) : sourceHost(props.item)}</span>
         <div>
           <button class="icon-button" title={props.item.read ? "标为未读" : "标为已读"} onClick={props.onToggleRead}>
-            {props.item.read ? <CheckCheck size={18} /> : <Check size={18} />}
+            {props.item.read ? <Mail size={18} /> : <MailOpen size={18} />}
           </button>
           <button class={`icon-button ${props.item.starred ? "accent" : ""}`} title={props.item.starred ? "取消收藏" : "收藏"} onClick={props.onToggleStar}>
             <Star size={18} fill={props.item.starred ? "currentColor" : "none"} />
