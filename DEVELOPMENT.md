@@ -784,6 +784,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 - `RemoveMSEdge.bat`：普通执行始终进入完整卸载流程；`-guard` 计划任务守卫模式（UAC 提权后、网络检测前检查机器级/用户级 msedge.exe 和 `Get-AppxPackage -AllUsers` 的 `*MicrosoftEdge*`，Edge 与 AppX 都不存在时输出 `Edge is not installed; nothing to remove` 并以 0 退出；AppX 查询失败 fail-open）。WebView2、`EdgeCore`、`EdgeUpdate` 不参与守卫判定。
 - `RemoveMSEdgeAll.bat`：无守卫模式，依次处理机器级 Edge、当前用户级 Edge、机器级/用户级 Evergreen WebView2、Edge AppX 及所有用户和共享更新设施残留。
 - 两脚本都支持 `-auto`（仅内置 Administrator 已启用时跳过身份确认，不等同于 `-guard`）。
+- 两脚本都支持 `-help`、`-h`、`/?` 显示参数说明；帮助在架构切换前退出，不触发 UAC、联网、下载或卸载。
 
 #### 计划任务约定
 
@@ -820,6 +821,8 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 6. ProfileList 循环每次读取前清空配置目录变量并验证路径，防止沿用上一用户路径。
 7. 修改 UAC 或嵌入式 PowerShell 时验证最终传给 PowerShell 的文本，不只是源文件外观。
 8. 标签名称唯一；所有 `goto`/`call :label` 都有对应标签，动态标签逐分支检查。
+9. 用户配置清理必须扫描 `UrlAssociations` 和 `Explorer\FileExts` 下所有 `UserChoice` 的 `ProgId`；仅删除以 `MSEdge` 开头的残留，不能覆盖用户选择的其他浏览器。
+10. 受保护的 Edge `UserChoice` 删除失败时，只能移除目标键的非继承拒绝 ACL 后重试，不能修改其他关联键的权限。
 
 #### 验证清单
 
@@ -836,6 +839,8 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 | AppX pending removal | 进入流程，重启后查询无输出 |
 | `RemoveMSEdge.bat` 且已装 WebView2 | Edge 删除，WebView2/共享更新保留 |
 | `RemoveMSEdgeAll.bat` | Edge、WebView2、EdgeCore、EdgeUpdate、任务和服务全删 |
+| 任一脚本已有其他浏览器处理 URL 或文件类型 | 保留对应 `UserChoice` |
+| 任一脚本残留 `MSEdge*` 的 URL 或文件类型 `UserChoice` | 删除对应 `UserChoice` 子键 |
 
 不要在日常开发机上为语法验证直接跑完整脚本。
 
@@ -1003,7 +1008,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 | Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `css/*.css` |
 | AdGuard | AdGuard 兼容规则列表 | 导入 `magi.txt` |
-| Batch files | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard]` / `RemoveMSEdgeAll.bat` |
+| Batch files | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard] [-auto] [-help]` / `RemoveMSEdgeAll.bat [-auto] [-help]` |
 | Android ApkRename | PowerShell，apktool/Java 等工具 | `.\rename-apk.ps1 [-SetupTools]` |
 
 ---

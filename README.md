@@ -221,7 +221,7 @@ Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/Shad
 
 | 脚本 | 用途 |
 |---|---|
-| [`RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 删除机器级、用户级 Edge 和相关 AppX，保留 WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持计划任务参数 `-guard` |
-| [`RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | 全量删除 Edge、相关 AppX、WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务 |
+| [`RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 删除机器级、用户级 Edge 和相关 AppX，保留 WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-guard`、`-auto`，以及 `-help`/`-h`/`/?` |
+| [`RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | 全量删除 Edge、相关 AppX、WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-auto` 和 `-help`/`-h`/`/?` |
 
-两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留。职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留；卸载完成后还会扫描各用户 URL 协议和文件扩展名下的 `UserChoice`，删除所有 `ProgId` 以 `MSEdge` 开头的残留，不会覆盖其他浏览器的选择。职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。

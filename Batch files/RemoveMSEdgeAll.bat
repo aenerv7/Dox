@@ -2,6 +2,9 @@
 REM Based on ShadowWhisperer's Remove-MS-Edge project:
 REM https://github.com/ShadowWhisperer/Remove-MS-Edge
 REM land "clever" users back to native env (Win Vista and up; start /b not used due to some oddities)
+if /i "%~1" equ "-help" goto help
+if /i "%~1" equ "-h" goto help
+if /i "%~1" equ "/?" goto help
 if defined PROCESSOR_ARCHITEW6432 "%WinDir%\SysNative\cmd.exe" /c ""%~0" %*" & exit /b 0
 
 REM
@@ -709,6 +712,7 @@ reg delete "HKU\%1\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninsta
 
 reg delete "HKU\%1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge" /f
 reg delete "HKU\%1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge-holographic" /f
+call :userchoice_cleanup %1
 
 REM for current user require explorer restart
 reg delete "HKU\%1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Taskband" /v "FavoritesRemovedChanges" /f
@@ -746,6 +750,32 @@ echo [user_reg_cleanup().cls.done] %cll_dbg%
 echo [user_reg_cleanup().end] %cll_dbg%
 exit /b 0
 
+
+
+REM remove stale Edge UserChoice associations without overwriting another browser choice
+REM arguments: user SID
+:userchoice_cleanup
+echo [userchoice_cleanup()] "%1" %cll_dbg%
+for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r "\\UserChoice$"') do call :userchoice_cleanup_key "%%k"
+for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r "\\UserChoice$"') do call :userchoice_cleanup_key "%%k"
+exit /b 0
+
+:userchoice_cleanup_key
+for /f "tokens=1,2,*" %%a in ('reg query "%~1" /v ProgId 2^>NUL') do call :userchoice_cleanup_value "%~1" "%%a" "%%c"
+exit /b 0
+
+:userchoice_cleanup_value
+if /i "%~2" neq "ProgId" exit /b 0
+set "userchoice_progid=%~3"
+if /i "%userchoice_progid:~0,6%" neq "MSEdge" exit /b 0
+echo removing stale Edge UserChoice: "%~1" (%userchoice_progid%) %cll_dbg%
+reg delete "%~1" /f >NUL 2>&1
+if not errorlevel 1 exit /b 0
+echo resetting protected UserChoice ACL: "%~1" %cll_dbg%
+set "userchoice_key=%~1"
+powershell -noprofile -c "$subkey = $env:userchoice_key.Substring($env:userchoice_key.IndexOf('\') + 1); $rights = [System.Security.AccessControl.RegistryRights]::ReadPermissions -bor [System.Security.AccessControl.RegistryRights]::ChangePermissions; $key = [Microsoft.Win32.Registry]::Users.OpenSubKey($subkey, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, $rights); if ($key) { $acl = $key.GetAccessControl(); $rules = @($acl.GetAccessRules($true, $false, [System.Security.Principal.NTAccount])); foreach ($rule in $rules) { if ($rule.AccessControlType -eq 'Deny' -and -not $rule.IsInherited) { [void]$acl.RemoveAccessRuleSpecific($rule) } }; $key.SetAccessControl($acl); $key.Close() }" 2>NUL
+reg delete "%~1" /f
+exit /b 0
 
 
 REM =====  PowerShell(psl) based complex functions  =====
@@ -989,5 +1019,22 @@ echo function main() {^
 main;^
 ;| powershell -noprofile -
 echo [appx_remove_as_system().end] %cll_dbg%
+exit /b 0
+
+:help
+echo.
+echo %~nx0 - remove Microsoft Edge and all shared WebView2 components.
+echo.
+echo Usage: %~nx0 [option]
+echo.
+echo Options:
+echo   -auto   Skip the built-in Administrator confirmation when already elevated.
+echo   -help   Show this help and exit without UAC, network, or cleanup actions.
+echo   -h      Alias for -help.
+echo(  /?      Alias for -help.
+echo.
+echo Default behavior removes Edge, WebView2 Runtime, EdgeCore, EdgeUpdate,
+echo shared Edge Update tasks and services, and related Edge AppX packages.
+echo Use RemoveMSEdge.bat when WebView2 Runtime and shared update components must stay.
 exit /b 0
 
