@@ -52,6 +52,7 @@ import {
   updateSyncedPreferences,
 } from "./database";
 import { refreshFeed, refreshFeeds } from "./feed-service";
+import type { FeedRefreshProgress } from "./feed-service";
 import { needsInitialArticleRefresh } from "./initial-sync";
 import { formatItemSource, matchesItemView } from "./item-list";
 import type { AppSettings, ColorScheme, FeedRecord, ItemRecord, PreferenceValues } from "./model";
@@ -64,6 +65,12 @@ type Filter = "all" | "unread" | "starred" | string;
 type MobilePane = "feeds" | "items" | "reader";
 type SyncStatus = "idle" | "syncing" | "ok" | "error";
 type ResizeTarget = "feeds" | "items";
+
+interface RefreshDisplayProgress {
+  completed: number;
+  total: number;
+  activeFeedNames: string[];
+}
 
 interface ColorSchemeOption {
   id: ColorScheme;
@@ -175,6 +182,18 @@ function feedName(feed: FeedRecord): string {
   return feed.customName.trim() || feed.title;
 }
 
+function displayRefreshProgress(
+  progress: FeedRefreshProgress,
+  sourceFeeds: readonly FeedRecord[],
+): RefreshDisplayProgress {
+  const feedNames = new Map(sourceFeeds.map((feed) => [feed.id, feedName(feed)]));
+  return {
+    completed: progress.completed,
+    total: progress.total,
+    activeFeedNames: progress.activeFeedIds.map((feedId) => feedNames.get(feedId) || "未知订阅源"),
+  };
+}
+
 export function App() {
   const [feeds, setFeeds] = useState<FeedRecord[]>([]);
   const [items, setItems] = useState<ItemRecord[]>([]);
@@ -191,6 +210,7 @@ export function App() {
   const [settings, setSettingsState] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshScope, setRefreshScope] = useState<"all" | string | null>(null);
+  const [refreshProgress, setRefreshProgress] = useState<RefreshDisplayProgress | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [toast, setToast] = useState("");
   const [ready, setReady] = useState(false);
@@ -231,7 +251,10 @@ export function App() {
         setRefreshing(true);
         setRefreshScope("all");
         try {
-          initialRefresh = await refreshFeeds(syncedFeeds.map((feed) => feed.id));
+          initialRefresh = await refreshFeeds(
+            syncedFeeds.map((feed) => feed.id),
+            (progress) => setRefreshProgress(displayRefreshProgress(progress, syncedFeeds)),
+          );
           await setLastRefreshAllAt(Date.now());
           try {
             await syncWithWebDav(syncedSettings);
@@ -243,6 +266,7 @@ export function App() {
         } finally {
           setRefreshing(false);
           setRefreshScope(null);
+          setRefreshProgress(null);
           await loadData();
         }
       }
@@ -309,6 +333,13 @@ export function App() {
   const selectedFeedUnread = selectedFeed ? (feedUnread[selectedFeed.id] ?? 0) : 0;
   const unreadCount = counts.unread;
   const starredCount = counts.starred;
+  const refreshSourceLabel = !refreshProgress
+    ? ""
+    : refreshProgress.activeFeedNames.length
+      ? refreshProgress.activeFeedNames.join("、")
+      : refreshProgress.completed === refreshProgress.total
+        ? "正在整理刷新结果"
+        : "正在连接订阅源";
 
   async function chooseItem(item: ItemRecord) {
     setSelectedItemId(item.id);
@@ -363,7 +394,12 @@ export function App() {
     setRefreshScope(feedId ?? "all");
     const targets = feedId ? [feedId] : currentFeeds.map((feed) => feed.id);
     try {
-      const result = await refreshFeeds(targets);
+      const result = await refreshFeeds(
+        targets,
+        feedId
+          ? undefined
+          : (progress) => setRefreshProgress(displayRefreshProgress(progress, currentFeeds)),
+      );
       await loadData();
       if (feedId) {
         setToast(result.errors.length
@@ -379,6 +415,7 @@ export function App() {
     } finally {
       setRefreshing(false);
       setRefreshScope(null);
+      if (!feedId) setRefreshProgress(null);
     }
   }
 
@@ -747,11 +784,27 @@ export function App() {
         <button onClick={() => setShowSettings(true)}><Settings size={19} /><span>设置</span></button>
       </nav>
 
-      {refreshScope === "all" && (
-        <div class="global-refresh-overlay" role="status" aria-live="assertive" aria-busy="true">
-          <LoaderCircle size={28} class="spin" />
-          <strong>正在刷新全部订阅</strong>
-          <span>{feeds.length} 个订阅源</span>
+      {refreshScope === "all" && refreshProgress && (
+        <div class="global-refresh-overlay" role="status" aria-live="polite" aria-busy="true">
+          <div class="global-refresh-status">
+            <div class="global-refresh-heading">
+              <LoaderCircle size={28} class="spin" />
+              <div>
+                <strong>正在刷新全部订阅</strong>
+                <span>已完成 {refreshProgress.completed} / {refreshProgress.total} 个订阅源</span>
+              </div>
+            </div>
+            <div class="global-refresh-source">
+              <span>{refreshProgress.activeFeedNames.length ? "正在检查" : "状态"}</span>
+              <strong title={refreshSourceLabel}>{refreshSourceLabel}</strong>
+            </div>
+            <progress
+              class="global-refresh-progress"
+              aria-label="刷新订阅进度"
+              max={refreshProgress.total}
+              value={refreshProgress.completed}
+            />
+          </div>
         </div>
       )}
 

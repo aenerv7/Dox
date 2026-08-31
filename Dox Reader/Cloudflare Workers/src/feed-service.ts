@@ -2,6 +2,12 @@ import { getFeed, saveParsedFeed, setFeedError } from "./database";
 import { parseFeedXml } from "./feed-parser";
 import { fetchFeed } from "./runtime-fetch";
 
+export interface FeedRefreshProgress {
+  completed: number;
+  total: number;
+  activeFeedIds: readonly string[];
+}
+
 export async function refreshFeed(feedId: string): Promise<number> {
   const feed = await getFeed(feedId);
   if (!feed || feed.deleted) throw new Error("订阅源不存在");
@@ -30,20 +36,39 @@ export async function refreshFeed(feedId: string): Promise<number> {
   }
 }
 
-export async function refreshFeeds(feedIds: string[]): Promise<{ succeeded: number; updated: number; errors: string[] }> {
+export async function refreshFeeds(
+  feedIds: string[],
+  onProgress?: (progress: FeedRefreshProgress) => void,
+): Promise<{ succeeded: number; updated: number; errors: string[] }> {
   let cursor = 0;
+  let completed = 0;
   let succeeded = 0;
   let updated = 0;
   const errors: string[] = [];
+  const activeFeedIds = new Set<string>();
+  const reportProgress = () => onProgress?.({
+    completed,
+    total: feedIds.length,
+    activeFeedIds: [...activeFeedIds],
+  });
+
+  reportProgress();
   const workers = Array.from({ length: Math.min(4, feedIds.length) }, async () => {
     while (cursor < feedIds.length) {
       const index = cursor;
       cursor += 1;
+      const feedId = feedIds[index];
+      activeFeedIds.add(feedId);
+      reportProgress();
       try {
-        updated += await refreshFeed(feedIds[index]);
+        updated += await refreshFeed(feedId);
         succeeded += 1;
       } catch (error) {
         errors.push(error instanceof Error ? error.message : String(error));
+      } finally {
+        activeFeedIds.delete(feedId);
+        completed += 1;
+        reportProgress();
       }
     }
   });
