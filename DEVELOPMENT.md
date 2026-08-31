@@ -709,7 +709,7 @@ AMO 审核说明在 `Dox Reader/Firefox/AMO_REVIEW_NOTES.md`，两个 `PRIVACY.m
 
 ### 3.7 Firefox Auto Sort Bookmarks
 
-Manifest V3 后台扩展（event page），递归整理 Bookmarks Menu（`menu________`）与 Other Bookmarks（`unfiled_____`）。文件：`manifest.json`、`background.js`（按 `sorter.js` → `background.js` 加载）、`sorter.js`、`tests/sorter.test.js`、`_locales/{en,zh_CN}/messages.json`。权限 `alarms`、`bookmarks`、`storage`；数据收集声明 `none`；最低 Firefox 142。
+Manifest V3 后台扩展（event page），递归整理 Bookmarks Menu（`menu________`）与 Other Bookmarks（`unfiled_____`）。文件：`manifest.json`、`background.js`（按 `sorter.js` → `background.js` 加载）、`sorter.js`、`tests/sorter.test.js`、`_locales/{en,zh_CN}/messages.json`、`icons/`、`THIRD_PARTY_NOTICES.md`。权限 `alarms`、`bookmarks`、`storage`；数据收集声明 `none`；最低 Firefox 142。
 
 排序核心（`sorter.js`）：
 
@@ -729,7 +729,16 @@ Manifest V3 后台扩展（event page），递归整理 Bookmarks Menu（`menu__
 
 Firefox API 限制：标准 `windows` 只枚举 `navigator:browser`，无法观测 Library 窗口生命周期，只能避开**当前获焦**的 Library，无法区分“已关闭”与“退到普通窗口之后”。
 
-维护约束：排序算法集中在 `sorter.js`，只依赖传入的 `bookmarksApi`（`getChildren`/`move`），不得引用全局 `browser`；`bookmarks.move` 顺序 `await`，不要并发；目标根目录与闹钟名不可改名；行为变更同步 `sorter.test.js`、`README.md`、本文档；用户可见名/描述/行为改 `manifest.json` 版本，`_locales` 两语言 key 成对，`default_locale` 保持 `en`；`web-ext-artifacts/` 不提交。
+维护约束：排序算法集中在 `sorter.js`，只依赖传入的 `bookmarksApi`（`getChildren`/`move`），不得引用全局 `browser`；`bookmarks.move` 顺序 `await`，不要并发；目标根目录与闹钟名不可改名；行为变更同步 `sorter.test.js`、`README.md`、本文档；用户可见名/描述/行为改 `manifest.json` 版本，`_locales` 两语言 key 成对，`default_locale` 保持 `en`；图标以 `icons/icon.svg` 为源，运行 `icons/generate-icons.ps1` 生成 32/48/64/96/128 PNG，第三方许可随 `THIRD_PARTY_NOTICES.md` 入包；已上架 AMO 的扩展必须同时在 Developer Hub 上传 128px 图标，因为 Firefox 扩展管理器从 AMO API 读取已列出扩展的图标元数据；`web-ext-artifacts/` 不提交。
+
+图标发布是双通道流程，不能只更新 XPI：
+
+1. 先生成并检查包内 32/48/64/96/128 PNG，确认 `manifest.json.icons` 全部引用有效，并在 Firefox 亮色、暗色主题下检查可见性。
+2. 在发布新版前，先通过 Developer Hub 或 AMO v5 API 的 add-on `PATCH` multipart `icon` 字段上传同一张 128×128 PNG。Manifest 图标不会自动同步到 AMO 图标字段。
+3. 等待 AMO 异步缩放完成；只有公共 add-on API 的 `icon_url` 非空、`icons` 包含 32/64/128、缓存戳已更新，且下载到的 128 资源实际尺寸为 128×128，才可继续发布版本。
+4. 新版本转为 `public` 后再次检查 AMO v4/v5 公共 API，并用正式安装验证扩展面板、`about:addons` 列表和详情页。网页商品页显示图标不代表 Firefox 本地界面已拿到图标元数据。
+
+上述任一项未通过，图标发布视为失败，不得仅凭签名 XPI 内存在 PNG 或 AMO 网页已有图标结束发布。
 
 测试：
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.2.2",
+  "version": "1.2.4",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "author": "aenerv7",
@@ -11,6 +11,13 @@
     "bookmarks",
     "storage"
   ],
+  "icons": {
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "64": "icons/icon-64.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  },
   "background": {
     "scripts": [
       "sorter.js",

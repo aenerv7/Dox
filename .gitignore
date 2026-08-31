@@ -24,6 +24,7 @@ CapsLockOSD/CapsLockOSD.ini
 
 # Firefox extensions
 Firefox/**/web-ext-artifacts/
+Firefox/**/.amo-upload-uuid
 
 # Firefox PortableBridge build output
 Firefox/PortableBridge/bin/

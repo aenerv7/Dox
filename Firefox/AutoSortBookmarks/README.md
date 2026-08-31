@@ -24,7 +24,13 @@
 2. 点击“临时载入附加组件”。
 3. 选择本目录中的 `manifest.json`。
 
-正式分发时可将 `manifest.json`、`background.js` 和 `sorter.js` 放在压缩包根目录后提交 Mozilla Add-ons 签名。
+正式分发时，发布包需包含 `manifest.json`、`background.js`、`sorter.js`、`_locales/`、`icons/icon-{32,48,64,96,128}.png` 和 `THIRD_PARTY_NOTICES.md`，然后提交 Mozilla Add-ons 签名。已上架 AMO 的扩展还必须在 Developer Hub 单独上传同一张 128px 图标；Firefox 的扩展管理器会从 AMO API 读取该图标元数据。
+
+## 图标
+
+扩展图标使用 Lucide 的 [Arrow Down A-Z](https://lucide.dev/icons/arrow-down-a-z) 图形，并增加固定的蓝色底和深浅双边界，确保在 Firefox 的亮色、暗色主题下均清晰可见。Lucide 采用允许商业使用的 ISC License，完整版权与许可声明见 `THIRD_PARTY_NOTICES.md`。
+
+发布图标时必须先更新 AMO 的独立 128px 图标并等待其 32/64/128 缩放资源生成，再提交新版本。发布后以 AMO 公共 API 和 Firefox 的扩展面板、`about:addons` 列表及详情页为准；仅在 AMO 网页看到图标不算验证通过。完整发布检查清单见仓库根目录 `DEVELOPMENT.md` 的 “Firefox Auto Sort Bookmarks” 小节。
 
 ## Firefox API 限制
 
