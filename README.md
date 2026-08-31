@@ -12,6 +12,7 @@
 | [`SizerSwift`](./SizerSwift) | macOS 菜单栏窗口调整工具 |
 | [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Firefox 扩展版与 Cloudflare Workers 网页版 |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
+| [`Firefox/PortableBridge`](./Firefox/PortableBridge) | 无默认浏览器环境下的便携 Firefox 会话级 HTTP(S) 回退 |
 | [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
 | [`css`](./css) | 中文字体映射和 VS Code 外观自定义 CSS |
 | [`Userscript`](./Userscript) | Tampermonkey/Greasemonkey 用户脚本 |
@@ -142,6 +143,27 @@ swift build -c release
 ```
 
 手动打包为 `.app` 后部署到 `/Applications`，需执行 `xattr -cr` 清除隔离属性。当前不使用 codesign 签名，以避免辅助功能权限因重新签名而失效。
+
+## Firefox 工具
+
+### PortableBridge
+
+[`Firefox/PortableBridge`](./Firefox/PortableBridge) 是无控制台窗口的会话级 URL 桥接器，供没有 Windows 默认浏览器和 HTTP(S) `UserChoice` 的便携 Firefox 使用。
+
+- Firefox 运行时临时维护当前用户的 `http`/`https` 协议命令，退出后撤销，不注册为 Windows 默认浏览器
+- 同一个 EXE 完成协议注册、自愈监视、异常残留清理和 URL 投递；对仍命中旧 PowerShell handler 的 Windows 受保护关联缓存，会话期间按需生成并回收严格校验内容的转发垫片
+- 只接管空协议根，拒绝覆盖 `UserChoice`、第三方值或第三方命令
+- URL 始终显式绑定便携 `Data\profile` 和应用级数据目录，不创建默认 Profile
+- 整个便携 Firefox 根目录可以更换盘符或路径，运行布局保持 `App`、`Data`、`Tools` 即可
+
+构建：
+
+```powershell
+cd Firefox\PortableBridge
+.\build.ps1
+```
+
+默认 EXE 输出到被忽略的 `bin`；实际部署可用 `-OutputPath` 指向便携 Firefox 的 `Tools\FirefoxPortableBridge.exe`。运行布局、启动器接入和限制见模块 [`README.md`](./Firefox/PortableBridge/README.md)，完整所有权规则和验证清单见根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
 
 ## Firefox 扩展
 

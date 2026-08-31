@@ -25,6 +25,9 @@ CapsLockOSD/CapsLockOSD.ini
 # Firefox extensions
 Firefox/**/web-ext-artifacts/
 
+# Firefox PortableBridge build output
+Firefox/PortableBridge/bin/
+
 # DeepSeek Harness Launcher（构建产物）
 DeepSeek Harness/Launcher/bin/
 

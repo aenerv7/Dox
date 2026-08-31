@@ -22,6 +22,7 @@
    - 3.11 [Batch files（RemoveMSEdge）](#311-batch-filesremovemsedge)
    - 3.12 [DeepSeek Harness Launcher](#312-deepseek-harness-launcher)
    - 3.13 [Android ApkRename](#313-android-apkrename)
+   - 3.14 [Firefox PortableBridge](#314-firefox-portablebridge)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -40,6 +41,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | AutoHotkey v2 | `AutoHotkey/**/*.ahk` | Windows 桌面自动化和窗口调整 |
 | C / Win32 API | `SizerWin/*.c`、`SizerWin/*.rc`、`SizerWin/*.manifest`、`CapsLockOSD/` | 原生 Windows 窗口调整工具与 OSD 提示 |
 | C++20 / Win32 API | `DeepSeek Harness/Launcher/` | DeepSeek Harness 本地托盘监督器 |
+| C# / .NET Framework 4 | `Firefox/PortableBridge/` | 便携 Firefox 的会话级 HTTP(S) 协议桥接与生命周期监视 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Firefox 扩展 + Cloudflare Workers） |
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
@@ -58,6 +60,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
 | `Dox Reader/` | 活跃 | local-first RSS 阅读器（Firefox 扩展版 + Cloudflare Workers 网页版） |
 | `Firefox/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
+| `Firefox/PortableBridge/` | 活跃 | 无默认浏览器环境下的便携 Firefox 会话级 HTTP(S) 回退 |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `css/` | 活跃 | 中文字体映射 CSS 和 VS Code 自定义 CSS |
 | `Userscript/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
@@ -76,6 +79,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `AutoHotkey/Test/Test.exe`
 - `.DS_Store`
 - `Firefox/**/web-ext-artifacts/`
+- `Firefox/PortableBridge/bin/`
 - `SizerSwift/.build/`、`SizerSwift/build/`
 - `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
 - `DeepSeek Harness/Launcher/bin/`
@@ -88,6 +92,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `CapsLockOSD/`（C++ 源与资源脚本）
 - `css/font-face.css`
 - `Firefox/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
+- `Firefox/PortableBridge/FirefoxPortableBridge.cs`、`build.ps1`
 - `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`
 - `Stash/external-ip-address-tile.js`
 - `magi.txt`
@@ -133,6 +138,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `SizerSwift/.build/`、`SizerSwift/build/`
 - `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
 - `Firefox/**/web-ext-artifacts/`
+- `Firefox/PortableBridge/bin/`
 - `DeepSeek Harness/Launcher/bin/`
 - `.DS_Store`
 
@@ -821,8 +827,9 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 6. ProfileList 循环每次读取前清空配置目录变量并验证路径，防止沿用上一用户路径。
 7. 修改 UAC 或嵌入式 PowerShell 时验证最终传给 PowerShell 的文本，不只是源文件外观。
 8. 标签名称唯一；所有 `goto`/`call :label` 都有对应标签，动态标签逐分支检查。
-9. 用户配置清理必须扫描 `UrlAssociations` 和 `Explorer\FileExts` 下所有 `UserChoice` 的 `ProgId`；仅删除以 `MSEdge` 开头的残留，不能覆盖用户选择的其他浏览器。
+9. 用户配置清理必须扫描 `UrlAssociations` 和 `Explorer\FileExts` 下所有 `UserChoice`/`UserChoiceLatest` 的直接或嵌套 `ProgId`；仅删除以 `MSEdge` 开头的残留，不能覆盖用户选择的其他浏览器。
 10. 受保护的 Edge `UserChoice` 删除失败时，只能移除目标键的非继承拒绝 ACL 后重试，不能修改其他关联键的权限。
+11. 依赖文件缓存哈希不匹配时，必须删除失效缓存并重新下载；下载完成后再次校验，二次校验仍失败才返回 `ISSUE_HASH`。
 
 #### 验证清单
 
@@ -839,8 +846,9 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 | AppX pending removal | 进入流程，重启后查询无输出 |
 | `RemoveMSEdge.bat` 且已装 WebView2 | Edge 删除，WebView2/共享更新保留 |
 | `RemoveMSEdgeAll.bat` | Edge、WebView2、EdgeCore、EdgeUpdate、任务和服务全删 |
-| 任一脚本已有其他浏览器处理 URL 或文件类型 | 保留对应 `UserChoice` |
-| 任一脚本残留 `MSEdge*` 的 URL 或文件类型 `UserChoice` | 删除对应 `UserChoice` 子键 |
+| 任一脚本已有其他浏览器处理 URL 或文件类型 | 保留对应 `UserChoice`/`UserChoiceLatest` |
+| 任一脚本残留 `MSEdge*` 的 URL 或文件类型 `UserChoice`/`UserChoiceLatest` | 删除对应选择子键 |
+| 依赖文件缓存哈希不匹配 | 删除缓存、重新下载并通过二次 SHA-256 校验后继续 |
 
 不要在日常开发机上为语法验证直接跑完整脚本。
 
@@ -991,6 +999,120 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 
 签名“字节”必然变化（内容变了），但只要用原 keystore，签名“身份”（同一证书）不变，可覆盖安装。维护时注意：只改名称相关资源，不得动包名与代码；签名必须用原 keystore。
 
+### 3.14 Firefox PortableBridge
+
+`Firefox/PortableBridge/` 是便携 Firefox 的会话级 HTTP(S) 协议桥接器，解决 Windows 没有默认浏览器、`http`/`https` 也没有有效 `UserChoice`/`UserChoiceLatest` ProgId 时，桌面应用无法打开 OAuth、账号管理或普通网页的问题。它不是默认浏览器注册器，不写 `UserChoice`/`UserChoiceLatest`/Hash、`RegisteredApplications`、Capabilities 或 `StartMenuInternet`。
+
+#### 运行布局与边界
+
+源码位于仓库，运行产物部署到仓库外的便携 Firefox：
+
+```text
+FirefoxRoot\
+├── App\firefox.exe
+├── Data\profile\
+└── Tools\
+    ├── FirefoxPortableBridge.exe
+    ├── OpenUrl.ps1                   # watch 会话生成的旧 handler 兼容垫片
+    └── Portable.ps1                 # 可选的通用退出清理
+```
+
+- 整个 `FirefoxRoot` 可以移动到任意本地盘符或目录；所有路径运行时规范化，源码没有固定盘符。
+- 当前二进制必须命名为 `FirefoxPortableBridge.exe` 并位于 `FirefoxRoot\Tools`。`open` 模式从自身位置恢复根目录，`watch`/`cleanup --root` 还会校验参数根与二进制位置一致，拒绝越界操作。
+- 固定相对布局为 `App\firefox.exe`、`Data\profile`、`Data\appdata` 和 `Data\runtime-url-handler.json`。这不是可独立指向任意 Firefox/Profile 的通用默认浏览器工具。
+- 主 Firefox 必须由外部便携启动器启动且不能带 `--no-remote`。Bridge 只投递 URL，不重复执行更新、迁移或完整启动流程。
+
+#### 模式与进程模型
+
+| 模式 | 职责 |
+|---|---|
+| `watch --root <FirefoxRoot>` | 根路径互斥的常驻实例；等待目标 Firefox，注册/自愈协议，提供命名管道；UserChoice 冲突时暂停并重试，Firefox 退出后撤销 |
+| `open <URL>` / `<URL>` | GUI 子系统短命入口；校验 URL，优先通过根路径派生的命名管道投递，失败时直接投递；协议命令和旧 handler 垫片使用前者，单 URL 仅保留兼容 |
+| `gh-open <session-guid> <URL>` | `GH_BROWSER` 专用入口；状态中的当前会话 GUID 和完整环境命令匹配后才投递，拒绝旧终端继承的过期会话 |
+| `cleanup --root <FirefoxRoot>` | 启动前回收上次崩溃、强杀或断电留下且仍能证明所有权的协议状态、当前根目录的旧版 PowerShell handler 及精确匹配模板的兼容垫片 |
+
+一次正常会话：启动器先启动 `watch` → Bridge 最多等待 90 秒检测同路径、非 `-contentproc` 且非 `--no-remote` 的 Firefox 主进程 → 写入会话状态 → 临时建立 `http`/`https` 命令；若 `GH_BROWSER` 原先不存在则创建指向当前 Bridge 的用户环境覆盖，并生成旧 handler 兼容垫片 → 每 500 ms 检测进程、每 2 秒核验协议和自有环境值完整性 → 非空 UserChoice 出现时撤销自身回退、保留 Watch 并周期重试 → Firefox 消失时立即撤销 URL 回退、自有 `GH_BROWSER` 并删除内容仍匹配模板的垫片 → 保留 5 秒重启宽限 → 如 `Tools\Portable.ps1` 存在，以隐藏 PowerShell 调用 `-Mode Cleanup` 完成 URL 以外的便携痕迹清理。
+
+`open` 与 `watch` 使用以规范化根路径 SHA-256 前缀派生的本地命名管道；`watch` 同时使用同一根路径派生的实例互斥体，防止重复监视器。注册、自愈和 `cleanup` 另用同根目录派生的状态互斥体串行执行，避免状态 JSON 与两棵协议注册表被不同进程交叉读写。短命入口优先把验证后的 URL 发给常驻实例；管道连接或交付失败时，由同一短命 EXE 在确认便携 Firefox 主进程后，以完全相同的 Profile 和便携环境直接执行 `firefox.exe --profile <Data\profile> -url <URL>`，避免瞬态管道故障静默丢失外链。
+
+URL 投递必须同步设置主启动器的便携环境：`TEMP`/`TMP`、`MOZ_APP_DATA`、`MOZ_LOCAL_APP_DATA`、崩溃报告和 Pending Pings 目录均指向 `Data`。不能只传 `--profile`，否则 Firefox 应用级状态仍可能写入主机 AppData。
+
+`Data\runtime-url-handler.open.log` 采用单行覆盖，只记录最近一次调用时间、调用方进程名、目标协议/主机、通道、返回码和前序异常类型；不得记录 URL 路径、查询参数、片段或 OAuth 数据。它用于判断调用是否到达 Bridge，不参与注册表所有权或恢复决策。
+
+#### 注册表所有权与安全不变量
+
+会话状态 `Data\runtime-url-handler.json` 使用 schema 3，记录会话 GUID、根路径、Bridge 路径、完整 handler command、创建时间、两个协议根键启动前是否存在，以及本会话是否创建了 `GH_BROWSER` 和它的完整命令。状态文件先原子落盘，再写注册表和用户环境；注册、修复和撤销协议后调用 `SHChangeNotify(SHCNE_ASSOCCHANGED)` 刷新 Shell 关联缓存，环境变化后广播 `WM_SETTINGCHANGE(Environment)`。读取 schema 1/2 时先按对应旧所有权规则清理协议、旧环境值及 schema 1 的 `MSEdgeHTM` 适配，再建立 schema 3 会话。
+
+维护时必须保留以下约束：
+
+1. 启用前必须读取两个协议的 `UserChoice` 和 `UserChoiceLatest`。含非空 ProgId 时不能仅凭原始键决定：必须调用 `AssocQueryStringW`，以 `ASSOCF_IS_PROTOCOL | ASSOCF_VERIFY` 查询 `ASSOCSTR_COMMAND`。解析到其他有效命令时撤销自身回退并暂停注册，不能修改、删除或伪造 Hash；官方 API 返回 `ERROR_NO_ASSOCIATION` 时才可判定为无可用处理器并建立会话回退。该冲突不是 Watch 的致命错误：只要目标 Firefox 仍运行，Watch 必须继续常驻并周期重试。Windows 自动生成但不含 ProgId 的空壳选择键可直接忽略。
+2. 初次接管只接受协议根不存在，或根键仅含空字符串 `URL Protocol` 且没有子键；任何第三方值或命令均拒绝覆盖。
+3. 每次接管允许最多 5 秒的只读稳定窗口（100 ms 轮询）；先等待 `UserChoice`/`UserChoiceLatest` 的 ProgId 稳定为空，再在每轮同时检查空树接管和完整自有树再认领，不能只在进入窗口前检查一次再认领。窗口结束后 UserChoice 仍非空时只暂停该轮并记录错误，约两秒后重试；协议树结构不安全则仍为致命错误。
+4. 每次注册、自愈和撤销协议后必须调用 `SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_DWORD | SHCNF_FLUSH, ...)` 并等待系统组件处理。该通知只请求刷新普通 Shell 关联缓存，不得假定它会清除 UCPD 向特定调用进程返回的受保护 `UserChoiceLatest` 或旧命令。
+5. 状态互斥体必须覆盖状态读取、状态原子写入、注册表写入和状态删除的完整临界区；`watch` 与外部 `cleanup` 不得并发改变同一会话。
+6. 状态 JSON 缺失时，只允许再认领能以合法 GUID、空 `URL Protocol`、唯一完整 `shell\open\command` 和当前精确 handler command 证明所有权的树；两个协议的已拥有部分必须使用同一 GUID，其他结构继续拒绝。
+7. 根键用 `FirefoxPortableSessionId` 标记会话所有权；完整活动状态必须同时具备空 `URL Protocol`、匹配 GUID、唯一 `shell\open\command` 和精确 handler command。
+8. 自愈只允许根键为空或仍是本会话可证明安全的部分结构；出现第三方根值、额外子键、命令变化或所有权变化时停止覆盖。
+9. 清理逐层验证根值、`shell`、`open`、`command`；不能证明属于本会话的结构保留，状态文件也保留以便人工排查。
+10. 原先存在的空 `URL Protocol` 标记清理后保留；原先不存在且已恢复为空的根键删除。
+11. 只接受单个、无控制字符、长度不超过 32768 的绝对 `http`/`https` URL；其他 scheme 返回拒绝码。
+12. WMI 进程查询失败属于未知状态，不能据此立即撤销或执行退出清理；只有查询成功且确认目标主进程不存在才进入退出路径。
+13. `Tools\OpenUrl.ps1` 只允许由 `watch` 在协议注册成功后以固定内置模板原子生成，用于兼容 Windows 仍执行的旧版同目录 handler。创建时不得覆盖不同内容的同名文件；清理时也只删除逐字匹配模板的主文件或临时文件。模板必须从 `$PSScriptRoot` 相对解析同目录 EXE，不得写入固定盘符。
+14. `watch` 首次注册前及 `cleanup` 都必须迁移清理旧版 PowerShell handler，但匹配必须同时覆盖系统 Windows PowerShell 绝对路径、固定参数序列、当前便携根的 `Tools\OpenUrl.ps1` 和 `-Url "%1"`。只删除精确匹配的 `command`，逐层删除变空的 `open`/`shell`，移除 Bridge 专用所有权值并保留原有空 `URL Protocol`；不得按脚本文件名或 `powershell.exe` 模糊删除。
+15. Procmon 已确认 Windows Terminal 中的 `gh.exe` 和系统 `OpenWith.exe` 会在 UCPD 受保护视图中读取失效 `MSEdgeHTM`，同时把临时 `HKCU\Software\Classes\MSEdgeHTM` 和普通 `https\shell` 命令过滤为不存在；不得再用临时 ProgId 适配宣称解决该路径。Bridge 应使用 GitHub CLI 官方的 `GH_BROWSER`：仅在用户环境原先同时无 `GH_BROWSER` 和 `BROWSER` 时，以 schema 3 状态先记录所有权再写入 `"<正斜杠 Bridge 路径>" gh-open <session-guid>`，引号兼容空格，正斜杠防止 `gh` 的 shell 命令解析吞掉反斜杠，会话参数阻止旧终端跨会话复用。环境值变化后广播 `WM_SETTINGCHANGE(Environment)`；已有值不覆盖，运行中发现自有值被外部值替换时放弃环境所有权并继续协议 Bridge，退出时也只删除仍逐字匹配状态命令的自有值。schema 1/2 只保留迁移清理逻辑。
+
+#### 源码、构建与部署
+
+| 文件 | 角色 |
+|---|---|
+| `FirefoxPortableBridge.cs` | 单文件实现；C#，兼容系统 .NET Framework 4 编译器 |
+| `build.ps1` | 定位 Framework64/Framework `csc.exe`，以 AnyCPU、`winexe`、优化、警告即错误构建，并验证 PE GUI 子系统 |
+| `README.md` | 用户定位、运行布局、构建和启动器接入说明 |
+| `bin/` | 默认本地产物；由 `.gitignore` 排除，不提交 |
+
+```powershell
+cd Firefox\PortableBridge
+.\build.ps1
+.\build.ps1 -OutputPath 'X:\Portable\Firefox\Tools\FirefoxPortableBridge.exe'
+```
+
+编译必须保留 `/target:winexe /platform:anycpu /optimize+ /warnaserror+`，并引用 `System.Management.dll` 与 `System.Runtime.Serialization.dll`。部署后 PE Subsystem 必须为 2（Windows GUI），否则系统打开链接会出现控制台窗口。仓库不提交 EXE；修改行为后从当前仓库源码直接编译到实际便携目录，不在运行目录保留第二份源码。
+
+#### 验证清单
+
+静态：`build.ps1` 成功、PE Subsystem=2、`git diff --check`、源码和脚本无固定盘符、`bin/` 保持 ignored。
+
+运行时至少覆盖：
+
+| 场景 | 预期结果 |
+|---|---|
+| 没有 Firefox | `watch` 等待后退出，不留下协议命令 |
+| Firefox 通过便携启动器运行 | 两个协议出现同一会话 GUID，命令指向当前 Bridge `open "%1"` |
+| Firefox 启动时 UserChoiceLatest 候选持续超过 5 秒，随后恢复为空壳 | Bridge 不覆盖候选且不退出；撤销自身回退、保持 Watch，后续轮询自动注册 |
+| Bridge 的注册表视图读到非空 UserChoiceLatest，但 `AssocQueryStringW` 返回 `ERROR_NO_ASSOCIATION` | 不修改选择键；按“没有可用处理器”建立会话回退 |
+| Windows Terminal 中的 `gh.exe` 被 UCPD 固定到失效 `MSEdgeHTM` | 新终端从用户环境继承 `GH_BROWSER`，`gh` 以 `gh-open + 会话 GUID + URL` 调用 Bridge；不依赖 Shell 关联视图 |
+| Firefox 根目录或 EXE 路径含空格 | `GH_BROWSER` 的正斜杠 EXE 路径带双引号，真实 `gh browse` 可正确执行 |
+| 旧终端保留上一 Firefox 会话的 `GH_BROWSER` | `gh-open` GUID 与当前 schema 3 状态不符，Bridge 拒绝投递；新终端继承当前命令后恢复 |
+| Firefox 启动时已有用户级 `GH_BROWSER` 或 `BROWSER` | 不覆盖、不取得所有权，保持用户配置原样 |
+| 运行中自有 `GH_BROWSER` 被其他值替换 | 状态原子改为外部所有；不覆盖该值，普通 HTTP(S) Bridge 继续运行 |
+| 携带旧根路径的状态文件随目录移动 | 先比较状态根、Bridge 路径和完整命令，再决定活动或清理；不得把旧位置命令当成当前会话 |
+| UserChoice 通过 `AssocQueryStringW` 解析到其他有效命令 | 不覆盖；撤销自身回退并保持 Watch，选择失效或清空后自动恢复 |
+| `watch` 自愈与外部 `cleanup` 并发触发 | 状态互斥体串行执行临界区；最终状态文件、两棵协议树和会话 GUID 保持一致 |
+| 删除状态 JSON，但保留当前 Bridge 的完整所有权树 | 校验 GUID、命令和树形后重建状态；任一字段变化则拒绝再认领 |
+| Windows Shell 打开本机随机 HTTP URL | 请求到达该便携 Profile；不生成默认 Profile，不出现 PowerShell/控制台窗口 |
+| UCPD 对调用进程仍返回旧版同目录 `OpenUrl.ps1` 命令 | 隐藏 PowerShell 经会话垫片调用同目录 Bridge `open`，请求到达便携 Profile；Firefox 退出后垫片删除 |
+| 没有状态 JSON，但普通注册表视图残留当前根目录的旧版 PowerShell handler | 启动注册前或显式 `cleanup` 精确识别并删除旧 `command`，空父键逐层回收，其他协议结构不变 |
+| `Tools\OpenUrl.ps1` 已存在且内容不是内置模板 | 拒绝覆盖或删除；撤销自身协议所有权并记录错误 |
+| 暂停或移除 `watch` 的命名管道后打开 HTTP(S) URL | 短命入口经直接回退投递到同一便携 Profile，诊断记录为 `direct-fallback` |
+| 非 HTTP(S) 或带控制字符 URL | 拒绝，不启动 Firefox 辅助进程 |
+| 删除本会话 command 或 `URL Protocol` | 2 秒核验周期内恢复 |
+| 带非空 ProgId 且能解析到有效 handler 的 `UserChoice`/`UserChoiceLatest` | 不覆盖；撤销自身回退并保持 Watch，选择失效或清空后自动恢复 |
+| 加入第三方根值、命令或改变所有权 | 视为致命结构冲突；不覆盖并记录错误状态供排查 |
+| 正常退出或强制结束 Firefox | Bridge、状态文件、会话 GUID、协议命令和仍精确匹配的自有 `GH_BROWSER` 回收；原有空标记及外部环境值保留 |
+| 强杀 Bridge/断电后再启动 | `cleanup` 仅回收所有权仍匹配的旧会话残留 |
+| 运行中移动整个目录 | 必须先退出；移动后 `Prepare`/`cleanup` 清旧绝对命令，再按新路径注册 |
+| 主机 AppData 启动前不存在 | URL 投递和退出后仍不存在，应用级状态只进入便携 `Data\appdata` |
+
 ---
 
 ## 4. 开发环境与构建命令速查
@@ -1003,6 +1125,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
 | Dox Reader | Node.js 24+（Firefox 发布 npm 11+） | 各自目录 `npm ci` + `npm run check` |
 | Firefox AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/AutoSortBookmarks/tests/sorter.test.js` |
+| Firefox PortableBridge | Windows；.NET Framework 4.x | `cd Firefox\PortableBridge; .\build.ps1` |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
 | Userscript | Tampermonkey / Greasemonkey | 浏览器安装脚本 |
 | Stash | Stash 运行环境 | 直接导入脚本 |

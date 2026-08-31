@@ -29,6 +29,8 @@ set "ISSUE_ARCH=6"
 set "RUN_MODE=normal"
 if /i "%~1" equ "-guard" set "RUN_MODE=guard"
 if /i "%~2" equ "guard" set "RUN_MODE=guard"
+if /i "%~1" equ "-userchoice" set "RUN_MODE=userchoice"
+if /i "%~2" equ "userchoice" set "RUN_MODE=userchoice"
 
 REM check for architecture (x86 and amd64 are supported, arm - not)
 if /i "%PROCESSOR_ARCHITECTURE%" equ "amd64" goto arch.pass
@@ -36,7 +38,7 @@ if /i "%PROCESSOR_ARCHITECTURE%" equ "x86" goto arch.pass
 echo "%PROCESSOR_ARCHITECTURE%" platform is unsupported & echo. & pause & exit /b %ISSUE_ARCH%
 :arch.pass
 
-set "SCRIPT_VERSION=08/28/2026"
+set "SCRIPT_VERSION=08/30/2026"
 REM set logging verbosity ( log_lvl.none, log_lvl.errors, log_lvl.debug )
 REM also see RemoveMSEdgeAll.bat for details
 call :log_lvl.debug "%~1"
@@ -90,6 +92,15 @@ echo Please, run script without elevation & echo. & pause & exit /b %ISSUE_UAC%
 
 :uac.done
 echo [uac().done] %bat_dbg%
+
+if /i not "%RUN_MODE%" equ "userchoice" goto userchoice.mode.done
+echo - Cleaning stale Edge UserChoice associations
+call :userchoice_cleanup %USER_SID%
+set "userchoice_result=%errorlevel%"
+if "%userchoice_result%" neq "0" echo Failed to remove one or more protected Edge UserChoice associations.
+exit /b %userchoice_result%
+
+:userchoice.mode.done
 
 
 
@@ -513,13 +524,17 @@ if %has_net% equ 0 goto _file_obtain.net.fail
 
 echo [file_obtain().download] %cll_dbg%
 set "on_hash_err=check.fail"
+del /f /q "%file_path%" >NUL 2>&1
+if exist "%file_path%" goto _file_obtain.download.fail
 powershell -noprofile -c "[Net.WebClient]::new().DownloadFile('%~3', '%file_path%')"
 if %errorlevel% neq 0 goto _file_obtain.download.fail
 if not exist "%file_path%" goto _file_obtain.download.fail
 
 :_file_obtain.check
 echo [file_obtain().check] "%file_path%"; on_hash_err: "%on_hash_err%" %cll_dbg%
-powershell -noprofile -c "Import-Module Microsoft.PowerShell.Utility; exit ((Get-FileHash '%file_path%' -Algorithm SHA256).Hash.ToLower() -ne '%~2')"
+set "file_hash_path=%file_path%"
+set "file_hash_expected=%~2"
+powershell -noprofile -c "$sha = [Security.Cryptography.SHA256]::Create(); $stream = [IO.File]::OpenRead($env:file_hash_path); try { $hash = [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() } finally { $stream.Dispose(); $sha.Dispose() }; if ($hash -ne $env:file_hash_expected) { exit 1 }"
 if %errorlevel% neq 0 goto _file_obtain.%on_hash_err%
 
 set "%~4=%file_path%"
@@ -697,17 +712,17 @@ REM remove stale Edge UserChoice associations without overwriting another browse
 REM arguments: user SID
 :userchoice_cleanup
 echo [userchoice_cleanup()] "%1" %cll_dbg%
-for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r "\\UserChoice$"') do call :userchoice_cleanup_key "%%k"
-for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r "\\UserChoice$"') do call :userchoice_cleanup_key "%%k"
+set "userchoice_cleanup_failed=0"
+for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r /c:"\\UserChoice$" /c:"\\UserChoiceLatest$"') do call :userchoice_cleanup_key "%%k"
+for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r /c:"\\UserChoice$" /c:"\\UserChoiceLatest$"') do call :userchoice_cleanup_key "%%k"
+if "%userchoice_cleanup_failed%" equ "1" exit /b 1
 exit /b 0
 
 :userchoice_cleanup_key
-for /f "tokens=1,2,*" %%a in ('reg query "%~1" /v ProgId 2^>NUL') do call :userchoice_cleanup_value "%~1" "%%a" "%%c"
-exit /b 0
-
-:userchoice_cleanup_value
-if /i "%~2" neq "ProgId" exit /b 0
-set "userchoice_progid=%~3"
+set "userchoice_progid="
+for /f "tokens=1,2,*" %%a in ('reg query "%~1" /v ProgId 2^>NUL') do call :userchoice_capture_value "%%a" "%%c"
+if not defined userchoice_progid for /f "tokens=1,2,*" %%a in ('reg query "%~1\ProgId" /v ProgId 2^>NUL') do call :userchoice_capture_value "%%a" "%%c"
+if not defined userchoice_progid exit /b 0
 if /i "%userchoice_progid:~0,6%" neq "MSEdge" exit /b 0
 echo removing stale Edge UserChoice: "%~1" (%userchoice_progid%) %cll_dbg%
 reg delete "%~1" /f >NUL 2>&1
@@ -716,6 +731,12 @@ echo resetting protected UserChoice ACL: "%~1" %cll_dbg%
 set "userchoice_key=%~1"
 powershell -noprofile -c "$subkey = $env:userchoice_key.Substring($env:userchoice_key.IndexOf('\') + 1); $rights = [System.Security.AccessControl.RegistryRights]::ReadPermissions -bor [System.Security.AccessControl.RegistryRights]::ChangePermissions; $key = [Microsoft.Win32.Registry]::Users.OpenSubKey($subkey, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, $rights); if ($key) { $acl = $key.GetAccessControl(); $rules = @($acl.GetAccessRules($true, $false, [System.Security.Principal.NTAccount])); foreach ($rule in $rules) { if ($rule.AccessControlType -eq 'Deny' -and -not $rule.IsInherited) { [void]$acl.RemoveAccessRuleSpecific($rule) } }; $key.SetAccessControl($acl); $key.Close() }" 2>NUL
 reg delete "%~1" /f
+if errorlevel 1 set "userchoice_cleanup_failed=1"
+exit /b 0
+
+:userchoice_capture_value
+if /i "%~1" neq "ProgId" exit /b 0
+set "userchoice_progid=%~2"
 exit /b 0
 
 
@@ -955,6 +976,7 @@ echo.
 echo Options:
 echo   -guard  Check for Edge browser files or Edge AppX before continuing.
 echo           Exit when Edge is not detected; intended for scheduled tasks.
+echo   -userchoice  Only remove stale MSEdge UserChoice/UserChoiceLatest entries.
 echo   -auto   Skip the built-in Administrator confirmation when already elevated.
 echo   -help   Show this help and exit without UAC, network, or cleanup actions.
 echo   -h      Alias for -help.
