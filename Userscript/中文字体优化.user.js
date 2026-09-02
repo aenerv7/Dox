@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name 中文字体优化
 // @namespace https://github.com/aenerv7/Dox
-// @version 5.10
+// @version 5.11
 // @description 优化中文字体的显示
 // @icon https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.png
 // @author AENERV7
@@ -21,7 +21,7 @@
     :root {
         --dox-default-sans-serif-font: 'SF Pro';
         --dox-default-serif-font: 'New York';
-        --dox-default-monospace-font: 'Maple Mono Normal NF CN';
+        --dox-default-monospace-font: 'Maple Mono Normal NF';
     }
 
     html,
@@ -33,11 +33,10 @@
     :lang(zh),
     :lang(zh-Hans),
     :lang(zh-CN),
-    :lang(zh-SG),
-    :lang(ja),
-    :lang(ko) {
+    :lang(zh-SG) {
         --dox-default-sans-serif-font: 'PingFang SC';
         --dox-default-serif-font: 'Songti SC';
+        --dox-default-monospace-font: 'Maple Mono Normal NF CN';
     }
 
     :lang(zh-Hant),
@@ -46,6 +45,19 @@
     :lang(zh-MO) {
         --dox-default-sans-serif-font: 'PingFang TC';
         --dox-default-serif-font: 'Songti TC';
+        --dox-default-monospace-font: 'Maple Mono Normal NF CN';
+    }
+
+    :lang(ja) {
+        --dox-default-sans-serif-font: 'PingFang TC';
+        --dox-default-serif-font: 'Songti TC';
+        --dox-default-monospace-font: 'Maple Mono Normal NF JP';
+    }
+
+    :lang(ko) {
+        --dox-default-sans-serif-font: 'PingFang TC';
+        --dox-default-serif-font: 'Songti TC';
+        --dox-default-monospace-font: 'Maple Mono Normal NF KR';
     }
 
     pre,
@@ -60,12 +72,12 @@
 
     @font-face {
         font-family: monospace;
-        src: local('Maple Mono Normal NF CN');
+        src: local('Maple Mono Normal NF');
     }
 
     @font-face {
         font-family: Monospace;
-        src: local('Maple Mono Normal NF CN');
+        src: local('Maple Mono Normal NF');
     }
 
     @font-face {
@@ -239,7 +251,7 @@
 
     @font-face {
         font-family: Consolas;
-        src: local(Consolas), local('Maple Mono Normal NF CN');
+        src: local(Consolas), local('Maple Mono Normal NF');
     }
 
     @font-face {
@@ -250,7 +262,7 @@
 
     @font-face {
         font-family: Courier;
-        src: local(Courier), local('Maple Mono Normal NF CN');
+        src: local(Courier), local('Maple Mono Normal NF');
     }
 
     @font-face {
@@ -261,7 +273,7 @@
 
     @font-face {
         font-family: 'Courier New';
-        src: local('Courier New'), local('Maple Mono Normal NF CN');
+        src: local('Courier New'), local('Maple Mono Normal NF');
     }
 
     @font-face {
@@ -283,7 +295,7 @@
 
     @font-face {
         font-family: 'lucida console';
-        src: local('lucida console'), local('Maple Mono Normal NF CN');
+        src: local('lucida console'), local('Maple Mono Normal NF');
     }
 
     @font-face {
@@ -294,7 +306,7 @@
 
     @font-face {
         font-family: 'Lucida Console';
-        src: local('Lucida Console'), local('Maple Mono Normal NF CN');
+        src: local('Lucida Console'), local('Maple Mono Normal NF');
     }
 
     @font-face {
