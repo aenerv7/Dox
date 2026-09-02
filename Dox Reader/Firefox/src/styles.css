@@ -635,16 +635,13 @@ input:focus-visible {
   cursor: pointer;
 }
 
-.feed-row:focus-within .feed-row-actions {
-  display: flex;
-}
-
-.feed-row:focus-within > button:first-child {
-  padding-right: 117px;
-}
-
 .feed-row.active .feed-row-actions {
+  display: flex;
   background: var(--surface);
+}
+
+.feed-row.active > button:first-child {
+  padding-right: 117px;
 }
 
 .feed-action:disabled {
@@ -1704,11 +1701,6 @@ body.layout-resizing {
 
   .feed-row-actions {
     top: 7px;
-    display: flex;
-  }
-
-  .feed-row > button:first-child {
-    padding-right: 117px;
   }
 
   /* 移动端选中订阅：面板背景与行背景同为 --surface，选中态改用强调色
@@ -1882,11 +1874,13 @@ body.layout-resizing {
     background: var(--surface-hover);
   }
 
-  .feed-row:hover .feed-row-actions {
+  .feed-row:hover .feed-row-actions,
+  .feed-row:focus-within .feed-row-actions {
     display: flex;
   }
 
-  .feed-row:hover > button:first-child {
+  .feed-row:hover > button:first-child,
+  .feed-row:focus-within > button:first-child {
     padding-right: 117px;
   }
 
