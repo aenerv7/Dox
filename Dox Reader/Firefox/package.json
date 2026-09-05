@@ -1,7 +1,8 @@
 {
   "name": "dox-reader-firefox",
   "private": true,
-  "version": "0.3.4",
+  "license": "MIT",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",

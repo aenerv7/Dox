@@ -703,7 +703,7 @@ npx wrangler deploy --dry-run
 
 Cloudflare Workers：`npm run deploy`；一键部署 `pwsh -File deploy-cloudflare.ps1 [-DryRun] [-SkipInstall]`（脚本不含账号密钥，Wrangler 首跑登录部署者账号）。发布后从公网请求首页和新资源验证。
 
-Firefox：发布前 `package.json`、`package-lock.json`、`public/manifest.json` 版本一致；`npm run package` 预检，再按需 `npm run release`（AMO unlisted 签名 + 自托管更新文件，不推送）或 `npm run release:push`（发布后提交推送）。AMO 凭据只放被忽略的 `.env.release`；`release.ps1` 维护旧路径 `Firefox/Dox Reader/` 的兼容更新清单与签名 XPI（保障 0.3.3 及更早安装升级，旧路径不是源码副本）。
+Firefox：自 `1.0.0` 起使用 AMO listed 公开发行，保留原扩展 ID，manifest 不得设置 `update_url`。发布前 `package.json`、`package-lock.json`、`public/manifest.json` 版本一致；`amo-listing.json` 保存公开条目资料和已确认的许可证；`npm run release` 测试、构建、上传源码并提交 listed 审核。`unreviewed` 只代表待审核，脚本正常退出且不更新签名包、更新清单或执行提交推送；AMO 审核通过后重新运行 `npm run release:push`，校验下载包的 SHA-256、版本、ID 和 Mozilla 签名条目后提交推送。`-Push` 要求预先暂存区为空，避免纳入其他模块改动。AMO 凭据只放被忽略的 `.env.release`，通过 `WEB_EXT_API_KEY`/`WEB_EXT_API_SECRET` 环境变量传递给 web-ext，不放命令行。`release.ps1` 继续维护当前路径和旧路径 `Firefox/Dox Reader/` 的更新清单与签名 XPI，使 0.x 用户升级后转交 AMO 更新；旧路径不是源码副本。商店介绍、隐私政策、分类和图标须在 AMO 单独核验，签名状态不等于公共商店已经上线。
 
 #### 文档维护
 

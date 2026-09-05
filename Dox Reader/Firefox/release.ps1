@@ -1,7 +1,7 @@
 # release.ps1 - One-command release for Dox Reader.
 #
 # Builds the extension, creates the source archive, submits both to AMO
-# (unlisted channel = automated validation + signing, no human review),
+# (listed channel = public AMO submission and review),
 # downloads the signed XPI into bb7581fa1bbf4b928862.xpi, appends the version to
 # updates.json, and optionally commits and pushes everything to GitHub so the
 # raw.githubusercontent.com update links go live.
@@ -19,10 +19,9 @@
 #   3. Bump the version first in package.json and public/manifest.json
 #      (and `npm install` to refresh package-lock.json) - this script uses
 #      the version already declared in package.json.
-#   4. The script is idempotent: if the version already exists on AMO (e.g. a
-#      previous run was interrupted after submitting), it skips submission and
-#      downloads the signed XPI directly. If `web-ext sign` itself fails after
-#      creating the version (transient network error), it recovers the same way.
+#   4. Pending listed reviews exit without publishing an unsigned package.
+#      Run again after AMO approval to download the signed XPI and update the
+#      legacy distribution endpoints. Existing versions are never re-submitted.
 #
 # Usage:
 #   pwsh -File release.ps1          # everything up to git push
@@ -44,6 +43,18 @@ $xpiName = 'bb7581fa1bbf4b928862.xpi'
 $updateLink = "https://raw.githubusercontent.com/aenerv7/Dox/main/Dox%20Reader/Firefox/$xpiName"
 $legacyUpdateRoot = [IO.Path]::GetFullPath((Join-Path $root '..\..\Firefox\Dox Reader'))
 $sourceZip = Join-Path $root "web-ext-artifacts\dox_reader-$version-source.zip"
+$amoMetadata = Join-Path $root 'web-ext-artifacts\amo-metadata.json'
+$manifest = Get-Content (Join-Path $root 'public/manifest.json') -Raw | ConvertFrom-Json
+if ($manifest.version -ne $version) { throw 'Package and manifest versions must match' }
+$lock = Get-Content (Join-Path $root 'package-lock.json') -Raw | ConvertFrom-Json
+if ($lock.version -ne $version -or $lock.packages.''.version -ne $version) { throw 'Lock file version must match' }
+if ($manifest.browser_specific_settings.gecko.update_url) { throw 'Listed extensions must not set update_url' }
+if ($Push) {
+  # git commit includes everything staged, even outside the paths passed to add.
+  $staged = @(git diff --cached --name-only)
+  if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect the git index' }
+  if ($staged.Count) { throw 'Commit or unstage existing staged changes before using -Push' }
+}
 
 # Load credentials from a gitignored .env.release file when the environment
 # variables are not already set. Never commit that file.
@@ -84,23 +95,6 @@ function Get-AmoVersion([string]$Version) {
   return ($response.Content | ConvertFrom-Json)
 }
 
-function Wait-ForSigning([string]$Version) {
-  $deadline = (Get-Date).AddMinutes(10)
-  $versionInfo = $null
-  do {
-    Start-Sleep -Seconds 20
-    $versionInfo = Get-AmoVersion $Version
-    if (-not $versionInfo) { throw "AMO 上找不到版本 $Version" }
-    $status = $versionInfo.file.status
-    if ($status -eq 'rejected' -or $status -eq 'disabled') {
-      throw "版本 $Version 被拒绝或禁用（file.status=$status）"
-    }
-    Write-Host ("==>    file.status = {0}" -f $status)
-  } while ($status -ne 'public' -and (Get-Date) -lt $deadline)
-  if ($versionInfo.file.status -ne 'public') { throw "版本 $Version 在 10 分钟内未完成签名" }
-  return $versionInfo
-}
-
 function Download-Xpi([string]$Url, [string]$OutPath) {
   try {
     Invoke-WebRequest -Uri $Url -Headers @{ Authorization = "JWT $(Get-AmoToken)" } -OutFile $OutPath -UseBasicParsing
@@ -131,7 +125,7 @@ $files = Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object {
   $rel -notmatch '^(node_modules|dist|web-ext-artifacts|\.git)(/|$)' -and
   $rel -ne $xpiName -and
   $rel -ne 'updates.json' -and
-  $rel -ne '.env.release'
+  $rel -notmatch '(^|/)\.'
 }
 foreach ($f in $files) {
   $rel = $f.FullName.Substring($root.Length + 1).Replace('\', '/')
@@ -142,7 +136,7 @@ foreach ($f in $files) {
 $archive.Dispose()
 Write-Host "==> Source archive: $sourceZip ($($files.Count) files)"
 
-# 4. Submit to AMO and wait for the automated signing to finish.
+# 4. Submit to AMO. Human review can take longer than this command runs.
 if ($SkipSign) {
   Write-Host '==> Skipping AMO submission (-SkipSign). Source archive is ready.'
   exit 0
@@ -156,32 +150,50 @@ if ($env:AMO_API_KEY -notmatch '^user:\d+(:\d+)?$') {
 $signedPath = Join-Path $root "web-ext-artifacts\dox_reader-$version-an+fx.xpi"
 
 $existing = Get-AmoVersion $version
-if ($existing) {
-  Write-Host "==> Version $version already exists on AMO (file.status=$($existing.file.status)); downloading instead of re-submitting."
-  if ($existing.file.status -ne 'public') { $existing = Wait-ForSigning $version }
-  Download-Xpi $existing.file.url $signedPath
-} else {
-  Get-ChildItem (Join-Path $root 'web-ext-artifacts') -Filter '*.xpi' -ErrorAction SilentlyContinue | Remove-Item -Force
-  Write-Host '==> Submitting to AMO (unlisted) and waiting for signing...'
-  npx --yes web-ext@10.6.0 sign --source-dir dist --artifacts-dir web-ext-artifacts `
-    --api-key $env:AMO_API_KEY --api-secret $env:AMO_API_SECRET `
-    --channel unlisted --upload-source-code $sourceZip
-  if ($LASTEXITCODE -ne 0) {
-    # The submission may have succeeded while the polling failed (transient
-    # network error). Check AMO and recover instead of failing outright.
-    Write-Host '==> web-ext sign 失败；检查版本是否已在 AMO 创建并尝试恢复...'
-    $recovered = Get-AmoVersion $version
-    if (-not $recovered) { throw 'web-ext sign failed and no version was created on AMO' }
-    if ($recovered.file.status -ne 'public') { $recovered = Wait-ForSigning $version }
-    Download-Xpi $recovered.file.url $signedPath
+if (-not $existing) {
+  $metadata = Get-Content (Join-Path $root 'amo-listing.json') -Raw | ConvertFrom-Json -AsHashtable
+  $metadata.version.approval_notes = Get-Content (Join-Path $root 'AMO_REVIEW_NOTES.md') -Raw
+  if ($metadata.version.approval_notes.Length -gt 3000) { throw 'AMO reviewer notes exceed 3000 characters' }
+  $metadata | ConvertTo-Json -Depth 10 | Set-Content $amoMetadata -Encoding utf8
+  Write-Host '==> Submitting to AMO (listed)...'
+  $previousKey = $env:WEB_EXT_API_KEY
+  $previousSecret = $env:WEB_EXT_API_SECRET
+  try {
+    $env:WEB_EXT_API_KEY = $env:AMO_API_KEY
+    $env:WEB_EXT_API_SECRET = $env:AMO_API_SECRET
+    npx --yes web-ext@10.6.0 sign --source-dir dist --artifacts-dir web-ext-artifacts `
+      --channel listed --approval-timeout 0 --amo-metadata $amoMetadata --upload-source-code $sourceZip
+    $signExitCode = $LASTEXITCODE
+  } finally {
+    $env:WEB_EXT_API_KEY = $previousKey
+    $env:WEB_EXT_API_SECRET = $previousSecret
   }
+  $existing = Get-AmoVersion $version
+  if (-not $existing) { throw "AMO submission failed (exit $signExitCode); no version created" }
 }
+if ($existing.channel -ne 'listed') { throw "Version $version is not listed" }
+if ($existing.file.status -in @('rejected', 'disabled')) { throw "AMO file.status=$($existing.file.status)" }
+if ($existing.file.status -ne 'public') {
+  Write-Host "==> Version $version submitted to listed review (file.status=$($existing.file.status))."
+  Write-Host "==> Review: $($existing.edit_url)"
+  Write-Host '==> No public XPI or update feed published. Run again after AMO approval.'
+  exit 0
+}
+Download-Xpi $existing.file.url $signedPath
+if ($existing.file.hash -notmatch '^sha256:([a-f0-9]{64})$') { throw 'Missing AMO SHA-256 hash' }
+if ((Get-FileHash $signedPath -Algorithm SHA256).Hash -ne $Matches[1]) { throw 'Downloaded XPI hash mismatch' }
 
 # 5. Install the signed XPI under the stable update filename.
-$signed = Get-ChildItem (Join-Path $root 'web-ext-artifacts') -Filter '*.xpi' |
-  Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $signed) { throw 'Signed XPI not found in web-ext-artifacts' }
-Copy-Item $signed.FullName (Join-Path $root $xpiName) -Force
+$signedArchive = [IO.Compression.ZipFile]::OpenRead($signedPath)
+try {
+  $reader = [IO.StreamReader]::new($signedArchive.GetEntry('manifest.json').Open())
+  try { $signedManifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+  if ($signedManifest.version -ne $version -or $signedManifest.browser_specific_settings.gecko.id -ne $id) {
+    throw 'Downloaded XPI identity/version mismatch'
+  }
+  if (-not $signedArchive.GetEntry('META-INF/mozilla.rsa')) { throw 'XPI has no Mozilla signature' }
+} finally { $signedArchive.Dispose() }
+Copy-Item $signedPath (Join-Path $root $xpiName) -Force
 Write-Host "==> Signed XPI saved as $xpiName"
 
 # 6. Append this version to the update manifest (idempotent).
@@ -208,10 +220,16 @@ Write-Host "==> Legacy update bridge synchronized"
 # 7. Optionally commit and push so the raw update links go live.
 if ($Push) {
   git add -A -- $root $legacyUpdateRoot
-  git commit -m "Release $version"
+  if ($LASTEXITCODE -ne 0) { throw 'git add failed' }
+  git diff --cached --quiet
+  if ($LASTEXITCODE -eq 1) {
+    git commit --only -m "Release Dox Reader $version (AMO listed)" -- $root $legacyUpdateRoot
+    if ($LASTEXITCODE -ne 0) { throw 'git commit failed' }
+  } elseif ($LASTEXITCODE -ne 0) { throw 'Cannot inspect staged diff' }
   git push
   if ($LASTEXITCODE -ne 0) { throw 'git push failed' }
   Write-Host '==> Pushed to remote'
 }
 
-Write-Host "==> Done. Version $version is live for existing 0.2.0+ installs."
+Write-Host "==> AMO approved $version. Legacy update files are ready locally."
+if (-not $Push) { Write-Host '==> Commit and push the update files to publish the legacy upgrade.' }

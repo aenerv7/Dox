@@ -13,6 +13,7 @@ The application stores subscriptions, user-defined subscription display names, d
 Dox Reader makes network requests only for its primary functions:
 
 - When the user adds or refreshes a feed, Dox Reader requests that user-provided RSS or Atom URL. The extension connects directly. The web app relays the request through the Worker in the user's Cloudflare account. The feed server receives the network information normally associated with an HTTP request.
+- When an article is displayed, its images may load directly from HTTP(S) hosts specified in the feed content. Those hosts receive normal network request information; the extension sets a no-referrer policy on article images.
 - When the user configures and uses WebDAV synchronization, Dox Reader connects only to the HTTPS WebDAV URL supplied by the user. The extension connects directly. The web app relays the request and authentication header through the self-hosted Worker. The WebDAV username and password are sent to the WebDAV server for authentication, but are not stored by Worker code or included in the synchronization file.
 - The synchronization file contains subscription URLs, titles, optional user-defined display names, site URLs, read and starred state, appearance and reading preferences, timestamps, and identifiers used to merge changes between the user's devices. It does not contain downloaded article bodies, search queries, or WebDAV credentials.
 

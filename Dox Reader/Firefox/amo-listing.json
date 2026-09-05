@@ -1,0 +1,27 @@
+{
+  "name": {
+    "en-US": "Dox Reader",
+    "zh-CN": "Dox Reader"
+  },
+  "slug": "dox-reader",
+  "summary": {
+    "en-US": "A local-first RSS/Atom reader with optional WebDAV sync for Firefox desktop and Android.",
+    "zh-CN": "本地优先的 RSS/Atom 阅读器，支持 Firefox 桌面版和 Android，可通过自己的 WebDAV 服务同步。"
+  },
+  "description": {
+    "en-US": "Read your RSS and Atom subscriptions in a dedicated reader tab. Dox Reader keeps subscriptions, downloaded articles, read state and starred items in your browser. The reader interface is currently in Simplified Chinese.\n\nFeatures:\n- Organize feeds and browse unread, all or starred articles.\n- Search cached articles and import or export subscriptions using OPML.\n- Customize the reading layout, colors and typography.\n- Optionally sync subscriptions, read/starred state and preferences through your own HTTPS WebDAV server. Article bodies stay on each device.\n\nNo Dox Reader account or developer-operated backend is required. The extension contains no advertising or analytics. Broad website access is needed to request the feed addresses and WebDAV server you choose; it does not inspect your browsing history. Article images can load from their original hosts.\n\nRequires Firefox 142 or later on desktop or Android. Questions and bug reports: https://github.com/aenerv7/Dox/issues",
+    "zh-CN": "在独立阅读器标签页中阅读 RSS 和 Atom 订阅。Dox Reader 将订阅、下载的文章、已读与收藏状态保存在浏览器本地，当前阅读器界面为简体中文。\n\n主要功能：\n- 按未读、全部文章或收藏浏览内容，管理订阅源。\n- 搜索缓存文章，通过 OPML 导入和导出订阅。\n- 调整阅读布局、配色和字体。\n- 可选连接自己的 HTTPS WebDAV 服务，同步订阅、已读与收藏状态和偏好；文章正文保留在各设备本地。\n\n无需 Dox Reader 账号或开发者运营的后端，不含广告或分析。访问网站权限用于请求你添加的订阅地址和 WebDAV 服务，不用于读取浏览历史。文章图片可能从原始图片服务器加载。\n\n支持 Firefox 142 及以上桌面版和 Android 版。问题反馈：https://github.com/aenerv7/Dox/issues"
+  },
+  "homepage": {
+    "en-US": "https://github.com/aenerv7/Dox/tree/main/Dox%20Reader/Firefox"
+  },
+  "categories": ["feeds-news-blogging"],
+  "requires_payment": false,
+  "version": {
+    "license": "MIT",
+    "release_notes": {
+      "en-US": "First public AMO listed release. Existing extension identity and local data are retained. Future updates are delivered by Mozilla Add-ons.",
+      "zh-CN": "首次在 AMO 公开上架，保留原扩展身份和本地数据，后续版本由 Mozilla Add-ons 提供更新。"
+    }
+  }
+}

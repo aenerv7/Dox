@@ -2,6 +2,12 @@
 
 Dox Reader 的 Firefox WebExtension 版本，支持 Firefox 桌面版和 Android 版。扩展使用 Manifest V3，直接请求用户添加的 RSS/Atom 地址和用户配置的 HTTPS WebDAV 服务，不依赖开发者运营的后端。
 
+## 安装
+
+AMO 商店地址：[Dox Reader](https://addons.mozilla.org/firefox/addon/dox-reader/)。`1.0.0` 已提交公开审核，需等待 Mozilla 批准后开放安装。最低支持 Firefox 142（桌面及 Android）。
+
+项目使用 [MIT 许可证](LICENSE)。
+
 ## 开发与构建
 
 要求 Node.js 24 或更高版本、npm 11 或更高版本。
@@ -34,6 +40,8 @@ npm run package
 
 ## 发布
 
+`1.0.0` 起改为 AMO listed 公开发行，当前已提交 Mozilla 审核，审核通过后才可从商店安装。扩展 ID 保持不变；manifest 不再设置 `update_url`，升级后的扩展由 AMO 提供后续更新。
+
 在本目录创建被 `.gitignore` 排除的 `.env.release`：
 
 ```text
@@ -49,6 +57,6 @@ npm run release:push
 pwsh -File release.ps1 -SkipSign
 ```
 
-发布脚本会测试、构建、提交 AMO unlisted 签名、下载稳定文件名的 XPI，并更新 `updates.json`。为保障 0.3.3 及更早版本继续升级，它还会同步仓库旧路径 `Firefox/Dox Reader/` 下的兼容更新清单和 XPI；该旧目录不再包含项目源码。
+发布脚本会测试、构建并提交 AMO listed 审核，公开资料保存在 `amo-listing.json`。待审核时正常退出，不发布未签名包，也不自动提交或推送；审核通过后重新运行 `npm run release:push`，下载并校验 AMO 的签名 XPI，更新 `updates.json`。脚本同时维护 `Firefox/Dox Reader/` 下的旧版更新入口，使 0.x 用户可以升级并转交 AMO 更新；旧目录不再包含源码。使用 `-Push` 前，暂存区必须为空。
 
 统一开发规范见仓库根文档 [`../../DEVELOPMENT.md`](../../DEVELOPMENT.md)；审核与隐私信息见 [`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md) 和 [`PRIVACY.md`](PRIVACY.md)。
