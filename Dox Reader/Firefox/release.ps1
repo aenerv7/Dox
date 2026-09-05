@@ -46,8 +46,8 @@ $sourceZip = Join-Path $root "web-ext-artifacts\dox_reader-$version-source.zip"
 $amoMetadata = Join-Path $root 'web-ext-artifacts\amo-metadata.json'
 $manifest = Get-Content (Join-Path $root 'public/manifest.json') -Raw | ConvertFrom-Json
 if ($manifest.version -ne $version) { throw 'Package and manifest versions must match' }
-$lock = Get-Content (Join-Path $root 'package-lock.json') -Raw | ConvertFrom-Json
-if ($lock.version -ne $version -or $lock.packages.''.version -ne $version) { throw 'Lock file version must match' }
+$lock = Get-Content (Join-Path $root 'package-lock.json') -Raw | ConvertFrom-Json -AsHashtable
+if ($lock.version -ne $version -or $lock.packages[''].version -ne $version) { throw 'Lock file version must match' }
 if ($manifest.browser_specific_settings.gecko.update_url) { throw 'Listed extensions must not set update_url' }
 if ($Push) {
   # git commit includes everything staged, even outside the paths passed to add.
