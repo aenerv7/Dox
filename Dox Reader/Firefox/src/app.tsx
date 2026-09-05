@@ -199,7 +199,7 @@ export function App() {
   const [items, setItems] = useState<ItemRecord[]>([]);
   const [counts, setCounts] = useState({ total: 0, unread: 0, starred: 0 });
   const [feedUnread, setFeedUnread] = useState<Record<string, number>>({});
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("unread");
   const [query, setQuery] = useState("");
   const [retainedUnreadIds, setRetainedUnreadIds] = useState<ReadonlySet<string>>(() => new Set());
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -637,8 +637,8 @@ export function App() {
           <span>资料库</span>
         </div>
         <nav class="feed-nav">
-          <NavItem icon={<Inbox size={17} />} label="全部文章" count={counts.total} active={filter === "all"} onClick={() => { setFilter("all"); setMobilePane("items"); }} />
           <NavItem icon={<Check size={17} />} label="未读" count={unreadCount} active={filter === "unread"} onClick={() => { setFilter("unread"); setMobilePane("items"); }} />
+          <NavItem icon={<Inbox size={17} />} label="全部文章" count={counts.total} active={filter === "all"} onClick={() => { setFilter("all"); setMobilePane("items"); }} />
           <NavItem icon={<Star size={17} />} label="收藏" count={starredCount} active={filter === "starred"} onClick={() => { setFilter("starred"); setMobilePane("items"); }} />
         </nav>
         <div class="pane-heading subscriptions-heading">
