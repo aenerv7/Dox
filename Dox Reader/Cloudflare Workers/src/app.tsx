@@ -1011,18 +1011,41 @@ function SettingsDialog(props: {
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [testResult, setTestResult] = useState("");
+  const [webdavRetry, setWebdavRetry] = useState(0);
   const [backendConfig,setBackendConfig]=useState<BackendConfig|null>(null);
   const [saving,setSaving]=useState(false);
   const [backendInfo,setBackendInfo]=useState('');
-  const testConnection=async()=>{
-    setTesting(true);setBackendInfo('');
-    try {const status=await testBackend(draft);setBackendConfig(status.config);setBackendInfo('连接成功 · 已用 '+(status.storageBytes/1024/1024).toFixed(1)+' MB');}
-    catch(error){setBackendConfig(null);setBackendInfo(error instanceof Error?error.message:String(error));}
-    finally{setTesting(false);}
-  };
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendRetry, setBackendRetry] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    setBackendConfig(null);
+    setBackendInfo('');
+    if (draft.storageMode !== 'backend' || !draft.backendUrl.trim() || !draft.backendToken.trim()) {
+      setBackendLoading(false);
+      return;
+    }
+    setBackendLoading(true);
+    setBackendInfo('正在读取后端设置…');
+    const timer = window.setTimeout(() => {
+      void testBackend(draft).then(status => {
+        if (cancelled) return;
+        setBackendConfig(status.config);
+        setBackendInfo('连接成功 · 已用 ' + (status.storageBytes / 1024 / 1024).toFixed(1) + ' MB');
+      }).catch(error => {
+        if (!cancelled) setBackendInfo(error instanceof Error ? error.message : String(error));
+      }).finally(() => {
+        if (!cancelled) setBackendLoading(false);
+      });
+    }, 300);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [draft.storageMode, draft.backendUrl, draft.backendToken, backendRetry]);
   const save=async()=>{
     setSaving(true);setTestResult('');
-    try {await props.onSave(draft,draft.storageMode==='backend'?backendConfig??undefined:undefined);}
+    try {
+      if (draft.storageMode === 'backend' && (!backendConfig || backendLoading)) throw new Error('请先等待后端设置读取成功');
+      await props.onSave(draft,draft.storageMode==='backend'?backendConfig??undefined:undefined);
+    }
     catch(error){setTestResult(error instanceof Error?error.message:String(error));}
     finally{setSaving(false);}
   };
@@ -1035,19 +1058,31 @@ function SettingsDialog(props: {
   useEffect(() => {
     applyAppearance(draft);
   }, [draft.theme, draft.colorScheme, draft.customAccent]);
-  const handleTest = async () => {
-    const startedAt = Date.now();
-    setTesting(true);
-    setTestResult("");
-    try {
-      setTestResult(await props.onTest(draft));
-    } catch (error) {
-      setTestResult(error instanceof Error ? error.message : String(error));
-    } finally {
-      await keepFeedbackVisible(startedAt);
+  useEffect(() => {
+    let cancelled = false;
+    setTestResult('');
+    if (draft.storageMode !== 'local' || !draft.webdavUrl.trim()) {
       setTesting(false);
+      return;
     }
-  };
+    setTesting(true);
+    setTestResult('正在测试连接…');
+    const timer = window.setTimeout(() => {
+      const startedAt = Date.now();
+      void (async () => {
+        try {
+          const result = await props.onTest(draft);
+          if (!cancelled) setTestResult(result);
+        } catch (error) {
+          if (!cancelled) setTestResult(error instanceof Error ? error.message : String(error));
+        } finally {
+          await keepFeedbackVisible(startedAt);
+          if (!cancelled) setTesting(false);
+        }
+      })();
+    }, 300);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [draft.storageMode, draft.webdavUrl, draft.webdavUsername, draft.webdavPassword, webdavRetry]);
   const handleSync = async () => {
     const startedAt = Date.now();
     setSyncing(true);
@@ -1081,14 +1116,12 @@ function SettingsDialog(props: {
                   <button type="button" class="password-toggle" title={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-label={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-pressed={showBackendToken} onClick={()=>setShowBackendToken(visible=>!visible)}>{showBackendToken ? <EyeOff size={17}/> : <Eye size={17}/>}</button>
                 </div>
               </div>
-              <button class="secondary-button" disabled={testing||saving||!draft.backendUrl||!draft.backendToken} onClick={()=>void testConnection()}>{testing?'正在连接':'连接并读取后端设置'}</button>
+              <button class="secondary-button" disabled={backendLoading||saving||!draft.backendUrl||!draft.backendToken} onClick={()=>setBackendRetry(value=>value+1)}>{backendLoading?'正在连接':'重新连接'}</button>
               {backendInfo && <div class="connection-result">{backendInfo}</div>}
-              {backendConfig && <>
                 <div class="field-row">
-                  <label class="field"><span>抓取间隔（分钟）</span><input type="number" min="30" max="10080" step="1" value={backendConfig.intervalMinutes} onInput={event=>setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)})}/></label>
-                  <label class="field"><span>全库最新文章上限</span><input type="number" min="100" max="10000" step="100" value={backendConfig.maxArticles} onInput={event=>setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)})}/></label>
+                  <label class="field"><span>抓取间隔（分钟）</span><input type="number" min="30" max="10080" step="1" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.intervalMinutes ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)});}}/></label>
+                  <label class="field"><span>全库最新文章上限</span><input type="number" min="100" max="10000" step="100" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.maxArticles ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)});}}/></label>
                 </div>
-              </>}
             </>}
           </section>
           {draft.storageMode==='local' && <section class="settings-section">
@@ -1100,7 +1133,7 @@ function SettingsDialog(props: {
             </div>
             {testResult && <div class="connection-result">{testResult}</div>}
             <div class="inline-actions">
-              <button class="secondary-button" aria-busy={testing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => void handleTest()}>{testing ? <LoaderCircle size={16} class="spin" /> : <Wifi size={16} />}{testing ? "正在测试" : "测试连接"}</button>
+              <button class="secondary-button" aria-busy={testing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => setWebdavRetry(value => value + 1)}>{testing ? <LoaderCircle size={16} class="spin" /> : <Wifi size={16} />}{testing ? "正在测试" : "测试连接"}</button>
               <button class="secondary-button" aria-busy={syncing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => void handleSync()}>{syncing ? <LoaderCircle size={16} class="spin" /> : <Upload size={16} />}{syncing ? "正在同步" : "立即同步"}</button>
             </div>
           </section>}
@@ -1172,7 +1205,7 @@ function SettingsDialog(props: {
           </section>
         </div>
         {testResult && draft.storageMode==='backend' && <div class="connection-result">{testResult}</div>}
-        <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving||testing} onClick={()=>void save()}><Check size={17} />{saving?'正在保存':'保存'}</button></div>
+        <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving||testing||(draft.storageMode==='backend'&&(!backendConfig||backendLoading))} onClick={()=>void save()}><Check size={17} />{saving?'正在保存':'保存'}</button></div>
       </div>
     </div>
   );
