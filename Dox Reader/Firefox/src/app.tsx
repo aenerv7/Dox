@@ -1007,6 +1007,7 @@ function SettingsDialog(props: {
 }) {
   const [draft, setDraft] = useState(props.settings);
   const [showPassword, setShowPassword] = useState(false);
+  const [showBackendToken, setShowBackendToken] = useState(false);
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [testResult, setTestResult] = useState("");
@@ -1067,13 +1068,19 @@ function SettingsDialog(props: {
         <div class="settings-scroll">
           <section class="settings-section">
             <div class="section-heading"><Cloud size={18}/><div><h3>数据模式</h3><p>本地数据和后端缓存独立保存，切换不会合并或删除原有数据。</p></div></div>
-            <div class="segmented" aria-label="数据模式">
-              <button class={draft.storageMode==='local'?'active':''} onClick={()=>update({storageMode:'local'})}>纯本地</button>
-              <button class={draft.storageMode==='backend'?'active':''} onClick={()=>update({storageMode:'backend'})}>自建后端</button>
+            <div class="segmented data-mode-switch" aria-label="数据模式">
+              <button class={draft.storageMode==='local'?'active':''} onClick={()=>{update({storageMode:'local'});setShowBackendToken(false);}}>本地</button>
+              <button class={draft.storageMode==='backend'?'active':''} onClick={()=>update({storageMode:'backend'})}>Dox Reader Backend</button>
             </div>
             {draft.storageMode==='backend' && <>
-              <label class="field"><span>Dox Reader Backend 地址</span><input type="url" value={draft.backendUrl} placeholder="https://dox-reader-backend.example.workers.dev" onInput={event=>{update({backendUrl:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/></label>
-              <label class="field"><span>访问令牌</span><input type="password" autoComplete="off" value={draft.backendToken} onInput={event=>{update({backendToken:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/></label>
+              <label class="field"><span>地址</span><input type="url" value={draft.backendUrl} placeholder="https://dox-reader-backend.example.workers.dev" onInput={event=>{update({backendUrl:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/></label>
+              <div class="field">
+                <label for="backend-token">访问令牌</label>
+                <div class="password-field">
+                  <input id="backend-token" type={showBackendToken ? "text" : "password"} autoComplete="off" value={draft.backendToken} onInput={event=>{update({backendToken:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/>
+                  <button type="button" class="password-toggle" title={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-label={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-pressed={showBackendToken} onClick={()=>setShowBackendToken(visible=>!visible)}>{showBackendToken ? <EyeOff size={17}/> : <Eye size={17}/>}</button>
+                </div>
+              </div>
               <button class="secondary-button" disabled={testing||saving||!draft.backendUrl||!draft.backendToken} onClick={()=>void testConnection()}>{testing?'正在连接':'连接并读取后端设置'}</button>
               {backendInfo && <div class="connection-result">{backendInfo}</div>}
               {backendConfig && <>
@@ -1081,9 +1088,7 @@ function SettingsDialog(props: {
                   <label class="field"><span>抓取间隔（分钟）</span><input type="number" min="30" max="10080" step="1" value={backendConfig.intervalMinutes} onInput={event=>setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)})}/></label>
                   <label class="field"><span>全库最新文章上限</span><input type="number" min="100" max="10000" step="100" value={backendConfig.maxArticles} onInput={event=>setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)})}/></label>
                 </div>
-                <p class="backend-help">默认每 60 分钟抓取，全库保留最新 10,000 篇。收藏也计入上限；调低后会清理较旧文章。超长正文保留节选。免费模式最多 100 个订阅，间隔最短 30 分钟。</p>
               </>}
-              <p class="backend-help">所有客户端关闭后继续抓取。工具栏刷新由后端执行；订阅和文章状态保存到后端，WebDAV 仅用于本地模式。可用 OPML 把本地订阅导入后端。</p>
             </>}
           </section>
           {draft.storageMode==='local' && <section class="settings-section">

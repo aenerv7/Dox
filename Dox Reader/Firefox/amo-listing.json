@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Add optional self-hosted Dox Reader Backend mode, server-side scheduled/manual fetching and configurable global article retention. Local/WebDAV mode remains available with isolated data.",
-      "zh-CN": "新增自建 Dox Reader Backend 模式，支持后端定时及手动抓取，在前端设置抓取间隔和全库文章保留上限。本地/WebDAV 模式继续独立运行。"
+      "en-US": "Refine backend settings: full-width Local / Dox Reader Backend selector, simpler address label, token visibility toggle and reduced explanatory text.",
+      "zh-CN": "优化后端设置：本地 / Dox Reader Backend 切换栏铺满，地址标签简化，访问令牌支持显示与隐藏，移除下方说明段落。"
     }
   }
 }
