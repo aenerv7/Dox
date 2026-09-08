@@ -1918,3 +1918,7 @@ body.layout-resizing {
     border-color: var(--border-strong);
   }
 }
+/* Backend connectivity stays visible without covering the reader controls. */
+.backend-status { position: fixed; bottom: 0; left: 0; right: 0; padding: 4px 12px; background: var(--surface); border-top: 1px solid var(--border); color: var(--text); font-size: 11px; z-index: 5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.backend-help { font-size: 12px; line-height: 1.6; color: var(--text); }
+@media (max-width: 760px) { .backend-status { bottom: 56px; font-size: 10px; } }

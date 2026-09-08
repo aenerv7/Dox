@@ -60,3 +60,9 @@ pwsh -File release.ps1 -SkipSign
 发布脚本会测试、构建并提交 AMO listed 审核，公开资料保存在 `amo-listing.json`。待审核时正常退出，不发布未签名包，也不自动提交或推送；审核通过后重新运行 `npm run release:push`，下载并校验 AMO 的签名 XPI，更新 `updates.json`。脚本同时维护 `Firefox/Dox Reader/` 下的旧版更新入口，使 0.x 用户可以升级并转交 AMO 更新；旧目录不再包含源码。使用 `-Push` 前，暂存区必须为空。
 
 统一开发规范见仓库根文档 [`../../DEVELOPMENT.md`](../../DEVELOPMENT.md)；审核与隐私信息见 [`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md) 和 [`PRIVACY.md`](PRIVACY.md)。
+
+## 本地与后端模式（1.1.0）
+
+设置 → 数据模式：默认「纯本地」，保留现有 RSS/WebDAV 功能；选择「自建后端」后填写自己的 Dox Reader Backend HTTPS 根地址和访问令牌，点击「连接并读取后端设置」。可调整抓取间隔（默认 60 分钟）及全库最新文章上限（默认 10000 篇，含收藏），保存后生效。关闭全部客户端也会继续抓取，刷新按钮可手动触发后端抓取。
+
+本地与每个后端的缓存独立，切换不会自动迁移或删除数据；可用 OPML 导出/导入订阅。后端模式下 WebDAV 不启用，外观保存在本机；离线可读已缓存内容，状态修改需要联网。调低保留上限会删除远端旧文章。部署说明见 [Dox Reader Backend](../Backend/README.md)。

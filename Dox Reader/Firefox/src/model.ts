@@ -110,6 +110,9 @@ export interface SyncedPreferences {
 }
 
 export interface AppSettings extends PreferenceValues {
+  storageMode: "local" | "backend";
+  backendUrl: string;
+  backendToken: string;
   webdavUrl: string;
   webdavUsername: string;
   webdavPassword: string;
@@ -119,6 +122,9 @@ export interface AppSettings extends PreferenceValues {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  storageMode: "local",
+  backendUrl: "",
+  backendToken: "",
   webdavUrl: "",
   webdavUsername: "",
   webdavPassword: "",

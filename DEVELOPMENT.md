@@ -600,7 +600,7 @@ local-first RSS/Atom 阅读器，覆盖 Firefox 扩展版（`Dox Reader/Firefox/
 
 能力：解析 RSS/Atom/RDF，最多并发刷新 4 源；全部/未读/收藏/单源视图，标题/作者/摘要搜索；订阅增删改刷、全局或单订阅批量已读；文章已读/未读、收藏、正文、跳转原文；OPML 导入导出；三栏/移动分层布局；多主题配色与自定义强调色；经用户自己的 HTTPS WebDAV 同步订阅、阅读状态和部分偏好。
 
-local-first 边界必须保持：文章元数据和正文缓存只存本机 IndexedDB；WebDAV 凭据只存当前浏览器；Worker 只提供静态资源与受限代理、不保存用户数据；应用不依赖开发者后端、无广告/分析/远程可执行代码。
+模式边界：默认本地模式保持原有 IndexedDB/WebDAV 行为。用户显式选后端模式时，连接自己部署的 Dox Reader Backend，订阅、文章、已读/收藏保存在个人后端；WebDAV 不参与此模式。后端凭据只存本机，按后端根地址分隔缓存；切换模式不合并、不上传或删除原有本地数据。网页版 Worker 本身仍只负责静态资源和受限代理，持久后端独立部署；应用不使用共享开发者服务、广告、分析或远程可执行代码。
 
 #### 版本与运行架构
 
@@ -616,6 +616,8 @@ local-first 边界必须保持：文章元数据和正文缓存只存本机 Inde
 两个子目录是独立 npm 工程，但 `src/` 大部分核心文件必须保持字节一致：
 
 **共享核心（必须双端同步，含测试）**：`app.tsx`、`article-content.tsx`、`styles.css`、`model.ts`、`database.ts`、`feed-parser.ts`、`feed-service.ts`、`html-entities.ts`、`item-list.ts`、`initial-sync.ts`、`opml.ts`、`webdav.ts`、`sync-model.ts` 及对应 `*.test.ts` 和 `test/fixtures/`。
+
+新增共享核心：backend.ts、backend.test.ts、repository.ts，仍须在 Firefox 与 Cloudflare Workers 前端保持字节一致。Backend/src/shared 中 feed-parser.ts、html-entities.ts 和 model.ts 镜像前端对应文件，修改解析规则时同步维护。
 
 **平台适配层（分别维护，不互相覆盖）**：Firefox 的 `src/background.ts`、`src/runtime-fetch.ts`、`src/settings.ts`、`src/main.tsx`、`public/manifest.json`、`vite.config.ts`、`release.ps1`、`updates.json`；Workers 的 `worker/`、`src/runtime-fetch.ts`、`src/settings.ts`、`src/main.tsx`、`public/`、`wrangler.jsonc`、部署脚本。
 
@@ -704,6 +706,18 @@ npx wrangler deploy --dry-run
 Cloudflare Workers：`npm run deploy`；一键部署 `pwsh -File deploy-cloudflare.ps1 [-DryRun] [-SkipInstall]`（脚本不含账号密钥，Wrangler 首跑登录部署者账号）。发布后从公网请求首页和新资源验证。
 
 Firefox：自 `1.0.0` 起使用 AMO listed 公开发行，保留原扩展 ID，manifest 不得设置 `update_url`。发布前 `package.json`、`package-lock.json`、`public/manifest.json` 版本一致；`amo-listing.json` 保存公开条目资料和已确认的许可证；`npm run release` 测试、构建、上传源码并提交 listed 审核。`unreviewed` 只代表待审核，脚本正常退出且不更新签名包、更新清单或执行提交推送；AMO 审核通过后重新运行 `npm run release:push`，校验下载包的 SHA-256、版本、ID 和 Mozilla 签名条目后提交推送。`-Push` 要求预先暂存区为空，避免纳入其他模块改动。AMO 凭据只放被忽略的 `.env.release`，通过 `WEB_EXT_API_KEY`/`WEB_EXT_API_SECRET` 环境变量传递给 web-ext，不放命令行。`release.ps1` 继续维护当前路径和旧路径 `Firefox/Dox Reader/` 的更新清单与签名 XPI，使 0.x 用户升级后转交 AMO 更新；旧路径不是源码副本。商店介绍、隐私政策、分类和图标须在 AMO 单独核验，签名状态不等于公共商店已经上线。
+
+#### Dox Reader Backend（1.1.0 前端可选）
+
+独立 npm 工程 Dox Reader/Backend。SQLite Durable Object 每账号个人库使用固定 personal-library 名称；不是跨用户共享服务。Worker 只接受带 Bearer token 的 POST /api/v1 命令，CORS 不带 Cookie；BACKEND_TOKEN 至少 32 字符，默认无令牌拒绝请求。API 返回订阅、分页文章元数据、单篇正文、状态、配置和抓取进度。客户端在独立 Dexie 缓存中读列表，按需缓存正文；连接失败只读缓存，写操作失败不得乐观修改已读/收藏。本地库 dox-rss-reader 保持不变。外观在后端模式保留本机。后端参数先读取再修改，不因客户端默认值覆盖远端配置。
+
+默认 intervalMinutes=60、maxArticles=10000；允许 30–10080 分钟、100–10000 篇。上限是全库按 publishedAt DESC,id DESC 保留最新 N 篇，包含收藏和未读，不是每源 N 篇。调低上限立即在事务内清理，不能后台偷偷豁免收藏。最多 100 个源，正文上限约 48 KiB，RSS 最大 1 MiB，元数据字段限长，正文与元数据总预算 600 MiB。每日 UTC 最多 4800 次抓取、10000 保守写入单位（新文章 4、状态 1）；达到预算顺延次日，未完全归档的响应不保存条件请求验证头。额度共享风险必须在部署说明中披露，应用不能自动升级付费套餐。
+
+抓取由持久 Alarm 驱动，一次处理一个到期源，20 秒总超时，最多 5 跳重定向且每跳检查公开 HTTP(S) 地址，拒绝私有/保留 IP、凭据、非常规端口和 XML DTD/ENTITY。先保存恢复 Alarm 再做网络 I/O；使用 60 秒租约，finally 重新调度。每小时 Cron 只修复缺失 Alarm。失败指数退避。客户端全量/单源刷新创建持久队列，已有手动任务时合并请求，最短 1 分钟；轮询最多 2 分钟，关闭客户端不取消任务。删除排队/抓取中的源必须清理任务并防止复活。
+
+SQL 使用绑定参数，插入去重并保留已有 read/starred；快照以 revision 验证一致性，按发布时间/ID 游标分页避免 OFFSET 扫描开销。缓存快照完整收齐后原子替换，不得部分失败覆盖已缓存数据。后端列表按 200 篇渐进展示。每分钟仅在可见客户端查询状态，revision 不变不重传全库。
+
+后端 npm run check 使用本地 Workers runtime 集成测试，验证鉴权、Alarm、条件抓取、全库裁剪、竞态删除、预算顺延和手动抓取。部署前 npx wrangler deploy --dry-run；默认创建 dox-reader-backend，令牌经 wrangler secret bulk/put 配置。生产验证添加临时测试源、确认无人在线抓取与手动刷新、清理测试源，不能遗留测试用户数据。前端新增模式时同步修改两份 PRIVACY.md、AMO_REVIEW_NOTES.md 与商店资料。
 
 #### 文档维护
 

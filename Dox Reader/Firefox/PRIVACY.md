@@ -1,38 +1,31 @@
 # Dox Reader Privacy Policy
 
-Effective date: August 24, 2026
+Effective date: September 8, 2026
 
-Dox Reader is a local-first RSS reader available as a Firefox extension and a self-hosted Cloudflare Worker web app. The developer does not operate a Dox Reader service and does not receive, collect, sell, or analyze user data. The application contains no advertising, analytics, or remote executable code. Cloudflare may provide platform-level request logs and telemetry to the owner of a self-hosted Worker under that owner's Cloudflare configuration and Cloudflare's policies.
+Dox Reader is a frontend RSS/Atom reader with a default local mode and an optional connection to a user-operated Dox Reader Backend. No shared developer-operated service is required. There is no advertising, analytics, or remote executable code.
 
-## Data Stored Locally
+## Local mode
 
-The application stores subscriptions, user-defined subscription display names, downloaded feed articles, read and starred state, layout preferences, WebDAV settings, and WebDAV credentials in the user's browser profile. The extension uses extension storage; the web app uses IndexedDB and localStorage under its deployed origin. Article bodies and search queries remain local and are not included in the WebDAV synchronization file.
+Subscriptions, article content, read/starred state and preferences are stored in the browser. Firefox connects directly to user-added feeds; the web frontend uses its self-hosted Worker feed proxy.
 
-## Network Requests
+Optional WebDAV synchronization sends subscription URLs, titles, custom names, read/starred state, selected appearance preferences and merge metadata to the user's HTTPS WebDAV server, in Dox Reader/state.json. Article bodies, search queries and credentials are not included in that file. Credentials are sent to that server only for authentication (through the user's frontend Worker proxy in the web version).
 
-Dox Reader makes network requests only for its primary functions:
+## Backend mode
 
-- When the user adds or refreshes a feed, Dox Reader requests that user-provided RSS or Atom URL. The extension connects directly. The web app relays the request through the Worker in the user's Cloudflare account. The feed server receives the network information normally associated with an HTTP request.
-- When an article is displayed, its images may load directly from HTTP(S) hosts specified in the feed content. Those hosts receive normal network request information; the extension sets a no-referrer policy on article images.
-- When the user configures and uses WebDAV synchronization, Dox Reader connects only to the HTTPS WebDAV URL supplied by the user. The extension connects directly. The web app relays the request and authentication header through the self-hosted Worker. The WebDAV username and password are sent to the WebDAV server for authentication, but are not stored by Worker code or included in the synchronization file.
-- The synchronization file contains subscription URLs, titles, optional user-defined display names, site URLs, read and starred state, appearance and reading preferences, timestamps, and identifiers used to merge changes between the user's devices. It does not contain downloaded article bodies, search queries, or WebDAV credentials.
+The user explicitly selects Backend mode and supplies an HTTPS backend address and access token. The reader sends subscription additions/deletions/renames, read/starred changes, fetch requests and retention/scheduling settings to that backend. It downloads subscription metadata, article titles, authors, URLs, feed-provided content and state from the backend. WebDAV is not used in this mode.
 
-The WebDAV data is stored in `Dox Reader/state.json` on the server selected and controlled by the user. The developer has no access to that server or file. The Worker implementation is stateless and does not use Cloudflare KV, D1, R2, or other persistent Cloudflare storage.
+Dox Reader Backend stores this personal library in SQLite-backed Durable Objects in the operator's Cloudflare account. It fetches user-added feeds on a schedule even when all clients are closed. The default is every 60 minutes and the latest 10000 articles across all feeds. The user may change these settings within the supported limits. Retention applies to unread and starred items too. Images are not archived and long article bodies may be shortened.
 
-## User Control and Retention
+The backend token is stored in Firefox extension storage or web localStorage and sent only in the Authorization header to the configured backend. It is not included in article data or WebDAV sync. Possession of the token grants access to that backend. The operator must keep it private. Search queries and local appearance/layout settings remain in the browser.
 
-WebDAV synchronization is disabled until the user enters WebDAV settings. Removing those settings stops synchronization. The user can delete local data from the extension settings and can delete `Dox Reader/state.json` from the WebDAV server at any time.
+## Cache and control
 
-Uninstalling the extension removes data held in the Firefox extension profile according to Firefox's normal extension-data behavior. Clearing site data for the deployed web origin removes its browser-local data. Neither action deletes data from the user's WebDAV server.
+Local-mode data and per-backend caches are separate. Switching modes does not upload local articles, merge the two libraries, or delete them. In backend mode, article lists and previously opened bodies may remain cached for offline reading. Clearing the local cache does not erase server data. Uninstalling the extension or clearing browser site data removes local data according to the browser's normal behavior.
 
-## Security
+Removing backend settings disconnects that reader but does not stop the independently deployed backend. To stop background fetching, remove its subscriptions or disable the backend deployment. Retention and subscription deletion remove articles from the live backend database; Cloudflare platform backups/logs are governed by the operator's account settings and Cloudflare policies.
 
-Dox Reader requires HTTPS for WebDAV synchronization. Users should use an application-specific WebDAV password where their provider supports one.
+## Network requests and security
 
-## Changes
+Feed servers receive ordinary HTTP request information. Article images can load from HTTP(S) hosts in feed content; the reader uses no-referrer on image requests. Clicking an original-article link opens its website. Backend and WebDAV connections require HTTPS. No browser history is inspected. Request authorization values are not logged by application code; Cloudflare may collect platform-level logs and telemetry for the operator.
 
-Any material change to the data handled or transmitted by the extension will be reflected in this policy and in the Firefox data-collection permission declaration before release.
-
-## Contact
-
-Questions can be filed at https://github.com/aenerv7/Dox/issues.
+Questions: https://github.com/aenerv7/Dox/issues

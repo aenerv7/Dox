@@ -1,0 +1,25 @@
+{
+  "name": "dox-reader-backend",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "types": "wrangler types --include-runtime=false",
+    "test": "vitest run",
+    "check": "npm run types && tsc --noEmit && npm test",
+    "deploy": "npm run check && wrangler deploy"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.10.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.1.5",
+    "@cloudflare/workers-types": "^5.20260908.1",
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.125.0"
+  }
+}

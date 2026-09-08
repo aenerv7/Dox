@@ -1,7 +1,7 @@
 {
   "name": "dox-reader-cloudflare-worker",
   "private": true,
-  "version": "0.3.4",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "npm run build && wrangler dev",
@@ -23,6 +23,7 @@
     "@cloudflare/workers-types": "^5.20260825.1",
     "@preact/preset-vite": "^2.10.6",
     "@types/node": "^26.2.0",
+    "fake-indexeddb": "^6.2.5",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
     "vitest": "^4.1.10",

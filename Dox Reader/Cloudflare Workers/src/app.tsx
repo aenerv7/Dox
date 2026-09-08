@@ -50,7 +50,9 @@ import {
   setItemState,
   setLastRefreshAllAt,
   updateSyncedPreferences,
-} from "./database";
+  getItem,
+} from "./repository";
+import { backendEnabled, backendOffline, backendCall, connectBackend, pullBackend, requestBackendRefresh, testBackend, type BackendConfig, type BackendStatus } from "./backend";
 import { refreshFeed, refreshFeeds } from "./feed-service";
 import type { FeedRefreshProgress } from "./feed-service";
 import { needsInitialArticleRefresh } from "./initial-sync";
@@ -201,6 +203,7 @@ export function App() {
   const [feedUnread, setFeedUnread] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<Filter>("unread");
   const [query, setQuery] = useState("");
+  const [visibleLimit,setVisibleLimit]=useState(200);
   const [retainedUnreadIds, setRetainedUnreadIds] = useState<ReadonlySet<string>>(() => new Set());
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [mobilePane, setMobilePane] = useState<MobilePane>("items");
@@ -214,10 +217,16 @@ export function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [toast, setToast] = useState("");
   const [ready, setReady] = useState(false);
+  const [backendNotice, setBackendNotice] = useState('');
+  const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null);
   const syncTimer = useRef<number | null>(null);
   const itemListRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
+    if (backendEnabled()) {
+      try {setBackendStatus(await pullBackend());setBackendNotice('');}
+      catch(error) {setBackendNotice('后端连接失败，仅显示已缓存内容：'+(error instanceof Error?error.message:String(error)));}
+    }
     const [nextFeeds, nextItems, nextCounts, nextFeedUnread] = await Promise.all([
       listFeeds(),
       listItems("all"),
@@ -225,12 +234,16 @@ export function App() {
       getFeedUnreadCounts(),
     ]);
     setFeeds(nextFeeds);
-    setItems(nextItems);
+    setItems(current => {
+      const bodies=new Map(current.map(item=>[item.id,item.content]));
+      return nextItems.map(item=>({...item,content:item.content||bodies.get(item.id)||''}));
+    });
     setCounts(nextCounts);
     setFeedUnread(nextFeedUnread);
   }, []);
 
   const performSync = useCallback(async (currentSettings = settings, quiet = false) => {
+    if(currentSettings.storageMode==='backend') {await loadData();return currentSettings;}
     if (!currentSettings.webdavUrl) return currentSettings;
     setSyncStatus("syncing");
     try {
@@ -290,6 +303,7 @@ export function App() {
   }, [loadData, settings]);
 
   const queueSync = useCallback(() => {
+    if(backendEnabled()) return;
     if (!settings.webdavUrl) return;
     if (syncTimer.current !== null) window.clearTimeout(syncTimer.current);
     syncTimer.current = window.setTimeout(() => void performSync(settings, true), 1400);
@@ -300,10 +314,11 @@ export function App() {
       const saved = await loadSettings();
       setSettingsState(saved);
       applyAppearance(saved);
+      try {await connectBackend(saved);} catch(error) {setToast(error instanceof Error?error.message:String(error));setReady(true);return;}
       await migrateLegacyEntities();
       await loadData();
       setReady(true);
-      if (saved.webdavUrl) await performSync(saved, true);
+      if (saved.storageMode === "local" && saved.webdavUrl) await performSync(saved, true);
       await maybeAutoRefresh();
     })();
     return () => {
@@ -317,11 +332,21 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if(!ready || settings.storageMode!=='backend') return;
+    const timer=window.setInterval(()=>{if(!document.hidden&&!refreshing) void loadData();},60000);
+    return ()=>window.clearInterval(timer);
+  }, [ready,settings.storageMode,refreshing,loadData]);
+
+  function runAction(action:Promise<unknown>) {void action.catch(error=>setToast(error instanceof Error?error.message:String(error)));}
+
   // 切换订阅源/视图后，文章列表滚动位置回到顶部。
   useLayoutEffect(() => {
     setRetainedUnreadIds(new Set());
     if (itemListRef.current) itemListRef.current.scrollTop = 0;
   }, [filter]);
+
+  useEffect(()=>setVisibleLimit(200),[filter,query]);
 
   const visibleItems = useMemo(() => {
     return items.filter((item) => matchesItemView(item, filter, query, retainedUnreadIds));
@@ -342,9 +367,13 @@ export function App() {
         : "正在连接订阅源";
 
   async function chooseItem(item: ItemRecord) {
+    if(backendEnabled()) {
+      const full=await getItem(item.id);
+      if(full) setItems(current=>current.map(entry=>entry.id===item.id?full:entry));
+    }
     setSelectedItemId(item.id);
     setMobilePane("reader");
-    if (!item.read) {
+    if (!item.read && !(backendEnabled() && backendOffline())) {
       if (filter === "unread") {
         setRetainedUnreadIds((current) => new Set(current).add(item.id));
       }
@@ -394,6 +423,12 @@ export function App() {
     setRefreshScope(feedId ?? "all");
     const targets = feedId ? [feedId] : currentFeeds.map((feed) => feed.id);
     try {
+      if(backendEnabled()) {
+        const status=await requestBackendRefresh(targets,feedId?undefined:progress=>setRefreshProgress(displayRefreshProgress(progress,currentFeeds)));
+        setBackendStatus(status);await loadData();
+        setToast(status.job.running?'后端仍在抓取，关闭页面也会继续':'后端抓取完成：新增 '+status.job.updated+' 篇，失败 '+status.job.errors.length+' 个');
+        return;
+      }
       const result = await refreshFeeds(
         targets,
         feedId
@@ -420,6 +455,7 @@ export function App() {
   }
 
   async function maybeAutoRefresh() {
+    if(backendEnabled()) return;
     const [feedCount, lastRefreshAllAt] = await Promise.all([
       listFeeds().then((list) => list.length),
       getLastRefreshAllAt(),
@@ -437,8 +473,8 @@ export function App() {
     setRefreshing(true);
     setRefreshScope(feed.id);
     try {
-      const count = await refreshFeed(feed.id);
-      setToast(`已添加订阅，获取 ${count} 篇文章`);
+      if(backendEnabled()) {setToast('订阅已添加，后端正在抓取');}
+      else {const count=await refreshFeed(feed.id);setToast('已添加订阅，获取 '+count+' 篇文章');}
     } catch (error) {
       setToast(error instanceof Error ? error.message : String(error));
     }
@@ -483,14 +519,20 @@ export function App() {
     queueSync();
   }
 
-  async function handleSaveSettings(next: AppSettings) {
-    await updateSyncedPreferences(preferenceValues(next));
+  async function handleSaveSettings(next: AppSettings, config?:BackendConfig) {
+    const changedMode=next.storageMode!==settings.storageMode || next.backendUrl!==settings.backendUrl || next.backendToken!==settings.backendToken;
+    if(next.storageMode==='backend') {
+      await testBackend(next);
+      if(config) await backendCall('configure',{config},next);
+    } else await updateSyncedPreferences(preferenceValues(next));
     await saveSettings(next);
+    if(changedMode) {window.location.reload();return;}
     setSettingsState(next);
     applyAppearance(next);
     setShowSettings(false);
     setToast("设置已保存");
-    if (next.webdavUrl) void performSync(next, true);
+    if(next.storageMode==='backend') await loadData();
+    else if (next.webdavUrl) void performSync(next, true);
   }
 
   async function handleSettingsSync(next: AppSettings): Promise<AppSettings> {
@@ -583,11 +625,12 @@ export function App() {
   }
 
   async function handleClearData() {
-    if (!confirm("清除本机的订阅、文章和阅读状态？WebDAV 文件不会被删除。")) return;
+    if (!confirm(backendEnabled()?'清除当前后端在本机的缓存？后端文章不会被删除。':"清除本机的订阅、文章和阅读状态？WebDAV 文件不会被删除。")) return;
     await clearAllData();
     setFilter("all");
     setSelectedItemId(null);
-    await loadData();
+    if(backendEnabled()) {setFeeds([]);setItems([]);setCounts({total:0,unread:0,starred:0});setFeedUnread({});}
+    else await loadData();
     setShowSettings(false);
     setToast("本机数据已清除");
   }
@@ -611,10 +654,10 @@ export function App() {
           <span>Dox Reader</span>
         </button>
         <div class="topbar-actions">
-          <button class="icon-button" title="同步" disabled={!settings.webdavUrl || syncStatus === "syncing"} onClick={() => void performSync()}>
+          <button class="icon-button" title="同步" disabled={(settings.storageMode!=="backend" && !settings.webdavUrl) || syncStatus === "syncing"} onClick={() => void performSync()}>
             {syncIcon}
           </button>
-          <button class="icon-button" title="全部标为已读" disabled={refreshing || unreadCount === 0} onClick={() => void handleMarkAllRead()}>
+          <button class="icon-button" title="全部标为已读" disabled={refreshing || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
             <CheckCheck size={18} />
           </button>
           <button class="icon-button" title="刷新所有订阅" disabled={refreshing || !feeds.length} onClick={() => void handleRefresh()}>
@@ -655,7 +698,7 @@ export function App() {
                   <span>{feedName(feed)}</span>
                 </button>
                 <div class="feed-row-actions">
-                  <button class="feed-action" title="全部标为已读" disabled={refreshing || count === 0} onClick={() => void handleMarkFeedRead(feed)}>
+                  <button class="feed-action" title="全部标为已读" disabled={refreshing || count === 0} onClick={() => runAction(handleMarkFeedRead(feed))}>
                     <ListChecks size={14} />
                   </button>
                   <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
@@ -664,7 +707,7 @@ export function App() {
                   <button class="feed-action" title="重命名订阅" disabled={refreshing} onClick={() => setRenamingFeed(feed)}>
                     <Pencil size={14} />
                   </button>
-                  <button class="feed-action feed-delete" title="删除订阅" disabled={refreshing} onClick={() => void handleRemoveFeed(feed)}><Trash2 size={14} /></button>
+                  <button class="feed-action feed-delete" title="删除订阅" disabled={refreshing} onClick={() => runAction(handleRemoveFeed(feed))}><Trash2 size={14} /></button>
                 </div>
               </div>
             );
@@ -682,7 +725,7 @@ export function App() {
           </div>
           {selectedFeed && (
             <div class="items-header-actions">
-              <button class="icon-button" title="全部标为已读" disabled={refreshing || selectedFeedUnread === 0} onClick={() => void handleMarkFeedRead(selectedFeed)}>
+              <button class="icon-button" title="全部标为已读" disabled={refreshing || selectedFeedUnread === 0} onClick={() => runAction(handleMarkFeedRead(selectedFeed))}>
                 <ListChecks size={16} />
               </button>
               <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
@@ -691,7 +734,7 @@ export function App() {
               <button class="icon-button" title="重命名订阅" disabled={refreshing} onClick={() => setRenamingFeed(selectedFeed)}>
                 <Pencil size={16} />
               </button>
-              <button class="icon-button feed-delete" title="删除订阅" disabled={refreshing} onClick={() => void handleRemoveFeed(selectedFeed)}>
+              <button class="icon-button feed-delete" title="删除订阅" disabled={refreshing} onClick={() => runAction(handleRemoveFeed(selectedFeed))}>
                 <Trash2 size={16} />
               </button>
             </div>
@@ -703,10 +746,10 @@ export function App() {
           {query && <button title="清除搜索" onClick={() => setQuery("")}><X size={15} /></button>}
         </label>
         <div class={`item-list ${settings.showItemSnippet ? "" : "compact"}`} ref={itemListRef}>
-          {visibleItems.map((item) => {
+          {(settings.storageMode==='backend'?visibleItems.slice(0,visibleLimit):visibleItems).map((item) => {
             const itemFeed = feedsById.get(item.feedId);
             const source = formatItemSource(filter, itemFeed ? feedName(itemFeed) : "", sourceHost(item));
-            return <button class={`item-row ${selectedItemId === item.id ? "selected" : ""} ${item.read ? "read" : ""}`} key={item.id} onClick={() => void chooseItem(item)}>
+            return <button class={`item-row ${selectedItemId === item.id ? "selected" : ""} ${item.read ? "read" : ""}`} key={item.id} onClick={() => runAction(chooseItem(item))}>
               <div class="item-meta">
                 <span title={source}>{source}</span>
                 <time>{formatDate(item.publishedAt)}</time>
@@ -721,6 +764,7 @@ export function App() {
               </div>
             </button>;
           })}
+          {settings.storageMode==='backend' && visibleItems.length>visibleLimit && <button class="secondary-button" onClick={()=>setVisibleLimit(limit=>limit+200)}>加载更多（已显示 {visibleLimit} / {visibleItems.length}）</button>}
           {!visibleItems.length && ready && (
             <div class="empty-state">
               <Inbox size={30} />
@@ -737,8 +781,8 @@ export function App() {
             item={selectedItem}
             feed={feeds.find((entry) => entry.id === selectedItem.feedId)}
             onBack={() => setMobilePane("items")}
-            onToggleStar={() => void toggleStar(selectedItem)}
-            onToggleRead={() => void toggleRead(selectedItem)}
+            onToggleStar={() => runAction(toggleStar(selectedItem))}
+            onToggleRead={() => runAction(toggleRead(selectedItem))}
           />
         ) : (
           <div class="reader-empty">
@@ -828,6 +872,7 @@ export function App() {
           onClear={handleClearData}
         />
       )}
+      {settings.storageMode==='backend' && <div class="backend-status" role="status">{backendNotice || ('后端模式 · '+(backendStatus?.job.running?'后台正在抓取':backendStatus?.nextFetchAt?'下次抓取 '+new Date(backendStatus.nextFetchAt).toLocaleString():'暂无抓取计划'))}</div>}
       {toast && <div class="toast" role="status">{toast}</div>}
     </div>
   );
@@ -953,7 +998,7 @@ function RenameFeedDialog(props: {
 function SettingsDialog(props: {
   settings: AppSettings;
   onClose: () => void;
-  onSave: (settings: AppSettings) => Promise<void>;
+  onSave: (settings: AppSettings, config?:BackendConfig) => Promise<void>;
   onSync: (settings: AppSettings) => Promise<AppSettings>;
   onTest: (settings: AppSettings) => Promise<string>;
   onImport: (file: File) => Promise<void>;
@@ -965,6 +1010,21 @@ function SettingsDialog(props: {
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [testResult, setTestResult] = useState("");
+  const [backendConfig,setBackendConfig]=useState<BackendConfig|null>(null);
+  const [saving,setSaving]=useState(false);
+  const [backendInfo,setBackendInfo]=useState('');
+  const testConnection=async()=>{
+    setTesting(true);setBackendInfo('');
+    try {const status=await testBackend(draft);setBackendConfig(status.config);setBackendInfo('连接成功 · 已用 '+(status.storageBytes/1024/1024).toFixed(1)+' MB');}
+    catch(error){setBackendConfig(null);setBackendInfo(error instanceof Error?error.message:String(error));}
+    finally{setTesting(false);}
+  };
+  const save=async()=>{
+    setSaving(true);setTestResult('');
+    try {await props.onSave(draft,draft.storageMode==='backend'?backendConfig??undefined:undefined);}
+    catch(error){setTestResult(error instanceof Error?error.message:String(error));}
+    finally{setSaving(false);}
+  };
   const fileInput = useRef<HTMLInputElement>(null);
   const update = (patch: Partial<AppSettings>) => setDraft((current) => ({ ...current, ...patch }));
   const closeWithoutSaving = () => {
@@ -1006,6 +1066,27 @@ function SettingsDialog(props: {
         <div class="dialog-title"><div><Settings size={20} /><h2>设置</h2></div><button class="icon-button" title="关闭" onClick={closeWithoutSaving}><X size={18} /></button></div>
         <div class="settings-scroll">
           <section class="settings-section">
+            <div class="section-heading"><Cloud size={18}/><div><h3>数据模式</h3><p>本地数据和后端缓存独立保存，切换不会合并或删除原有数据。</p></div></div>
+            <div class="segmented" aria-label="数据模式">
+              <button class={draft.storageMode==='local'?'active':''} onClick={()=>update({storageMode:'local'})}>纯本地</button>
+              <button class={draft.storageMode==='backend'?'active':''} onClick={()=>update({storageMode:'backend'})}>自建后端</button>
+            </div>
+            {draft.storageMode==='backend' && <>
+              <label class="field"><span>Dox Reader Backend 地址</span><input type="url" value={draft.backendUrl} placeholder="https://dox-reader-backend.example.workers.dev" onInput={event=>{update({backendUrl:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/></label>
+              <label class="field"><span>访问令牌</span><input type="password" autoComplete="off" value={draft.backendToken} onInput={event=>{update({backendToken:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/></label>
+              <button class="secondary-button" disabled={testing||saving||!draft.backendUrl||!draft.backendToken} onClick={()=>void testConnection()}>{testing?'正在连接':'连接并读取后端设置'}</button>
+              {backendInfo && <div class="connection-result">{backendInfo}</div>}
+              {backendConfig && <>
+                <div class="field-row">
+                  <label class="field"><span>抓取间隔（分钟）</span><input type="number" min="30" max="10080" step="1" value={backendConfig.intervalMinutes} onInput={event=>setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)})}/></label>
+                  <label class="field"><span>全库最新文章上限</span><input type="number" min="100" max="10000" step="100" value={backendConfig.maxArticles} onInput={event=>setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)})}/></label>
+                </div>
+                <p class="backend-help">默认每 60 分钟抓取，全库保留最新 10,000 篇。收藏也计入上限；调低后会清理较旧文章。超长正文保留节选。免费模式最多 100 个订阅，间隔最短 30 分钟。</p>
+              </>}
+              <p class="backend-help">所有客户端关闭后继续抓取。工具栏刷新由后端执行；订阅和文章状态保存到后端，WebDAV 仅用于本地模式。可用 OPML 把本地订阅导入后端。</p>
+            </>}
+          </section>
+          {draft.storageMode==='local' && <section class="settings-section">
             <div class="section-heading"><Cloud size={18} /><div><h3>WebDAV 同步</h3><p>订阅、文章状态与偏好设置</p></div></div>
             <label class="field"><span>WebDAV URL 前缀</span><input type="url" value={draft.webdavUrl} onInput={(event) => update({ webdavUrl: event.currentTarget.value })} placeholder="https://dav.example.com/remote.php/dav/files/user/" /></label>
             <div class="field-row">
@@ -1017,9 +1098,9 @@ function SettingsDialog(props: {
               <button class="secondary-button" aria-busy={testing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => void handleTest()}>{testing ? <LoaderCircle size={16} class="spin" /> : <Wifi size={16} />}{testing ? "正在测试" : "测试连接"}</button>
               <button class="secondary-button" aria-busy={syncing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => void handleSync()}>{syncing ? <LoaderCircle size={16} class="spin" /> : <Upload size={16} />}{syncing ? "正在同步" : "立即同步"}</button>
             </div>
-          </section>
+          </section>}
           <section class="settings-section">
-            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色 · 跨设备同步</p></div></div>
+            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色 · {draft.storageMode==='local'?'可通过 WebDAV 同步':'保存在当前设备'}</p></div></div>
             <div class="segmented" aria-label="主题">
               {(["system", "light", "dark"] as const).map((theme) => <button key={theme} class={draft.theme === theme ? "active" : ""} onClick={() => update({ theme })}>{theme === "system" ? "跟随系统" : theme === "light" ? "浅色" : "深色"}</button>)}
             </div>
@@ -1085,7 +1166,8 @@ function SettingsDialog(props: {
             <button class="danger-button" onClick={() => void props.onClear()}><Trash2 size={16} />清除本机数据</button>
           </section>
         </div>
-        <div class="dialog-actions"><button class="secondary-button" onClick={closeWithoutSaving}>取消</button><button class="primary-button" onClick={() => void props.onSave(draft)}><Check size={17} />保存</button></div>
+        {testResult && draft.storageMode==='backend' && <div class="connection-result">{testResult}</div>}
+        <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving||testing} onClick={()=>void save()}><Check size={17} />{saving?'正在保存':'保存'}</button></div>
       </div>
     </div>
   );

@@ -1,52 +1,19 @@
 # AMO Reviewer Notes
 
-## Distribution and Build
+Version 1.1.0 adds an optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
 
-Version 1.0.0 is the first listed release for Firefox desktop and Android. It keeps the unlisted extension ID and removes update_url for future AMO updates. The interface is currently Simplified Chinese.
+## Build
 
-Build on Ubuntu 24.04 with Node.js 24 and npm 11. From the source archive root:
+Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.0.zip.
 
-```text
-npm ci
-npm run package
-```
+## Data and network
 
-This runs Vitest, TypeScript, Vite and web-ext build; the package is under web-ext-artifacts/. All dependencies resolve from the public npm registry using package-lock.json. No credentials are needed.
+Local mode requests user-added RSS/Atom feeds directly. Optional HTTPS WebDAV sync uses PROPFIND/MKCOL for Dox Reader/ and GET/PUT for Dox Reader/state.json. Credentials stay in local extension storage, are used for authentication only, and never enter state.json. WebDAV syncs subscription metadata, read/starred state and selected preferences, not bodies or search queries.
 
-## Network Behavior
+Backend mode is explicitly selected in Settings. The user provides an HTTPS root URL and bearer token for their own Dox Reader Backend. POST /api/v1 sends commands to manage subscriptions, update read/starred state, trigger fetching and configure the interval/retention. The backend returns article metadata/content and state. It persists these in the user's Cloudflare Durable Object and continues scheduled fetching with clients closed. No shared developer service is used. Token is stored in browser.storage.local, only sent in Authorization; redirects are rejected. No WebDAV runs in backend mode. Local database and per-backend IndexedDB caches stay separate; local articles are not automatically uploaded. Theme and layout remain device-local in backend mode.
 
-The extension has no developer-operated backend, analytics, telemetry, advertising, or remote executable code.
+Declarations: authenticationInfo covers WebDAV credentials/backend token; browsingActivity covers feed/site URLs; websiteActivity covers read/starred state; websiteContent covers subscription titles/custom names. Broad HTTP(S) permissions support arbitrary user-selected feeds and servers. Browser history is not read. Search runs locally. No analytics or advertising.
 
-- Feed refresh performs GET requests only to RSS or Atom URLs explicitly added by the user.
-- Displayed article images may load from HTTP(S) URLs supplied by the feed content, with no-referrer policy.
-- WebDAV synchronization connects only to the HTTPS URL prefix explicitly configured by the user. It uses PROPFIND and MKCOL for `Dox Reader/`, and GET and PUT for `Dox Reader/state.json`.
-- The WebDAV Authorization header contains the credentials supplied by the user. Credentials remain in `browser.storage.local` and are never written into the synchronization document.
-- The synchronization document contains subscription metadata and read/starred state. Article bodies and search queries remain local.
+Article HTML is rendered through allowed Preact tags by src/article-content.tsx, with validated link/image protocols. Images can contact feed-specified HTTP(S) hosts with no-referrer. No application innerHTML injection occurs. The single UNSAFE_VAR_ASSIGNMENT linter warning is in unmodified Preact's renderer (its optional dangerouslySetInnerHTML support), unused for feed content.
 
-The `http://*/*` and `https://*/*` host permissions are necessary because an RSS reader cannot know feed hosts in advance. WebDAV itself is restricted in application code to HTTPS.
-
-## Data Declaration
-
-Required data declarations describe WebDAV transfers to the user's server:
-
-- `authenticationInfo`: WebDAV username and password used in the Authorization header.
-- `browsingActivity`: subscribed feed and site URLs.
-- `websiteActivity`: read and starred state.
-- `websiteContent`: feed and site titles, plus optional user-defined subscription display names, included with subscription metadata.
-
-The developer does not receive this data.
-
-## Content Handling and Linter Warning
-
-src/article-content.tsx converts feed HTML to allowlisted Preact elements and validates URL protocols. Application code does not inject feed HTML using innerHTML or dangerouslySetInnerHTML.
-
-The bundle has one UNSAFE_VAR_ASSIGNMENT warning in unmodified Preact 10.29.8's renderer, which supports dangerouslySetInnerHTML. Dox Reader does not call that API for feed content.
-
-## Third-Party Libraries
-
-- Preact 10.29.8: https://github.com/preactjs/preact
-- Dexie 4.4.5: https://github.com/dexie/Dexie.js
-- fast-xml-parser 5.10.1: https://github.com/NaturalIntelligence/fast-xml-parser
-- Lucide Preact 1.31.0: https://github.com/lucide-icons/lucide
-
-Build/test versions are locked in package-lock.json.
+Runtime: Preact 10.29.8, Dexie 4.4.5, fast-xml-parser 5.10.1, Lucide Preact 1.31.0. Tooling/test versions are in package-lock.json. fake-indexeddb is test-only.
