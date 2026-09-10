@@ -3,6 +3,7 @@ import {
   BookOpen,
   Check,
   CheckCheck,
+  CircleHelp,
   Cloud,
   CloudOff,
   Download,
@@ -33,6 +34,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import { renderArticleContent } from "./article-content";
+import { compareFeedNames } from "./feed-order";
 import {
   addFeed,
   clearAllData,
@@ -46,7 +48,7 @@ import {
   markFeedRead,
   migrateLegacyEntities,
   removeFeed,
-  renameFeed,
+  updateFeed,
   setItemState,
   setLastRefreshAllAt,
   updateSyncedPreferences,
@@ -116,6 +118,12 @@ const ITEM_PANE_MAX = 0.5;
 const READER_PANE_MIN = 0.3;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_ASYNC_FEEDBACK_MS = 400;
+
+function formatBackendStatus(status: BackendStatus | null): string {
+  if (status?.job.running) return "后台正在抓取";
+  if (status?.nextFetchAt) return `下次抓取 ${new Date(status.nextFetchAt).toLocaleString()}`;
+  return "暂无抓取计划";
+}
 
 async function keepFeedbackVisible(startedAt: number): Promise<void> {
   const remaining = MIN_ASYNC_FEEDBACK_MS - (Date.now() - startedAt);
@@ -209,7 +217,7 @@ export function App() {
   const [mobilePane, setMobilePane] = useState<MobilePane>("items");
   const [showAdd, setShowAdd] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [renamingFeed, setRenamingFeed] = useState<FeedRecord | null>(null);
+  const [editingFeed, setEditingFeed] = useState<FeedRecord | null>(null);
   const [settings, setSettingsState] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshScope, setRefreshScope] = useState<"all" | string | null>(null);
@@ -508,15 +516,20 @@ export function App() {
     queueSync();
   }
 
-  async function handleRenameFeed(customName: string) {
-    if (!renamingFeed) return;
-    const updated = await renameFeed(renamingFeed.id, customName);
+  async function handleEditFeed(customName: string, url: string) {
+    if (!editingFeed) return;
+    const previous = editingFeed;
+    const updated = await updateFeed(previous.id, customName, url);
     if (updated) {
-      setFeeds((current) => current.map((feed) => feed.id === updated.id ? updated : feed));
+      setFeeds((current) => current.map((feed) => feed.id === updated.id ? updated : feed).sort(compareFeedNames));
     }
-    setRenamingFeed(null);
-    setToast("订阅名称已更新");
+    setEditingFeed(null);
+    setToast("订阅已更新");
     queueSync();
+    if (updated.url !== previous.url) {
+      if (backendEnabled()) await loadData();
+      else void handleRefresh(updated.id);
+    }
   }
 
   async function handleSaveSettings(next: AppSettings, config?:BackendConfig) {
@@ -654,9 +667,9 @@ export function App() {
           <span>Dox Reader</span>
         </button>
         <div class="topbar-actions">
-          <button class="icon-button" title="同步" disabled={(settings.storageMode!=="backend" && !settings.webdavUrl) || syncStatus === "syncing"} onClick={() => void performSync()}>
+          {settings.storageMode === "local" && <button class="icon-button" title="同步" disabled={!settings.webdavUrl || syncStatus === "syncing"} onClick={() => void performSync()}>
             {syncIcon}
-          </button>
+          </button>}
           <button class="icon-button" title="全部标为已读" disabled={refreshing || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
             <CheckCheck size={18} />
           </button>
@@ -704,7 +717,7 @@ export function App() {
                   <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
                     <RefreshCw size={14} class={refreshScope === feed.id ? "spin" : ""} />
                   </button>
-                  <button class="feed-action" title="重命名订阅" disabled={refreshing} onClick={() => setRenamingFeed(feed)}>
+                  <button class="feed-action" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(feed)}>
                     <Pencil size={14} />
                   </button>
                   <button class="feed-action feed-delete" title="删除订阅" disabled={refreshing} onClick={() => runAction(handleRemoveFeed(feed))}><Trash2 size={14} /></button>
@@ -731,7 +744,7 @@ export function App() {
               <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
                 <RefreshCw size={16} class={refreshScope === selectedFeed.id ? "spin" : ""} />
               </button>
-              <button class="icon-button" title="重命名订阅" disabled={refreshing} onClick={() => setRenamingFeed(selectedFeed)}>
+              <button class="icon-button" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(selectedFeed)}>
                 <Pencil size={16} />
               </button>
               <button class="icon-button feed-delete" title="删除订阅" disabled={refreshing} onClick={() => runAction(handleRemoveFeed(selectedFeed))}>
@@ -838,12 +851,12 @@ export function App() {
                 <span>已完成 {refreshProgress.completed} / {refreshProgress.total} 个订阅源</span>
               </div>
             </div>
-            <div class="global-refresh-source">
+            {settings.storageMode === "local" && <div class="global-refresh-source">
               <span>{refreshProgress.activeFeedNames.length ? "正在检查" : "状态"}</span>
               <strong title={refreshSourceLabel}>{refreshSourceLabel}</strong>
-            </div>
+            </div>}
             <progress
-              class="global-refresh-progress"
+              class={`global-refresh-progress ${settings.storageMode === "backend" ? "backend-refresh-progress" : ""}`}
               aria-label="刷新订阅进度"
               max={refreshProgress.total}
               value={refreshProgress.completed}
@@ -853,16 +866,18 @@ export function App() {
       )}
 
       {showAdd && <AddFeedDialog onClose={() => setShowAdd(false)} onAdd={handleAddFeed} />}
-      {renamingFeed && (
-        <RenameFeedDialog
-          feed={renamingFeed}
-          onClose={() => setRenamingFeed(null)}
-          onSave={handleRenameFeed}
+      {editingFeed && (
+        <EditFeedDialog
+          feed={editingFeed}
+          onClose={() => setEditingFeed(null)}
+          onSave={handleEditFeed}
         />
       )}
       {showSettings && (
         <SettingsDialog
           settings={settings}
+          backendNotice={backendNotice}
+          backendStatus={backendStatus}
           onClose={() => setShowSettings(false)}
           onSave={handleSaveSettings}
           onSync={handleSettingsSync}
@@ -872,7 +887,6 @@ export function App() {
           onClear={handleClearData}
         />
       )}
-      {settings.storageMode==='backend' && <div class="backend-status" role="status">{backendNotice || ('后端模式 · '+(backendStatus?.job.running?'后台正在抓取':backendStatus?.nextFetchAt?'下次抓取 '+new Date(backendStatus.nextFetchAt).toLocaleString():'暂无抓取计划'))}</div>}
       {toast && <div class="toast" role="status">{toast}</div>}
     </div>
   );
@@ -956,12 +970,13 @@ function AddFeedDialog(props: { onClose: () => void; onAdd: (url: string) => Pro
   );
 }
 
-function RenameFeedDialog(props: {
+function EditFeedDialog(props: {
   feed: FeedRecord;
   onClose: () => void;
-  onSave: (customName: string) => Promise<void>;
+  onSave: (customName: string, url: string) => Promise<void>;
 }) {
   const [customName, setCustomName] = useState(props.feed.customName);
+  const [url, setUrl] = useState(props.feed.url);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -970,12 +985,12 @@ function RenameFeedDialog(props: {
         event.preventDefault();
         setBusy(true);
         setError("");
-        void props.onSave(customName).catch((reason) => {
+        void props.onSave(customName, url).catch((reason) => {
           setBusy(false);
           setError(reason instanceof Error ? reason.message : String(reason));
         });
       }}>
-        <div class="dialog-title"><div><Pencil size={20} /><h2>重命名订阅</h2></div><button type="button" class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
+        <div class="dialog-title"><div><Pencil size={20} /><h2>编辑订阅</h2></div><button type="button" class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
         <label class="field">
           <span>自定义名称（留空显示源标题）</span>
           <input
@@ -985,6 +1000,7 @@ function RenameFeedDialog(props: {
             placeholder={props.feed.title}
           />
         </label>
+        <label class="field"><span>订阅地址</span><input type="url" required value={url} onInput={(event) => setUrl(event.currentTarget.value)} /></label>
         {error && <div class="form-error">{error}</div>}
         <div class="dialog-actions">
           <button type="button" class="secondary-button" onClick={props.onClose}>取消</button>
@@ -997,6 +1013,8 @@ function RenameFeedDialog(props: {
 
 function SettingsDialog(props: {
   settings: AppSettings;
+  backendNotice: string;
+  backendStatus: BackendStatus | null;
   onClose: () => void;
   onSave: (settings: AppSettings, config?:BackendConfig) => Promise<void>;
   onSync: (settings: AppSettings) => Promise<AppSettings>;
@@ -1013,13 +1031,22 @@ function SettingsDialog(props: {
   const [testResult, setTestResult] = useState("");
   const [webdavRetry, setWebdavRetry] = useState(0);
   const [backendConfig,setBackendConfig]=useState<BackendConfig|null>(null);
+  const [backendTestStatus,setBackendTestStatus]=useState<BackendStatus|null>(null);
   const [saving,setSaving]=useState(false);
   const [backendInfo,setBackendInfo]=useState('');
   const [backendLoading, setBackendLoading] = useState(false);
   const [backendRetry, setBackendRetry] = useState(0);
+  const editingSavedBackend = draft.storageMode === props.settings.storageMode
+    && draft.backendUrl === props.settings.backendUrl
+    && draft.backendToken === props.settings.backendToken;
+  const backendDisplayNotice = editingSavedBackend ? props.backendNotice : '';
+  const backendDisplayStatus = editingSavedBackend
+    ? props.backendStatus ?? backendTestStatus
+    : backendTestStatus;
   useEffect(() => {
     let cancelled = false;
     setBackendConfig(null);
+    setBackendTestStatus(null);
     setBackendInfo('');
     if (draft.storageMode !== 'backend' || !draft.backendUrl.trim() || !draft.backendToken.trim()) {
       setBackendLoading(false);
@@ -1031,6 +1058,7 @@ function SettingsDialog(props: {
       void testBackend(draft).then(status => {
         if (cancelled) return;
         setBackendConfig(status.config);
+        setBackendTestStatus(status);
         setBackendInfo('连接成功 · 已用 ' + (status.storageBytes / 1024 / 1024).toFixed(1) + ' MB');
       }).catch(error => {
         if (!cancelled) setBackendInfo(error instanceof Error ? error.message : String(error));
@@ -1105,19 +1133,23 @@ function SettingsDialog(props: {
             <div class="section-heading"><Cloud size={18}/><div><h3>数据模式</h3><p>本地数据和后端缓存独立保存，切换不会合并或删除原有数据。</p></div></div>
             <div class="segmented data-mode-switch" aria-label="数据模式">
               <button class={draft.storageMode==='local'?'active':''} onClick={()=>{update({storageMode:'local'});setShowBackendToken(false);}}>本地</button>
-              <button class={draft.storageMode==='backend'?'active':''} onClick={()=>update({storageMode:'backend'})}>Dox Reader Backend</button>
+              <div class="data-mode-backend">
+                <button class={draft.storageMode==='backend'?'active':''} onClick={()=>update({storageMode:'backend'})}>Dox Reader Backend</button>
+                <a class="icon-button small backend-help" href="https://github.com/aenerv7/Dox/blob/main/Dox%20Reader/Backend/README.md#部署" target="_blank" rel="noopener noreferrer" title="Cloudflare 部署说明" aria-label="Dox Reader Backend 的 Cloudflare 部署说明"><CircleHelp size={15} aria-hidden="true" /></a>
+              </div>
             </div>
             {draft.storageMode==='backend' && <>
-              <label class="field"><span>地址</span><input type="url" value={draft.backendUrl} placeholder="https://dox-reader-backend.example.workers.dev" onInput={event=>{update({backendUrl:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/></label>
+              <label class="field"><span>地址</span><input type="url" value={draft.backendUrl} placeholder="https://dox-reader-backend.example.workers.dev" onInput={event=>{update({backendUrl:event.currentTarget.value});setBackendConfig(null);setBackendTestStatus(null);setBackendInfo('');}}/></label>
               <div class="field">
                 <label for="backend-token">访问令牌</label>
                 <div class="password-field">
-                  <input id="backend-token" type={showBackendToken ? "text" : "password"} autoComplete="off" value={draft.backendToken} onInput={event=>{update({backendToken:event.currentTarget.value});setBackendConfig(null);setBackendInfo('');}}/>
+                  <input id="backend-token" type={showBackendToken ? "text" : "password"} autoComplete="off" value={draft.backendToken} onInput={event=>{update({backendToken:event.currentTarget.value});setBackendConfig(null);setBackendTestStatus(null);setBackendInfo('');}}/>
                   <button type="button" class="password-toggle" title={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-label={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-pressed={showBackendToken} onClick={()=>setShowBackendToken(visible=>!visible)}>{showBackendToken ? <EyeOff size={17}/> : <Eye size={17}/>}</button>
                 </div>
               </div>
               <button class="secondary-button" disabled={backendLoading||saving||!draft.backendUrl||!draft.backendToken} onClick={()=>setBackendRetry(value=>value+1)}>{backendLoading?'正在连接':'重新连接'}</button>
               {backendInfo && <div class="connection-result">{backendInfo}</div>}
+              {(backendDisplayNotice || backendDisplayStatus) && <div class="backend-fetch-status" role="status">{backendDisplayNotice || formatBackendStatus(backendDisplayStatus)}</div>}
                 <div class="field-row">
                   <label class="field"><span>抓取间隔（分钟）</span><input type="number" min="30" max="10080" step="1" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.intervalMinutes ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)});}}/></label>
                   <label class="field"><span>全库最新文章上限</span><input type="number" min="100" max="10000" step="100" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.maxArticles ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)});}}/></label>

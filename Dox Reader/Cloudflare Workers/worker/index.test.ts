@@ -45,6 +45,8 @@ describe("Worker proxy", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("X-Dox-Upstream-URL")).toBe("https://example.com/feed.xml");
     expect(await response.text()).toBe("<rss/>");
+    const headers = new Headers(upstream.mock.calls[0][1]?.headers);
+    expect(headers.get("User-Agent")).toMatch(/^Dox-Reader\//);
   });
 
   it("validates every feed redirect target", async () => {

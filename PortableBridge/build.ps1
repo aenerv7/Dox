@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$OutputPath
 )
@@ -7,9 +7,13 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sourcePath = Join-Path $scriptPath 'FirefoxPortableBridge.cs'
+$sourcePath = Join-Path $scriptPath 'PortableBridge.cs'
+$maintenanceSourcePath = Join-Path $scriptPath 'FirefoxMaintenance.cs'
+$coordinatorSourcePath = Join-Path $scriptPath 'SessionCoordinator.cs'
+$browserSourcePath = Join-Path $scriptPath 'BrowserSupport.cs'
+$manifestPath = Join-Path $scriptPath 'app.manifest'
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-    $OutputPath = Join-Path $scriptPath 'bin\FirefoxPortableBridge.exe'
+    $OutputPath = Join-Path $scriptPath 'bin\PortableBridge.exe'
 }
 
 $outputFullPath = [IO.Path]::GetFullPath($OutputPath)
@@ -32,17 +36,27 @@ $compilerPath = $compilerCandidates | Where-Object {
 if ([string]::IsNullOrWhiteSpace($compilerPath)) {
     throw 'The .NET Framework 4 C# compiler was not found.'
 }
+if (-not (Test-Path -LiteralPath $maintenanceSourcePath -PathType Leaf)) {
+    throw "The portable maintenance source was not found: $maintenanceSourcePath"
+}
+if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+    throw "The application manifest was not found: $manifestPath"
+}
 
 & $compilerPath `
     /nologo `
     /target:winexe `
-    /platform:anycpu `
+    /platform:x64 `
     /optimize+ `
     /warnaserror+ `
     /reference:System.Management.dll `
     /reference:System.Runtime.Serialization.dll `
+    "/win32manifest:$manifestPath" `
     "/out:$outputFullPath" `
-    $sourcePath
+    $sourcePath `
+    $maintenanceSourcePath `
+    $browserSourcePath `
+    $coordinatorSourcePath
 if ($LASTEXITCODE -ne 0) {
     throw "csc.exe failed with exit code $LASTEXITCODE."
 }

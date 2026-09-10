@@ -2,7 +2,8 @@ export const DEFAULT_CONFIG = { intervalMinutes: 60, maxArticles: 10000 };
 export const MAX_CONTENT_BYTES = 48 * 1024;
 export const MAX_LIBRARY_BYTES = 600 * 1024 * 1024;
 export const MAX_FEEDS = 100;
-export const MAX_FEED_BYTES = 1024 * 1024;
+// Match the frontend proxy while keeping large RSS/Atom responses bounded.
+export const MAX_FEED_BYTES = 5 * 1024 * 1024;
 
 export function validateConfig(value: unknown): typeof DEFAULT_CONFIG {
   const v = value as Partial<typeof DEFAULT_CONFIG> | null;

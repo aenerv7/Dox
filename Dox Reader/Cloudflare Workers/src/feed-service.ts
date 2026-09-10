@@ -27,11 +27,11 @@ export async function refreshFeed(feedId: string): Promise<number> {
       feed.id,
       response.headers.get("X-Dox-Upstream-URL") || response.url || feed.url,
     );
-    await saveParsedFeed(feed.id, parsed);
+    await saveParsedFeed(feed.id, parsed, feed.url);
     return parsed.items.length;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await setFeedError(feed.id, message);
+    await setFeedError(feed.id, message, feed.url);
     throw new Error(`${feed.title}：${message}`);
   }
 }

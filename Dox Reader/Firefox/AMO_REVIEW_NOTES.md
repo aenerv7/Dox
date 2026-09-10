@@ -1,14 +1,14 @@
 # AMO Reviewer Notes
 
-Version 1.1.2 adds an optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
+Version 1.1.8 includes the optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
 
 ## Build
 
-Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.2.zip.
+Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.8.zip.
 
 ## Data and network
 
-Local mode requests user-added RSS/Atom feeds directly. Optional HTTPS WebDAV sync uses PROPFIND/MKCOL for Dox Reader/ and GET/PUT for Dox Reader/state.json. Credentials stay in local extension storage, are used for authentication only, and never enter state.json. WebDAV syncs subscription metadata, read/starred state and selected preferences, not bodies or search queries.
+Local mode requests user-added RSS/Atom feeds directly. Worker-hosted feed fetches (the web build and optional personal backend, outside this extension) use a fixed non-identifying Dox Reader User-Agent for compatibility with legacy feed servers. Optional HTTPS WebDAV sync uses PROPFIND/MKCOL for Dox Reader/ and GET/PUT for Dox Reader/state.json. Credentials stay in local extension storage, are used for authentication only, and never enter state.json. WebDAV syncs subscription metadata, read/starred state and selected preferences, not bodies or search queries.
 
 Backend mode is explicitly selected in Settings. The user provides an HTTPS root URL and bearer token for their own Dox Reader Backend. POST /api/v1 sends commands to manage subscriptions, update read/starred state, trigger fetching and configure the interval/retention. The backend returns article metadata/content and state. It persists these in the user's Cloudflare Durable Object and continues scheduled fetching with clients closed. No shared developer service is used. Token is stored in browser.storage.local, only sent in Authorization; redirects are rejected. No WebDAV runs in backend mode. Local database and per-backend IndexedDB caches stay separate; local articles are not automatically uploaded. Theme and layout remain device-local in backend mode.
 

@@ -61,6 +61,18 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("backend mode isolation", () => {
+  it("sorts backend subscriptions by display name, independently of cache IDs", async () => {
+    await connectBackend(settings);
+    await backendCache().feeds.clear();
+    await backendCache().feeds.bulkPut([
+      { ...feed, id: "a", title: "Zulu", customName: "" },
+      { ...feed, id: "m", title: "Bravo", customName: "" },
+      { ...feed, id: "z", title: "Original title", customName: "Alpha" },
+    ]);
+    expect((await repo.listFeeds()).map(entry => entry.id)).toEqual(["z", "m", "a"]);
+    await backendCache().feeds.update("a", { customName: "Aardvark" });
+    expect((await repo.listFeeds()).map(entry => entry.id)).toEqual(["a", "z", "m"]);
+  });
   it("keeps local feeds and WebDAV data isolated from the backend cache", async () => {
     await local.addFeed("https://local.example.com/rss");
     await connectBackend(settings);

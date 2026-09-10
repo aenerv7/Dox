@@ -2,8 +2,10 @@ const CLIENT_MARKER_HEADER = "X-Dox-Reader-Request";
 const TARGET_HEADER = "X-Dox-Target";
 const MAX_FEED_BYTES = 5 * 1024 * 1024;
 const MAX_WEBDAV_BYTES = 4 * 1024 * 1024;
-const UPSTREAM_TIMEOUT_MS = 20_000;
+const FEED_UPSTREAM_TIMEOUT_MS = 90_000;
+const WEBDAV_UPSTREAM_TIMEOUT_MS = 20_000;
 const MAX_FEED_REDIRECTS = 5;
+const FEED_USER_AGENT = "Dox-Reader/1.1 (+https://github.com/aenerv7/Dox)";
 
 type UpstreamFetch = typeof fetch;
 
@@ -195,11 +197,16 @@ function relayResponse(response: Response, limit: number, upstreamUrl: URL): Res
   });
 }
 
-async function fetchWithTimeout(upstreamFetch: UpstreamFetch, target: URL, init: RequestInit): Promise<Response> {
+async function fetchWithTimeout(
+  upstreamFetch: UpstreamFetch,
+  target: URL,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
   return upstreamFetch(target, {
     ...init,
     redirect: "manual",
-    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 }
 
@@ -207,9 +214,17 @@ async function handleFeed(request: Request, upstreamFetch: UpstreamFetch): Promi
   if (request.method !== "GET") throw new HttpError(405, "RSS 接口只接受 GET 请求");
   let target = parseTarget(request.headers.get(TARGET_HEADER), new Set(["http:", "https:"]));
   const headers = copyRequestHeaders(request, ["Accept", "If-Modified-Since", "If-None-Match"]);
+  // Some legacy feed hosts reject requests whose User-Agent is empty. Do not
+  // forward the browser's value; use a stable, non-identifying reader marker.
+  headers.set("User-Agent", FEED_USER_AGENT);
 
   for (let redirects = 0; redirects <= MAX_FEED_REDIRECTS; redirects += 1) {
-    const response = await fetchWithTimeout(upstreamFetch, target, { method: "GET", headers });
+    const response = await fetchWithTimeout(
+      upstreamFetch,
+      target,
+      { method: "GET", headers },
+      FEED_UPSTREAM_TIMEOUT_MS,
+    );
     if (![301, 302, 303, 307, 308].includes(response.status)) {
       return relayResponse(response, MAX_FEED_BYTES, target);
     }
@@ -238,11 +253,16 @@ async function handleWebDav(request: Request, upstreamFetch: UpstreamFetch): Pro
     "If-None-Match",
   ]);
   const body = request.method === "PUT" ? await readLimitedBody(request, MAX_WEBDAV_BYTES) : undefined;
-  const response = await fetchWithTimeout(upstreamFetch, target, {
-    method: request.method,
-    headers,
-    body,
-  });
+  const response = await fetchWithTimeout(
+    upstreamFetch,
+    target,
+    {
+      method: request.method,
+      headers,
+      body,
+    },
+    WEBDAV_UPSTREAM_TIMEOUT_MS,
+  );
   if ([301, 302, 303, 307, 308].includes(response.status)) {
     void response.body?.cancel("WebDAV redirects are not followed");
     throw new HttpError(502, "WebDAV 地址发生重定向，请填写重定向后的 HTTPS 地址");

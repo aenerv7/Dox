@@ -26,6 +26,6 @@ Removing backend settings disconnects that reader but does not stop the independ
 
 ## Network requests and security
 
-Feed servers receive ordinary HTTP request information. Article images can load from HTTP(S) hosts in feed content; the reader uses no-referrer on image requests. Clicking an original-article link opens its website. Backend and WebDAV connections require HTTPS. No browser history is inspected. Request authorization values are not logged by application code; Cloudflare may collect platform-level logs and telemetry for the operator.
+Feed servers receive ordinary HTTP request information. The web proxy and optional backend identify feed requests with a fixed Dox Reader User-Agent that contains no user or device identifier; the Firefox extension uses the browser's normal request headers. Article images can load from HTTP(S) hosts in feed content; the reader uses no-referrer on image requests. Clicking an original-article link opens its website. Backend and WebDAV connections require HTTPS. No browser history is inspected. Request authorization values are not logged by application code; Cloudflare may collect platform-level logs and telemetry for the operator.
 
 Questions: https://github.com/aenerv7/Dox/issues

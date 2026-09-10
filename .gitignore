@@ -26,8 +26,9 @@ CapsLockOSD/CapsLockOSD.ini
 Firefox/**/web-ext-artifacts/
 Firefox/**/.amo-upload-uuid
 
-# Firefox PortableBridge build output
+# PortableBridge build output (including the old local build directory)
 Firefox/PortableBridge/bin/
+PortableBridge/bin/
 
 # DeepSeek Harness Launcher（构建产物）
 DeepSeek Harness/Launcher/bin/

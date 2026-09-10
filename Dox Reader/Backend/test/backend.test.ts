@@ -10,7 +10,10 @@ import {
   validateConfig,
   boundedContent,
   MAX_CONTENT_BYTES,
+  MAX_FEED_BYTES,
+  limitedText,
 } from "../src/policy";
+import { parseFeedXml } from "../src/shared/feed-parser";
 const make = () => env.LIBRARY.getByName(crypto.randomUUID());
 beforeEach(() => {
   vi.spyOn(globalThis, "fetch").mockRejectedValue(
@@ -19,6 +22,121 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 describe("personal backend", () => {
+  it("identifies feed requests for origins that reject an empty User-Agent", async () => {
+    const stub = make();
+    await stub.command("addFeed", {
+      url: "https://legacy.example.com/?feed=rss2",
+    });
+    vi.mocked(fetch).mockImplementationOnce(async (_url, init) => {
+      const headers = new Headers(init?.headers);
+      if (!headers.get("User-Agent")) {
+        return new Response("Forbidden: illegal expression !", {
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+      expect(headers.get("User-Agent")).toMatch(/^Dox-Reader\//);
+      expect(headers.get("Accept")).toContain("text/xml");
+      return new Response(
+        "<rss><channel><title>Legacy feed</title><item><guid>one</guid><title>Article</title></item></channel></rss>",
+        { headers: { "Content-Type": "text/xml; charset=UTF-8" } },
+      );
+    });
+
+    await runDurableObjectAlarm(stub);
+    const page = (await stub.command("snapshot", {})) as {
+      feeds: { error?: string }[];
+      items: unknown[];
+    };
+    expect(page.feeds[0].error).toBeUndefined();
+    expect(page.items).toHaveLength(1);
+  });
+  it("parses the Xunlei Yangtai RSS shape returned to identified clients", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+      xmlns:content="http://purl.org/rss/1.0/modules/content/"
+      xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <channel><title>迅雷阳台-晒出新鲜事</title><link>https://yangtai.xunlei.com/</link>
+      <item><title>公告</title><link>https://yangtai.xunlei.com/?p=11951</link>
+      <dc:creator><![CDATA[迅雷]]></dc:creator><guid isPermaLink="false">11951</guid>
+      <content:encoded><![CDATA[<p>公告正文</p>]]></content:encoded></item></channel></rss>`;
+    const parsed = await parseFeedXml(
+      xml,
+      "xunlei",
+      "https://yangtai.xunlei.com/?feed=rss2",
+    );
+
+    expect(parsed).toMatchObject({
+      title: "迅雷阳台-晒出新鲜事",
+      siteUrl: "https://yangtai.xunlei.com/",
+      items: [
+        {
+          title: "公告",
+          author: "迅雷",
+          url: "https://yangtai.xunlei.com/?p=11951",
+          content: "<p>公告正文</p>",
+        },
+      ],
+    });
+  });
+  it("updates a feed URL, drops old validators and fetches the new address", async () => {
+    const stub = make();
+    const feed = await stub.command("addFeed", { url: "https://news.example.com/old" }) as { id: string };
+    vi.mocked(fetch).mockImplementationOnce(async () => new Response('<rss><channel><title>Old</title><item><guid>kept</guid><description>Saved body</description></item></channel></rss>', { headers: { etag: '"old"', 'last-modified': 'Mon, 07 Sep 2026 00:00:00 GMT' } }));
+    await runDurableObjectAlarm(stub);
+    const original = await stub.command("snapshot", {}) as { items: { id: string }[] };
+    await stub.command("state", { id: original.items[0].id, starred: true });
+    const updated = await stub.command("updateFeed", { id: feed.id, name: "Renamed", url: "https://news.example.com/new" });
+    expect(updated).toMatchObject({ id: feed.id, customName: "Renamed", url: "https://news.example.com/new" });
+    vi.mocked(fetch).mockImplementationOnce(async (url, init) => {
+      expect(String(url)).toBe("https://news.example.com/new");
+      expect(new Headers(init?.headers).has("if-none-match")).toBe(false);
+      expect(new Headers(init?.headers).has("if-modified-since")).toBe(false);
+      return new Response('<rss><channel><title>New</title><item><guid>new</guid><description>New body</description></item></channel></rss>');
+    });
+    await runDurableObjectAlarm(stub);
+    expect(await stub.command("article", { id: original.items[0].id })).toMatchObject({ content: "Saved body", starred: true });
+    const page = await stub.command("snapshot", {}) as { items: unknown[]; feeds: { title: string }[] };
+    expect(page.items).toHaveLength(2);
+    expect(page.feeds[0].title).toBe("New");
+  });
+  it("ignores a response from an old URL changed during fetching", async () => {
+    const stub = make();
+    const feed = await stub.command("addFeed", { url: "https://news.example.com/old-race" }) as { id: string };
+    await runInDurableObject(stub, async (instance) => {
+      vi.mocked(fetch).mockImplementationOnce(async () => {
+        await instance.command("updateFeed", { id: feed.id, name: "Changed", url: "https://news.example.com/new-race" });
+        return new Response('<rss><channel><title>Stale title</title><item><guid>stale</guid></item></channel></rss>');
+      });
+      await instance.alarm();
+    });
+    expect(await stub.command("snapshot", {})).toMatchObject({ items: [], feeds: [{ url: "https://news.example.com/new-race", customName: "Changed" }] });
+    vi.mocked(fetch).mockImplementationOnce(async () => new Response('<rss><channel><title>Fresh title</title><item><guid>fresh</guid></item></channel></rss>'));
+    await runDurableObjectAlarm(stub);
+    const page = await stub.command("snapshot", {}) as { items: unknown[]; feeds: { title: string }[] };
+    expect(page.items).toHaveLength(1);
+    expect(page.feeds[0].title).toBe("Fresh title");
+  });
+  it("archives multi-megabyte Atom feeds while bounding each article", async () => {
+    const stub = make();
+    await stub.command("addFeed", { url: "https://news.example.com/atom.xml" });
+    const xml = `<feed xmlns="http://www.w3.org/2005/Atom"><title>Large archive</title>${Array.from({ length: 10 }, (_, i) => `<entry><id>large-${i}</id><title>Article ${i}</title><updated>2026-09-07T00:00:00Z</updated><content type="html"><![CDATA[${"文".repeat(116650)}]]></content></entry>`).join("")}</feed>`;
+    expect(new TextEncoder().encode(xml).length).toBeGreaterThan(3 * 1024 * 1024);
+    vi.mocked(fetch).mockImplementationOnce(async () => new Response(xml));
+    await runDurableObjectAlarm(stub);
+    const page = await stub.command("snapshot", {}) as { feeds: { error?: string }[]; items: { id: string }[] };
+    expect(page.feeds[0].error).toBeUndefined();
+    expect(page.items).toHaveLength(10);
+    const article = await stub.command("article", { id: page.items[0].id }) as { content: string };
+    expect(new TextEncoder().encode(article.content).length).toBeLessThanOrEqual(MAX_CONTENT_BYTES);
+  });
+  it("cancels a stream exceeding 5 MiB even without Content-Length", async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) { controller.enqueue(new Uint8Array(1024 * 1024)); },
+      cancel,
+    });
+    await expect(limitedText(new Response(stream), MAX_FEED_BYTES)).rejects.toThrow("内容超过大小限制");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
   it("requires authentication and allows browser preflight without credentials", async () => {
     expect(
       (

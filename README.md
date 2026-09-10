@@ -12,9 +12,9 @@
 | [`SizerSwift`](./SizerSwift) | macOS 菜单栏窗口调整工具 |
 | [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Firefox 扩展版与 Cloudflare Workers 网页版 |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
-| [`Firefox/PortableBridge`](./Firefox/PortableBridge) | 无默认浏览器环境下的便携 Firefox 会话级 HTTP(S) 回退 |
+| [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
 | [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
-| [`css`](./css) | 中文字体映射和 VS Code 外观自定义 CSS |
+| [`CSS`](./CSS) | 中文字体映射和 VS Code 外观自定义 CSS |
 | [`Userscript`](./Userscript) | Tampermonkey/Greasemonkey 用户脚本 |
 | [`Stash`](./Stash) | Stash 磁贴脚本 |
 | [`Android/ApkRename`](./Android/ApkRename) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
@@ -27,7 +27,7 @@
 
 以下两个文件共享同一套映射规则，修改时需同步维护：
 
-- [`css/font-face.css`](./css/font-face.css) — 可独立引用的 CSS
+- [`CSS/font-face.css`](./CSS/font-face.css) — 可独立引用的 CSS
 - [`Userscript/中文字体优化.user.js`](./Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — Tampermonkey 用户脚本版本
 
 ### 目标字体
@@ -38,7 +38,7 @@
 |---|---|---|
 | 无衬线 CJK | PingFang SC / TC | Noto Sans SC |
 | 衬线 CJK | Songti SC / TC | Noto Serif SC |
-| 等宽 | Maple Mono Normal NF CN | — |
+| 等宽 | Maple Mono Normal NF（简繁中 CN、日 JP、韩 KR） | — |
 | 手写（cursive） | LXGW WenKai | — |
 | 幻想（fantasy） | Yozai | — |
 
@@ -144,26 +144,23 @@ swift build -c release
 
 手动打包为 `.app` 后部署到 `/Applications`，需执行 `xattr -cr` 清除隔离属性。当前不使用 codesign 签名，以避免辅助功能权限因重新签名而失效。
 
-## Firefox 工具
+## PortableBridge
 
-### PortableBridge
+[`PortableBridge`](./PortableBridge) 是从原 Firefox PortableBridge 提取的独立 Windows 模块，支持 Firefox 和 Chrome，在没有有效默认浏览器时提供临时 HTTP(S) 协议入口。
 
-[`Firefox/PortableBridge`](./Firefox/PortableBridge) 是无控制台窗口的会话级 URL 桥接器，供没有 Windows 默认浏览器和 HTTP(S) `UserChoice` 的便携 Firefox 使用。
-
-- Firefox 运行时临时维护当前用户的 `http`/`https` 协议命令，退出后撤销，不注册为 Windows 默认浏览器
-- 同一个 EXE 完成协议注册、自愈监视、异常残留清理和 URL 投递；对仍命中旧 PowerShell handler 的 Windows 受保护关联缓存，会话期间按需生成并回收严格校验内容的转发垫片
-- 只接管空协议根，拒绝覆盖 `UserChoice`、第三方值或第三方命令
-- URL 始终显式绑定便携 `Data\profile` 和应用级数据目录，不创建默认 Profile
-- 整个便携 Firefox 根目录可以更换盘符或路径，运行布局保持 `App`、`Data`、`Tools` 即可
-
-构建：
+- 启动器通过每用户命名管道报告浏览器类型、EXE 和配置目录；不依赖 Bridge 的部署位置
+- Firefox 与 Chrome 可同时运行：最近启动的已报告主进程接管外部链接，退出后自动回退到仍在运行的上一会话
+- Firefox 保留原有便携环境和维护；Chrome 显式使用 `--user-data-dir`，可指定 `--profile-directory`
+- 只在原本不存在的机器级 HTTP(S) 根下维护自有协议树，不覆盖有效默认应用或第三方命令
+- 保留旧 Firefox `announce-v2` 端点，新接入统一使用 `announce-v3`；随附 `announce.ps1` 客户端和启动示例
 
 ```powershell
-cd Firefox\PortableBridge
+cd PortableBridge
 .\build.ps1
+.\test.ps1
 ```
 
-默认 EXE 输出到被忽略的 `bin`；实际部署可用 `-OutputPath` 指向便携 Firefox 的 `Tools\FirefoxPortableBridge.exe`。运行布局、启动器接入和限制见模块 [`README.md`](./Firefox/PortableBridge/README.md)，完整所有权规则和验证清单见根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+产物为 `bin/PortableBridge.exe`。常驻任务以当前用户、最高权限无参数运行；手动启动会请求 UAC，短命 `open` 入口不重复提升。源码、客户端和构建脚本可独立使用，不依赖 Dox 其他模块。使用与升级步骤见 [模块 README](./PortableBridge/README.md)，架构和验证规则见 [开发文档](./DEVELOPMENT.md#314-portablebridge)。
 
 ## Firefox 扩展
 
@@ -210,14 +207,14 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 ## CSS
 
-- [`font-face.css`](./css/font-face.css) — 跨平台中文字体适配，详见上方“中文字体映射”
-- [`vscode.css`](./css/vscode.css) — 为 Visual Studio Code 的状态栏和最近项目区域指定中文字体链
+- [`font-face.css`](./CSS/font-face.css) — 跨平台中文字体适配，详见上方“中文字体映射”
+- [`vscode.css`](./CSS/vscode.css) — 为 Visual Studio Code 的状态栏和最近项目区域指定中文字体链
 
 ## Userscript
 
 将脚本安装到 Tampermonkey 或 Greasemonkey 后按目标网站使用：
 
-- [`中文字体优化.user.js`](./Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — 全站中文字体优化，与 `css/font-face.css` 共用映射规则
+- [`中文字体优化.user.js`](./Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — 全站中文字体优化，与 `CSS/font-face.css` 共用映射规则
 - [`EmuParadise Download Workaround.user.js`](./Userscript/EmuParadise%20Download%20Workaround.user.js) — 在 EmuParadise 页面补充可用下载链接，依赖脚本元数据中的 jQuery
 - [`Re-add Download Button Vimm's Lair.user.js`](./Userscript/Re-add%20Download%20Button%20Vimm's%20Lair.user.js) — 在 Vimm's Lair 下载按钮被移除时恢复提交按钮
 

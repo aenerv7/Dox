@@ -14,8 +14,12 @@ import {
 } from "./policy";
 
 type Bindings = Env & { BACKEND_TOKEN?: string };
+const FEED_FETCH_TIMEOUT_MS = 90_000;
+const FETCH_LEASE_MS = FEED_FETCH_TIMEOUT_MS + 30_000;
+const FEED_USER_AGENT = "Dox-Reader/1.1 (+https://github.com/aenerv7/Dox)";
 type Row = {
   id: string;
+  url: string;
   data: string;
   due: number;
   etag: string;
@@ -236,20 +240,35 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       await this.arm();
       return feed;
     }
-    if (action === "renameFeed" || action === "removeFeed") {
+    if (action === "renameFeed" || action === "updateFeed" || action === "removeFeed") {
       const id = String(p.id);
       const row = this.ctx.storage.sql
         .exec<Row>("SELECT * FROM feeds WHERE id=?", id)
         .toArray()[0];
       if (!row) throw new Error("订阅源不存在");
       const feed: FeedRecord = JSON.parse(row.data);
-      if (action === "renameFeed") {
+      if (action === "renameFeed" || action === "updateFeed") {
         if (typeof p.name !== "string" || p.name.length > 200)
           throw new Error("订阅名称最多 200 字符");
         feed.customName = p.name.trim();
+        const nextUrl = action === "updateFeed" ? feedUrl(p.url).href : feed.url;
+        const duplicate = this.ctx.storage.sql.exec("SELECT id FROM feeds WHERE url=? AND id!=?", nextUrl, id).toArray()[0];
+        if (duplicate) throw new Error("该订阅地址已经存在");
+        const addressChanged = nextUrl !== feed.url;
+        feed.url = nextUrl;
+        feed.updatedAt = Date.now();
+        if (addressChanged) {
+          feed.error = undefined;
+          feed.lastFetchedAt = undefined;
+        }
         this.ctx.storage.sql.exec(
-          "UPDATE feeds SET data=? WHERE id=?",
+          "UPDATE feeds SET url=?,data=?,etag=?,modified=?,due=?,failures=? WHERE id=?",
+          nextUrl,
           JSON.stringify(feed),
+          addressChanged ? "" : row.etag,
+          addressChanged ? "" : row.modified,
+          addressChanged ? Date.now() : row.due,
+          addressChanged ? 0 : row.failures,
           id,
         );
       } else {
@@ -367,9 +386,9 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       await this.arm();
       return;
     }
-    this.put("lease", now + 60000);
+    this.put("lease", now + FETCH_LEASE_MS);
     // Recovery wakeup is persisted before external I/O. Cron also repairs missing alarms.
-    await this.ctx.storage.setAlarm(now + 61000);
+    await this.ctx.storage.setAlarm(now + FETCH_LEASE_MS + 1000);
     const usage = this.usage();
     if (usage.attempts >= 4800 || usage.writes >= 10000) {
       const tomorrow =
@@ -393,15 +412,16 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       let url = feedUrl(feed.url);
       let response: Response | undefined;
       const abort = new AbortController();
-      const timer = setTimeout(() => abort.abort(), 20000);
+      const timer = setTimeout(() => abort.abort(), FEED_FETCH_TIMEOUT_MS);
       try {
         for (let hop = 0; hop < 6; hop++) {
           response = await fetch(url, {
             redirect: "manual",
             signal: abort.signal,
             headers: {
+              "User-Agent": FEED_USER_AGENT,
               Accept:
-                "application/rss+xml, application/atom+xml, application/xml",
+                "application/atom+xml, application/rss+xml, application/rdf+xml, application/xml, text/xml, */*;q=0.5",
               ...(row.etag ? { "If-None-Match": row.etag } : {}),
               ...(row.modified ? { "If-Modified-Since": row.modified } : {}),
             },
@@ -433,7 +453,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
           const current = this.ctx.storage.sql
             .exec<Row>("SELECT * FROM feeds WHERE id=?", row.id)
             .toArray()[0];
-          if (!current) return;
+          if (!current || current.url !== row.url) return;
           const record: FeedRecord = JSON.parse(current.data);
           const candidates = parsed.items.sort(
             (a, b) => b.publishedAt - a.publishedAt || b.id.localeCompare(a.id),
@@ -534,7 +554,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       const current = this.ctx.storage.sql
         .exec<Row>("SELECT * FROM feeds WHERE id=?", row.id)
         .toArray()[0];
-      if (current) {
+      if (current && current.url === row.url) {
         const feed: FeedRecord = JSON.parse(current.data);
         if ((feed.error ?? "") !== error) this.changed();
         feed.error = error || undefined;
@@ -553,7 +573,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       this.put("lease", 0);
       const pending = this.get<string[]>("pending", []);
       const job = this.get("job", emptyJob());
-      if (pending.includes(row.id)) {
+      if (pending.includes(row.id) && (!current || current.url === row.url)) {
         const rest = pending.filter((id) => id !== row.id);
         this.put("pending", rest);
         this.put("job", {

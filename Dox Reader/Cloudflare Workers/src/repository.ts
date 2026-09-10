@@ -8,8 +8,14 @@ import {
   backendArticle,
 } from "./backend";
 import type { FeedRecord, ItemRecord } from "./model";
+import { compareFeedNames } from "./feed-order";
 export async function listFeeds() {
-  return backendEnabled() ? backendCache().feeds.toArray() : local.listFeeds();
+  if (!backendEnabled()) return local.listFeeds();
+  const feeds = await backendCache().feeds.toArray();
+  return feeds
+    .filter(feed => !feed.deleted)
+    .map(feed => ({ ...feed, customName: feed.customName ?? "" }))
+    .sort(compareFeedNames);
 }
 export async function listItems(filter: local.ItemFilter, query = "") {
   if (!backendEnabled()) return local.listItems(filter, query);
@@ -57,6 +63,12 @@ export async function renameFeed(id: string, name: string) {
   return backendEnabled()
     ? backendCall<FeedRecord>("renameFeed", { id, name })
     : local.renameFeed(id, name);
+}
+export async function updateFeed(id: string, name: string, url: string) {
+  if (!backendEnabled()) return local.updateFeed(id, name, url);
+  const feed = await backendCall<FeedRecord>("updateFeed", { id, name, url: url.trim() });
+  await backendCache().feeds.put(feed);
+  return feed;
 }
 export async function removeFeed(id: string) {
   if (backendEnabled()) {

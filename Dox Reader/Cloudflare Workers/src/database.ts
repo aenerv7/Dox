@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 import { decodeHtmlEntities } from "./html-entities";
+import { compareFeedNames } from "./feed-order";
 import type {
   FeedRecord,
   ItemRecord,
@@ -131,6 +132,28 @@ export async function renameFeed(id: string, customName: string): Promise<FeedRe
   return db.feeds.get(id);
 }
 
+export async function updateFeed(id: string, customName: string, url: string): Promise<FeedRecord> {
+  const address = new URL(url.trim());
+  if (!["http:", "https:"].includes(address.protocol) || address.username || address.password || address.href.length > 2048) {
+    throw new Error("请输入有效的 HTTP(S) 订阅地址，不得包含用户名或密码");
+  }
+  address.hash = "";
+  if (customName.trim().length > 200) throw new Error("订阅名称最多 200 字符");
+  const version = await nextVersion();
+  return db.transaction("rw", db.feeds, async () => {
+    const feed = await db.feeds.get(id);
+    if (!feed || feed.deleted) throw new Error("订阅源不存在");
+    const duplicate = await db.feeds.where("url").equals(address.href).first();
+    if (duplicate && duplicate.id !== id) throw new Error("该订阅地址已经存在");
+    const updated: FeedRecord = {
+      ...feed, url: address.href, customName: customName.trim(), updatedAt: Date.now(), version,
+      ...(feed.url !== address.href ? { error: undefined, lastFetchedAt: undefined } : {}),
+    };
+    await db.feeds.put(updated);
+    return updated;
+  });
+}
+
 export async function removeFeed(id: string): Promise<void> {
   const feed = await db.feeds.get(id);
   if (!feed) return;
@@ -149,10 +172,7 @@ export async function listFeeds(): Promise<FeedRecord[]> {
   const feeds = await db.feeds.filter((feed) => !feed.deleted).toArray();
   return feeds
     .map((feed) => ({ ...feed, customName: feed.customName ?? "" }))
-    .sort((left, right) => (left.customName || left.title).localeCompare(
-      right.customName || right.title,
-      "zh-CN",
-    ));
+    .sort(compareFeedNames);
 }
 
 export async function hasLocalReaderData(): Promise<boolean> {
@@ -168,7 +188,7 @@ export async function getFeed(id: string): Promise<FeedRecord | undefined> {
   return db.feeds.get(id);
 }
 
-export async function saveParsedFeed(feedId: string, parsed: ParsedFeed): Promise<void> {
+export async function saveParsedFeed(feedId: string, parsed: ParsedFeed, expectedUrl?: string): Promise<void> {
   const now = Date.now();
   const ids = parsed.items.map((item) => item.id);
   const [existingItems, states] = await Promise.all([
@@ -183,6 +203,8 @@ export async function saveParsedFeed(feedId: string, parsed: ParsedFeed): Promis
   }));
 
   await db.transaction("rw", db.feeds, db.items, async () => {
+    const feed = await db.feeds.get(feedId);
+    if (!feed || feed.deleted || (expectedUrl !== undefined && feed.url !== expectedUrl)) return;
     await db.items.bulkPut(records);
     await db.feeds.update(feedId, {
       title: parsed.title,
@@ -194,8 +216,12 @@ export async function saveParsedFeed(feedId: string, parsed: ParsedFeed): Promis
   });
 }
 
-export async function setFeedError(feedId: string, message: string): Promise<void> {
-  await db.feeds.update(feedId, { error: message, updatedAt: Date.now() });
+export async function setFeedError(feedId: string, message: string, expectedUrl?: string): Promise<void> {
+  await db.transaction("rw", db.feeds, async () => {
+    const feed = await db.feeds.get(feedId);
+    if (!feed || feed.deleted || (expectedUrl !== undefined && feed.url !== expectedUrl)) return;
+    await db.feeds.update(feedId, { error: message, updatedAt: Date.now() });
+  });
 }
 
 export type ItemFilter = "all" | "unread" | "starred" | string;

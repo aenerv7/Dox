@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Automatically read backend settings and test WebDAV connections on opening Settings or changing connection details. Keep backend settings visible while loading; ignore stale connection responses.",
-      "zh-CN": "打开设置或修改连接信息后，自动读取后端设置、自动测试 WebDAV 连接。后端设置在加载期间保持显示，过期连接响应不覆盖当前状态。"
+      "en-US": "Move backend fetch status from the reader footer into Dox Reader Backend settings. Show the next fetch time after connection status without changing backend synchronization behavior.",
+      "zh-CN": "将后端抓取状态从阅读器底部移至 Dox Reader Backend 设置，并在连接成功提示后显示下次抓取时间；不改变后端同步行为。"
     }
   }
 }
