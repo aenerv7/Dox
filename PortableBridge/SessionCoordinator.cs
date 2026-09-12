@@ -24,6 +24,9 @@ namespace PortableBrowserBridge
             internal BrowserQuery Query = IsAnnouncedBrowserRunning;
             internal Action<Announcement> Prepare = BrowserSupport.Prepare;
             internal Action<SessionState> Cleanup = BrowserSupport.Cleanup;
+            internal Func<SessionState, List<SessionState>, ChromeRegistryBaseline> CaptureChrome = ChromeMaintenance.Capture;
+            internal Func<List<SessionState>, bool> ObserveChrome = ChromeMaintenance.Observe;
+            internal Action<SessionState, List<SessionState>> CleanupChrome = ChromeMaintenance.Cleanup;
             internal Func<SessionState, bool> ReleaseProtocols = CleanupOwnedArtifacts;
             internal Func<string, List<SchemeState>> InspectSchemes = ReadInitialSchemeStatesWhenStable;
             internal Action RemoveStaleChoices = RemoveStaleEdgeUserChoices;
@@ -47,10 +50,28 @@ namespace PortableBrowserBridge
                 store.Sessions.Length > 32)
                 throw new InvalidOperationException("Invalid session store. Finish all sessions with the old Bridge before upgrading.");
             HashSet<string> ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, ChromeRegistryBaseline> chromeRoots = new Dictionary<string, ChromeRegistryBaseline>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> chromeCohorts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             int active = 0;
             foreach (SessionState state in store.Sessions)
             {
                 ValidateState(state);
+                ChromeMaintenance.Validate(state.ChromeRegistry);
+                if (state.Browser != BrowserSupport.Chrome && state.ChromeRegistry != null)
+                    throw new InvalidOperationException("Only Chrome sessions may carry Chrome baselines.");
+                if (state.ChromeRegistry != null)
+                {
+                    ChromeRegistryBaseline previous;
+                    string previousRoot;
+                    if (chromeRoots.TryGetValue(state.ChromeRegistry.Root, out previous) &&
+                        !ChromeMaintenance.SameBaseline(previous, state.ChromeRegistry))
+                        throw new InvalidOperationException("Conflicting Chrome cohort baselines.");
+                    if (chromeCohorts.TryGetValue(state.ChromeRegistry.CohortId, out previousRoot) &&
+                        previousRoot != state.ChromeRegistry.Root)
+                        throw new InvalidOperationException("A Chrome cohort cannot own different registry roots.");
+                    chromeRoots[state.ChromeRegistry.Root] = state.ChromeRegistry;
+                    chromeCohorts[state.ChromeRegistry.CohortId] = state.ChromeRegistry.Root;
+                }
                 if (!ids.Add(state.SessionId)) throw new InvalidOperationException("Duplicate session identity.");
                 if (state.Phase == ActivePhase) active++;
             }
@@ -124,6 +145,8 @@ namespace PortableBrowserBridge
                     EnvironmentVariables = BrowserSupport.GetEnvironment(announcement), Schemes = new SchemeState[0]
                 };
                 // 准备失败也能恢复收尾；重复 pending 上报不会覆盖原来的基线。
+                if (state.Browser == BrowserSupport.Chrome)
+                    state.ChromeRegistry = context.Operations.CaptureChrome(state, sessions);
                 WriteStateAtomic(context.StatePath, state);
                 try { context.Operations.Prepare(announcement); }
                 catch
@@ -147,6 +170,21 @@ namespace PortableBrowserBridge
             return selected;
         }
 
+        private static void InvalidateRecoveredChromeBaselines(BridgeContext context)
+        {
+            // We cannot attribute writes while the monitor was not running.
+            List<SessionState> sessions = ReadSessions(context.StatePath);
+            bool changed = false;
+            foreach (SessionState state in sessions)
+                if (state.ChromeRegistry != null && !state.ChromeRegistry.Unsafe)
+                {
+                    state.ChromeRegistry.Unsafe = true;
+                    changed = true;
+                }
+            if (changed)
+                WriteStoreAtomic(context.StatePath, new SessionStore { SchemaVersion = CurrentSchemaVersion, Sessions = sessions.ToArray() });
+        }
+
         private static int CompareSessionStart(SessionState first, SessionState second)
         {
             int result = ParseUtc(first.StartedUtc, "browser start time").CompareTo(ParseUtc(second.StartedUtc, "browser start time"));
@@ -157,6 +195,9 @@ namespace PortableBrowserBridge
 
         private static void RefreshSessions(BridgeContext context, ref DateTime nextRegistrationCheck)
         {
+            List<SessionState> observed = ReadSessions(context.StatePath);
+            if (context.Operations.ObserveChrome(observed))
+                WriteStoreAtomic(context.StatePath, new SessionStore { SchemaVersion = CurrentSchemaVersion, Sessions = observed.ToArray() });
             List<SessionState> running = new List<SessionState>();
             bool uncertain = false;
             foreach (SessionState state in ReadSessions(context.StatePath))
@@ -234,6 +275,8 @@ namespace PortableBrowserBridge
             if (context.Operations.Query(cleanupProbe, out querySucceeded) || !querySucceeded) return;
             try
             {
+                if (state.Browser == BrowserSupport.Chrome)
+                    context.Operations.CleanupChrome(state, ReadSessions(context.StatePath));
                 context.Operations.Cleanup(state);
                 RemoveSession(context.StatePath, sessionId);
                 DeleteErrorLog(context);

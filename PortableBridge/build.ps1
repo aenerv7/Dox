@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourcePath = Join-Path $scriptPath 'PortableBridge.cs'
 $maintenanceSourcePath = Join-Path $scriptPath 'FirefoxMaintenance.cs'
+$chromeMaintenanceSourcePath = Join-Path $scriptPath 'ChromeMaintenance.cs'
 $coordinatorSourcePath = Join-Path $scriptPath 'SessionCoordinator.cs'
 $browserSourcePath = Join-Path $scriptPath 'BrowserSupport.cs'
 $manifestPath = Join-Path $scriptPath 'app.manifest'
@@ -55,6 +56,7 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     "/out:$outputFullPath" `
     $sourcePath `
     $maintenanceSourcePath `
+    $chromeMaintenanceSourcePath `
     $browserSourcePath `
     $coordinatorSourcePath
 if ($LASTEXITCODE -ne 0) {

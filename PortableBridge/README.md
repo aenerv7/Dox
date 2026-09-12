@@ -62,13 +62,31 @@ if (-not $?) { throw 'Chrome announcement failed.' }
 | 浏览器 | 主进程匹配 | URL 投递 | 便携维护 |
 |---|---|---|---|
 | Firefox | 精确 EXE、显式 `--profile`；排除内容进程、`--no-remote`、`-url` 辅助进程 | `firefox.exe --profile <目录> -url <URL>` | 保留原版路径迁移、Mozilla 环境、基线、Launcher 和退出清理 |
-| Chrome | 精确 EXE、显式 `--user-data-dir`；排除 `--type` 子进程；如上报子配置则也匹配它 | `chrome.exe --user-data-dir=<目录> [--profile-directory=<名称>] <URL>` | 不执行 Mozilla 清理，也不迁移或删除 Chrome 用户数据 |
+| Chrome | 精确 EXE、显式 `--user-data-dir`；排除 `--type` 子进程；如上报子配置则也匹配它 | `chrome.exe --user-data-dir=<目录> [--profile-directory=<名称>] <URL>` | 3.1 起增加 Chrome 注册表增量清理；不执行 Mozilla 清理，不迁移或删除用户数据 |
 
 Chrome 的安装、更新、初次启动环境及跨电脑迁移由便携启动器负责。指定 User Data 不等于解决 Chrome 密码或 Cookie 的 Windows 加密绑定。Firefox 本体的便携环境仍由原启动器设置，Bridge 负责 URL 转交进程环境和已有维护逻辑。
 
 一次允许一个 Firefox 便携会话，以及使用不同 User Data 根的 Chrome 会话；Firefox 的主机 Mozilla 基线不能被多个 Firefox 会话并发维护。同一个 Chrome User Data 根不能作为多个独立会话上报。Chrome 开启后台应用时，关闭最后一个窗口可能仍保留主进程；此时它仍参与接管，直到主进程真正退出。
 
 ## 命名管道契约
+
+### Chrome 注册表基线与退出清理（3.1）
+
+启动器仍使用 v3 先上报再启动，无需新增参数。Bridge 根据 EXE 产品信息和 Windows 通道目录识别普通 Chrome、Beta、Dev、Canary (`Chrome SxS`)、Chrome for Testing 及 Chromium。只操作当前用户注册表的 32/64 位视图：`Software\Google\Chrome`、`Chrome Beta`、`Chrome Dev`、`Chrome SxS`、`Chrome for Testing`，以及 `Software\Chromium`。
+
+范围仅限这些产品根下的 `BLBeacon`、`PreferenceMACs`、`StabilityMetrics`、`ThirdParty` 子树和根值 `UsageStatsInSample`。上报前读取键名/值名基线，原子保存到 `runtime-session.json` 的可选 `ChromeRegistry` 字段；不记录注册表值内容。退出时仅删除基线中不存在的白名单值、空的新建子键，以及基线中不存在且现已为空的产品/Google 父键。原有值即使被浏览器修改也保留；原有空键保留。
+
+**不会全局搜索或整棵删除 Chrome 节点**。`NativeMessagingHosts`（包括运行中由其他软件新增的项）、Google Update、HKLM、默认浏览器关联、非白名单项、Profile 文件和既有历史残留不在这次清理范围内。已经存在于基线里的旧 Chrome/Chrome for Testing 项不会补删。
+
+同一产品根的重叠 Profile 共用第一份基线；前一个会话退出时不清理共享记录，最后一个会话负责收尾。实际清理还会等待全部 Chrome 辅助进程退出；其他通道仍在运行时可能延后。拒绝访问等清理错误会保留 cleaning 状态并重试，不因失败丢掉基线。
+
+发现未上报的 Chrome、无法读取的 Chrome 进程信息或 WMI 失败时，当前基线会被永久标记为 Unsafe，退出时跳过注册表删除。Monitor 重启同样标记恢复的基线，因为停机期间的写入无法归属。旧 schema 2 会话没有基线则直接保留注册表，不倒推所有权。这里是保守的退出清理，不阻止运行时写注册表，也不是系统零痕迹方案；进程轮询无法保证发现所有瞬时外部写入。
+
+升级到 3.1：先关闭已上报浏览器，等待旧 Monitor 收尾，再停止旧 Monitor、替换部署 EXE 并重新启动。构建只生成 `bin\PortableBridge.exe`，不会替换正在运行的部署副本或修改计划任务。v2/v3 管道与 schema 2 保持兼容，但不要在有活动基线时降级回 3.0。
+
+`test.ps1` 同时运行隔离注册表测试：所有测试键均位于随机 `HKCU\Software\PortableBridge.Tests\<GUID>`，测试结束后清除，不修改真实 Google/Chromium 键或系统协议关联。
+
+### 上报格式
 
 | 项目 | 约定 |
 |---|---|

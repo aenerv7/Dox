@@ -157,6 +157,7 @@ namespace PortableBrowserBridge
                     finally { if (!child.HasExited) child.Kill(); child.WaitForExit(); }
                 }
                 RunLifecycleTests(context, firefoxPath, chromePath, work);
+                RunChromeMaintenanceTests(work, chromePath);
                 Console.WriteLine("Passed " + assertions + " assertions (no system protocol changes).");
             }
             finally { Directory.Delete(work, true); }

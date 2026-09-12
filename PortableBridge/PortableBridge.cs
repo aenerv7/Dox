@@ -19,8 +19,8 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyDescription("Persistent HTTP(S) fallback monitor for announced portable Firefox and Chrome sessions")]
 [assembly: System.Reflection.AssemblyCompany("Dox")]
 [assembly: System.Reflection.AssemblyProduct("Portable Browser Bridge")]
-[assembly: System.Reflection.AssemblyVersion("3.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("3.0.0.0")]
+[assembly: System.Reflection.AssemblyVersion("3.1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("3.1.0.0")]
 
 namespace PortableBrowserBridge
 {
@@ -44,6 +44,7 @@ namespace PortableBrowserBridge
         [DataMember(Order = 17)] public string Browser;
         [DataMember(Order = 18, EmitDefaultValue = false)] public string ProfileDirectory;
         [DataMember(Order = 19, EmitDefaultValue = false)] public string StartedUtc;
+        [DataMember(Order = 20, EmitDefaultValue = false)] public ChromeRegistryBaseline ChromeRegistry;
     }
 
     [DataContract]
@@ -290,6 +291,7 @@ namespace PortableBrowserBridge
                 ExecuteWithStateMutex<object>(context, delegate()
                 {
                     CleanupLegacyGhBrowserOverride(context);
+                    InvalidateRecoveredChromeBaselines(context);
                     return null;
                 });
                 DeleteErrorLog(context);

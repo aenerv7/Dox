@@ -70,6 +70,8 @@ namespace PortableBrowserBridge
 
         internal static void Cleanup(SessionState state)
         {
+            // Shared Chrome registry baselines are cleaned by SessionCoordinator
+            // with the full peer-session list, before this per-browser callback.
             if (state.Browser == Firefox) PortableMaintenance.Cleanup(state);
         }
 

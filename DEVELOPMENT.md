@@ -1033,7 +1033,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 
 ### 3.14 PortableBridge
 
-`PortableBridge/` 从 `Firefox/PortableBridge/` 提取为独立模块，支持 Firefox 和 Chrome 的会话级 HTTP(S) 回退。新版本为 3.0.0，仍用系统 .NET Framework 4 编译器构建，无 NuGet 或其他 Dox 模块依赖。
+`PortableBridge/` 从 `Firefox/PortableBridge/` 提取为独立模块，支持 Firefox 和 Chrome 的会话级 HTTP(S) 回退。新版本为 3.1.0，新增 Chrome 注册表增量清理，仍用系统 .NET Framework 4 编译器构建，无 NuGet 或其他 Dox 模块依赖。
 
 所有通过 Windows 标准关联提交的 HTTP(S) 请求统一进入当前选中的会话，不按 Shell、Electron、OAuth 工具、GitHub CLI 等调用方做白名单。Bridge 仅在没有有效默认处理器时临时维护机器级协议根，不是持久默认浏览器注册器。
 
@@ -1045,6 +1045,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 | `SessionCoordinator.cs` | schema 2 多会话存储、幂等上报、按启动时间选举、切换及退出协调 |
 | `BrowserSupport.cs` | Firefox / Chrome 参数验证、精确主进程匹配、URL 参数构造与维护分派 |
 | `FirefoxMaintenance.cs` | 原 Firefox 便携路径迁移、Mozilla 环境、基线、Launcher 与退出清理；Chrome 不调用这些维护 |
+| `ChromeMaintenance.cs` | 当前用户 Chrome 各通道注册表白名单基线、共享 cohort、归属不明保护及退出增量清理 |
 | `announce.ps1` | 仅通过当前用户命名管道上报的 v3 客户端，不定位或启动 Bridge EXE |
 | `build.ps1` / `app.manifest` | x64 winexe、警告即错误、asInvoker 清单及 PE GUI 子系统校验 |
 | `test.ps1` / `tests/BridgeTests.cs` | 无系统关联修改的参数、状态、调度优先级与真实 WMI 验证 |
@@ -1077,6 +1078,12 @@ EXE 可部署到任意当前用户可写目录，与浏览器及配置目录解�
 - Chrome：EXE 文件名必须为 chrome.exe；ProfilePath 表示整个 User Data 根，必须显式传 `--user-data-dir`，支持等号和分离参数；拒绝 `--type` 子进程。可选 ProfileDirectory 只能是单个合法目录名，不能带路径分隔符、点/点点或尾随点/空格，且首次启动也须传入同一值。
 - Chrome 投递使用 `--user-data-dir=<ROOT> [--profile-directory=<NAME>] <URL>`，不创建/修改默认 User Data，不应用 Mozilla 环境和清理。多个 Chrome 会话须使用不同 User Data 根；同一根中的不同子配置不是独立主进程会话。
 - Chrome 安装更新、启动器环境和跨机器用户数据迁移不由 Bridge 执行；不能把显式 User Data 描述为解除了 Windows 加密绑定。
+
+3.1 的 Chrome 基线由协调器在成功上报前捕获并原子持久化到 SessionState.ChromeRegistry（schema 2 可选字段），而不是放在 Profile 文件里。识别产品根后，只枚举当前用户两种注册表视图中的 BLBeacon、PreferenceMACs、StabilityMetrics、ThirdParty 和根值 UsageStatsInSample。只保存键名和值名，不保存值内容；清理仅删除新增白名单值与新增且已空的键，不恢复被修改的既有值。NativeMessagingHosts、Google Update、HKLM、Classes 和 Profile 不在范围内。
+
+同一产品根重叠会话必须共享同一 cohort GUID 和完全一致的基线，ValidateStore 拒绝不一致的副本。最后一个 cohort 会话收尾时才清理共享注册表，并等待 Chrome 辅助进程全部退出。清理异常保留 cleaning 状态以便重试；部分成功后的重试幂等。观察到未上报 Chrome 或 WMI 不确定时，Unsafe 标记在下一次观察周期持久化到全部 cohort 成员。Monitor 重启时恢复的基线也被标记 Unsafe，避免删除停机期间可能由别人创建的值。旧会话没有基线则不删除。不能宣称轮询建立了绝对的写入归属或运行期间零注册表写入。
+
+tests/ChromeMaintenanceTests.cs 在随机 HKCU\Software\PortableBridge.Tests 子树测试实际注册表差分，不触碰生产 Google/Chromium 根；同时验证持久化、多 Profile 延后清理、错误重试、损坏路径/冲突 cohort 拒绝及重启保护。修改白名单或生命周期时须保持这些回归检查通过。
 
 #### IPC、兼容与升级
 
