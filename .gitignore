@@ -35,3 +35,6 @@ DeepSeek Harness/Launcher/bin/
 
 # ApkRename（自动下载的工具）
 Android/ApkRename/tools/
+
+# Codex temporary workspace files
+.codex-tmp/
