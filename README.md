@@ -2,6 +2,13 @@
 
 自用的 Windows/macOS 工具、浏览器扩展、用户脚本和界面定制合集。各目录基本是独立模块，可按需直接运行、安装或构建；仓库没有统一的根级构建命令。
 
+## 从哪里开始
+
+- 想直接使用某个工具：先看对应目录的 `README.md`；没有目录说明时看本页对应小节。
+- 想构建、测试或修改实现：看 [`DEVELOPMENT.md`](./DEVELOPMENT.md)，其中记录唯一的维护者文档、模块边界和验证命令。
+- 想处理 Edge 默认关联残留：先运行 `Batch files/RemoveMSEdge.bat -audit-associations`，确认后再使用 `-repair-associations`；这两个入口只检查/修复关联，不会卸载 Edge。
+- 想修改 Helium 翻译：先阅读下方“Helium 语言补丁”，完整实现和测试约束见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#315-heliumlanguagepatcher)。
+
 ## 功能一览
 
 | 模块 | 说明 |
@@ -18,8 +25,38 @@
 | [`Userscript`](./Userscript) | Tampermonkey/Greasemonkey 用户脚本 |
 | [`Stash`](./Stash) | Stash 磁贴脚本 |
 | [`Android/ApkRename`](./Android/ApkRename) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
+| [`HeliumLanguagePatcher`](./HeliumLanguagePatcher) | 扫描 Helium 漏译文案，通过 Codex 配置中的模型 API 补全翻译并修补语言包 |
 | [`Batch files/Flatten.bat`](./Batch%20files/Flatten.bat) | Windows 目录展平工具 |
-| [`Batch files/RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 可选择保留或一并删除 WebView2 的 Microsoft Edge 清理脚本 |
+| [`Batch files/RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
+| [`Batch files/RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
+
+## Helium 语言补丁
+
+`HeliumLanguagePatcher/helium_language_patcher.py` 使用 Python 3.11+，不需要安装额外依赖。它按英文原文定位当前版本的资源 ID，修改目标语言的 Chromium DataPack v5 语言包。
+
+在仓库根目录运行（安装路径按实际情况替换）：
+
+```powershell
+# 预览已有翻译匹配和待补全文案，不调用 API、不写文件
+python.exe .\HeliumLanguagePatcher\helium_language_patcher.py zh-CN --root "C:\Program Files\imput\Helium"
+
+# 完全退出 Helium 后，自动补全翻译表并应用补丁
+python.exe .\HeliumLanguagePatcher\helium_language_patcher.py zh-CN --root "C:\Program Files\imput\Helium" --apply
+```
+
+支持原先单用户版的平铺目录（例如 `%LOCALAPPDATA%\Programs\Helium`），以及全部用户版的 `Helium\Application\<版本>\Locales` 结构。`--root` 可传安装根目录、`Application` 目录或明确的版本目录。默认按 `Application\chrome.exe` 的文件版本定位资源目录，不必手动填写版本号；无法读取版本且存在多个候选目录时，会提示明确指定版本。写入 `Program Files` 下的安装版通常需要以管理员身份运行终端。
+
+带 `--apply` 时，每次先扫描英文包与目标语言包，查找仍为英文且本地翻译表中尚未收录的文本，再通过 API 翻译并写入脚本旁的 `<语言>-overrides.json`。已有条目保持不变，每批结果通过校验后立即缓存；中断后重新运行可继续补全。API 只接收待翻译的语言包文案和目标语言，不发送浏览记录或 Codex 对话。新文案会产生所选服务的 API 用量。
+
+默认读取 `%CODEX_HOME%\config.toml`，未设置 `CODEX_HOME` 时读取 `%USERPROFILE%\.codex\config.toml`。使用所选 `model_provider`、`model`、`base_url` 和 `wire_api`；认证支持 `experimental_bearer_token`、`env_key`、静态或环境变量 HTTP 认证头。密钥不会写入翻译表或输出到日志。可用 `--codex-config 路径` 指定其他配置，或用 `--codex-profile 名称` 选择 profile。不会使用 ChatGPT 登录凭据，也不读取 `auth.json`。
+
+- 语言默认 `zh-CN`，也可用 `--language` / `--lang`；`en-US` 不执行补丁。
+- `--offline --apply` 只应用现有翻译表，不读取 API 配置或联网。
+- `--batch-size 10` 控制每次请求的文案数，范围 1–50。
+- `--overrides 路径` 指定另一份翻译表；缺少翻译表时可自动创建，但对应的目标 `.pak` 必须已经存在。
+- 自动过滤常见字体名、快捷键、搜索词表等资源；ICU 复数/选择表达式会报告并跳过。扫描属于启发式检测，不能保证覆盖所有漏译；机器翻译也可在 JSON 中手动修订。
+
+翻译表与 `.pak` 均通过临时文件替换并备份。备份固定为原文件名加 `.bak`，例如 `zh-CN-overrides.json.bak`、`zh-CN.pak.bak`，各只保留最近一次修改前的一份；新备份覆盖旧备份，成功创建后清理旧版本生成的时间戳备份。API 出错或结果破坏占位符、HTML、URL 时，本次停止应用语言包，已完成的翻译批次保留。若 Windows 报“拒绝访问”，先完全退出 Helium 再重试。更新浏览器后可重新运行补丁，启动 Helium 后才会加载新的语言包。实现细节、测试和安全边界见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#315-heliumlanguagepatcher)。
 
 ## 中文字体映射
 
@@ -240,7 +277,9 @@ Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/Shad
 
 | 脚本 | 用途 |
 |---|---|
-| [`RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 删除机器级、用户级 Edge 和相关 AppX，保留 WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-guard`、`-auto`，以及 `-help`/`-h`/`/?` |
-| [`RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | 全量删除 Edge、相关 AppX、WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-auto` 和 `-help`/`-h`/`/?` |
+| [`RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 删除机器级、用户级 Edge 和相关 AppX，保留 WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-guard`、`-auto`、关联审计/修复及帮助参数 |
+| [`RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | 全量删除 Edge、相关 AppX、WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-auto`、关联审计/修复及帮助参数 |
 
-两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留；卸载完成后还会扫描各用户 URL 协议和文件扩展名下的 `UserChoice`，删除所有 `ProgId` 以 `MSEdge` 开头的残留，不会覆盖其他浏览器的选择。职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+两个 BAT 需与 `EdgeAssociations.ps1` 一起使用。`-audit-associations` 只读检查旧关联残留，`-repair-associations` 备份并修复已识别的父项权限异常；这两个入口不执行卸载。正常清理不再修改 `UserChoice` 权限，受保护或无法判断的选择会保留并报告。详情见 [关联清理与旧权限残留说明](./Batch%20files/RemoveMSEdge.README.md)。
+
+两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留；卸载后扫描各用户 URL 协议和文件扩展名的选择记录，仅清理确认失效、无 Hash 且无冲突的 Edge 选择值。职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。

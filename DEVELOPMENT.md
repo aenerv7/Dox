@@ -23,6 +23,7 @@
    - 3.12 [DeepSeek Harness Launcher](#312-deepseek-harness-launcher)
    - 3.13 [Android ApkRename](#313-android-apkrename)
    - 3.14 [PortableBridge](#314-portablebridge)
+   - 3.15 [HeliumLanguagePatcher](#315-heliumlanguagepatcher)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -42,6 +43,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | C / Win32 API | `SizerWin/*.c`、`SizerWin/*.rc`、`SizerWin/*.manifest`、`CapsLockOSD/` | 原生 Windows 窗口调整工具与 OSD 提示 |
 | C++20 / Win32 API | `DeepSeek Harness/Launcher/` | DeepSeek Harness 本地托盘监督器 |
 | C# / .NET Framework 4 | `PortableBridge/` | Firefox / Chrome 的会话级 HTTP(S) 桥接与生命周期监视 |
+| Python 3.11+ / 标准库 | `HeliumLanguagePatcher/` | Helium Chromium DataPack v5 语言包扫描、翻译缓存与补丁 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Firefox 扩展 + Cloudflare Workers） |
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
@@ -67,6 +69,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `Stash/` | 小工具 | Stash 外部 IP 地址磁贴脚本 |
 | `Batch files/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版） |
 | `Android/ApkRename/` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
+| `HeliumLanguagePatcher/` | 活跃 | Helium 语言包扫描、翻译缓存与 DataPack v5 补丁 |
 | `magi.txt` | 活跃 | AdGuard 过滤规则列表 |
 | `README.md` | 用户文档 | 仓库主说明 |
 
@@ -823,6 +826,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 - `RemoveMSEdgeAll.bat`：无守卫模式，依次处理机器级 Edge、当前用户级 Edge、机器级/用户级 Evergreen WebView2、Edge AppX 及所有用户和共享更新设施残留。
 - 两脚本都支持 `-auto`（仅内置 Administrator 已启用时跳过身份确认，不等同于 `-guard`）。
 - 两脚本都支持 `-help`、`-h`、`/?` 显示参数说明；帮助在架构切换前退出，不触发 UAC、联网、下载或卸载。
+- 两脚本共用同目录 `EdgeAssociations.ps1`；缺失时必须在提权、下载、卸载前退出。新增 `-audit-associations` / `-repair-associations` 只检查或修复当前用户关联，在日志初始化前分流，不卸载、不联网、不请求 UAC，以便读取旧日志。使用及残留处理见 [RemoveMSEdge.README.md](./Batch%20files/RemoveMSEdge.README.md)。
 
 #### 计划任务约定
 
@@ -859,13 +863,15 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 6. ProfileList 循环每次读取前清空配置目录变量并验证路径，防止沿用上一用户路径。
 7. 修改 UAC 或嵌入式 PowerShell 时验证最终传给 PowerShell 的文本，不只是源文件外观。
 8. 标签名称唯一；所有 `goto`/`call :label` 都有对应标签，动态标签逐分支检查。
-9. 用户配置清理必须扫描 `UrlAssociations` 和 `Explorer\FileExts` 下所有 `UserChoice`/`UserChoiceLatest` 的直接或嵌套 `ProgId`；仅删除以 `MSEdge` 开头的残留，不能覆盖用户选择的其他浏览器。
-10. 受保护的 Edge `UserChoice` 删除失败时，只能移除目标键的非继承拒绝 ACL 后重试，不能修改其他关联键的权限。
+9. 用户配置清理扫描 `UrlAssociations` 和 `Explorer\FileExts` 下所有 `UserChoice`/`UserChoiceLatest` 的直接或嵌套 `ProgId`。仅在根/嵌套均无 Hash、只有一个 Edge ProgId、处理程序确认已不存在时备份并原子删除该值；保留空壳键。保留其他浏览器、已安装 Edge、未知命令、DelegateExecute 和重复/冲突选择。
+10. 正常关联清理不得修改任何 ACL、所有者或 Hash，不得递归删除选择树。权限拒绝、扫描和备份错误必须可见并返回非零；完整卸载流程必须汇总关联失败，不得无条件报成功。独立 Repair 模式只处理已确认的只读父项 DACL 签名，先持久化原 DACL，恢复继承后校验，失败回滚。旧日志中确有文件 UserChoice ACL 修改尝试且缺少标准拒绝规则的项只报告，不猜测原 ACL；不能把 URL 协议的正常权限当成残留。
 11. 依赖文件缓存哈希不匹配时，必须删除失效缓存并重新下载；下载完成后再次校验，二次校验仍失败才返回 `ISSUE_HASH`。
 
 #### 验证清单
 
 静态：`git diff --check`、`git status --short --ignored`；确认所有 `powershell -noprofile -c` 块能被 `[scriptblock]::Create()` 解析、多行管道块经 CMD 转义后可解析、无缺/重标签、`RemoveMSEdge.bat` 无违反保留边界的破坏命令、调试日志保持 ignored。
+
+关联回归：运行 `Batch files/tests/EdgeAssociations.Tests.ps1`（随机隔离 HKCU 子树，覆盖拒绝写入、备份失败、并发选择变化、旧父项修复/回滚、自定义 ACL、旧日志边界）和 `EdgeAssociations.Batch.Tests.ps1`（临时 BAT + stub 验证参数/退出码）。不得以实际卸载或关闭 UCPD 的方式运行测试。
 
 破坏性验证只能在可回滚虚拟机/专用测试机：
 
@@ -879,7 +885,9 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 | `RemoveMSEdge.bat` 且已装 WebView2 | Edge 删除，WebView2/共享更新保留 |
 | `RemoveMSEdgeAll.bat` | Edge、WebView2、EdgeCore、EdgeUpdate、任务和服务全删 |
 | 任一脚本已有其他浏览器处理 URL 或文件类型 | 保留对应 `UserChoice`/`UserChoiceLatest` |
-| 任一脚本残留 `MSEdge*` 的 URL 或文件类型 `UserChoice`/`UserChoiceLatest` | 删除对应选择子键 |
+| 已不存在的 Edge 处理程序、无 Hash 且无冲突的选择 | 备份后只删除 ProgId 值，不更改 ACL |
+| 带 Hash / 未知处理程序 / 权限拒绝 | 保留并报告，返回待处理或错误状态 |
+| 旧版遗留、符合已确认签名的只读关联父项 | Repair 模式备份并恢复继承，选择值不变 |
 | 依赖文件缓存哈希不匹配 | 删除缓存、重新下载并通过二次 SHA-256 校验后继续 |
 
 不要在日常开发机上为语法验证直接跑完整脚本。
@@ -1156,6 +1164,27 @@ cd PortableBridge
 
 ---
 
+### 3.15 HeliumLanguagePatcher
+
+入口为 `HeliumLanguagePatcher/helium_language_patcher.py`，仅使用 Python 3.11+ 标准库。`zh-CN-overrides.json` 同时存放人工翻译与自动补全缓存；按英文原文匹配当前版本的资源 ID，不固定 Chromium ID。DataPack v5 读写保留原包头的编码字段，将别名展开为普通条目。
+
+`resolve_helium_install` 解析平铺安装目录、包含 `Application` 的安装根目录、`Application` 本身或显式版本目录，分别返回入口程序、资源目录与语言包目录。全部用户版的 `chrome.exe` 位于 `Application`，`chrome.dll`、Helium 标识及 `Locales` 位于四段数字版本目录。通过 Windows 版本 API 读取入口的 **FileVersion** 选择对应版本；不能使用 **ProductVersion**，后者是 Chromium 版本。版本明确但资源缺失时报错；读不到版本时只允许唯一完整候选，多个候选要求用户传入版本目录。保留 Helium 标识校验，同时兼容 `Locales`/`locales`。权限错误提示退出浏览器及使用管理员终端，不修改安装目录 ACL、不自动提权。
+
+带 `--apply` 时扫描英文包与目标包内容一致（或目标缺少 ID）、且翻译表尚未收录的文本；过滤常见字体、快捷键、标识符和搜索词表，跳过并报告 ICU plural/select 表达式。扫描不判断字符串是否实际出现在当前平台的 UI。已有翻译不会重新请求；模型保留原文的专有名词也缓存，避免每次重复请求。
+
+`TranslationClient.from_codex` 读取指定 `config.toml` 的 provider、model 及可选 profile，支持 Responses 和兼容 Chat Completions 的请求。认证支持直接 bearer token、环境变量 API key 和 HTTP headers；不读取 Codex 的会话认证文件，不运行外部凭据 helper。API key 不进入日志、异常文本、对象 repr 或缓存。远程地址要求 HTTPS，拒绝重定向，避免转发认证信息；暂不支持 provider 的 query_params。
+
+每批翻译须覆盖全部输入 key，且译文非空、HTML 标签顺序和属性未变、占位符/URL/实体数量一致。通过后原子保存翻译表；本次首次写入前备份。翻译表与语言包共用 `backup_existing`，固定覆盖 `<原文件名>.bak`，各保留一份，成功创建后仅清理匹配旧版时间戳格式的备份。失败停止本次 `.pak` 应用，已保存批次可供重试复用。`--offline` 使用缓存；不带 `--apply` 的预览不调用 API、不写入翻译表或语言包。
+
+维护验证：
+
+```powershell
+python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py
+python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
+```
+
+测试使用临时安装目录和模拟 API，覆盖双协议、配置认证、漏译过滤、结构校验、HTTP 错误脱敏、批次失败后的缓存恢复、原子保存失败、预览只读、应用及离线重应用。安装布局测试覆盖根目录与显式版本、多版本选择及歧义拒绝、非 Helium 目录拒绝、仅修改选中版本及就地 `.bak` 备份。真实 API 验证只发送少量公开界面文案，避免将本机配置或认证信息作为调试输出。
+
 ## 4. 开发环境与构建命令速查
 
 | 模块 | 需要的环境 | 主要命令 |
@@ -1172,7 +1201,7 @@ cd PortableBridge
 | Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
 | AdGuard | AdGuard 兼容规则列表 | 导入 `magi.txt` |
-| Batch files | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard] [-auto] [-help]` / `RemoveMSEdgeAll.bat [-auto] [-help]` |
+| Batch files | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
 | Android ApkRename | PowerShell，apktool/Java 等工具 | `.\rename-apk.ps1 [-SetupTools]` |
 
 ---
