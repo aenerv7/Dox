@@ -19,6 +19,7 @@
 | [`SizerSwift`](./SizerSwift) | macOS 菜单栏窗口调整工具 |
 | [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Firefox 扩展版与 Cloudflare Workers 网页版 |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
+| [`Firefox/Zen`](./Firefox/Zen/README.md) | Zen 简体中文补全与快捷键显示修正，自动识别安装和配置目录，支持备份还原 |
 | [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
 | [`DeepSeek Harness/Launcher`](./DeepSeek%20Harness/Launcher/README.md) | Windows 托盘监督器，负责启动、停止和更新本地 DeepSeek Harness |
 | [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
@@ -216,6 +217,22 @@ cd PortableBridge
 ```
 
 产物为 `bin/PortableBridge.exe`。常驻任务以当前用户、最高权限无参数运行；手动启动会请求 UAC，短命 `open` 入口不重复提升。源码、客户端和构建脚本可独立使用，不依赖 Dox 其他模块。使用与升级步骤见 [模块 README](./PortableBridge/README.md)，架构和验证规则见 [开发文档](./DEVELOPMENT.md#314-portablebridge)。
+
+## Zen 中文补全
+
+[`Firefox/Zen`](./Firefox/Zen/README.md) 为 Windows 版 Zen **1.22.1b / Gecko 155.0.1**（Build ID `20260911034930`）补齐 193 个简体中文条目，并将快捷键统一显示为 `F5`、`Shift+F5`、`Home`、`End` 等文本形式。
+
+需要 Python 3.11+，安装目录和用户配置自动识别。在仓库根目录运行：
+
+```powershell
+python .\Firefox\Zen\patch_zen.py detect
+# 完全退出 Zen 后安装；Program Files 安装版通常需要管理员终端
+python .\Firefox\Zen\patch_zen.py install
+```
+
+首次安装会自动生成补丁并备份原文件；`restore` 可还原，`--profile` 可指定非默认配置。源文件可复制到其他 Windows 电脑使用，不需要携带本机配置或浏览器资源包。补丁严格校验版本与资源包哈希，Zen 升级后需要重新适配。
+
+完整参数与使用限制见模块 [README](./Firefox/Zen/README.md)，维护说明见 [DEVELOPMENT.md](./DEVELOPMENT.md#316-zen-中文补全)。
 
 ## Firefox 扩展
 

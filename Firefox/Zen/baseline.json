@@ -1,0 +1,10 @@
+{
+  "version": "1.22.1b",
+  "gecko_version": "155.0.1",
+  "build_id": "20260911034930",
+  "source_revision": "d7441097171a1a9d47ee40a3e6fcd71bd01784a4",
+  "archives": {
+    "omni.ja": "27a68409d3e6e4d89f561173568f559049baeb0de71c28186aec50e68e511aa9",
+    "browser/omni.ja": "53f9175639ff59019fe2396b1fb673d118f044ec96afa173124bb3c233ccfc2a"
+  }
+}

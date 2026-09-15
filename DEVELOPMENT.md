@@ -24,6 +24,7 @@
    - 3.13 [Android ApkRename](#313-android-apkrename)
    - 3.14 [PortableBridge](#314-portablebridge)
    - 3.15 [HeliumLanguagePatcher](#315-heliumlanguagepatcher)
+   - 3.16 [Zen 中文补全](#316-zen-中文补全)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -44,6 +45,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | C++20 / Win32 API | `DeepSeek Harness/Launcher/` | DeepSeek Harness 本地托盘监督器 |
 | C# / .NET Framework 4 | `PortableBridge/` | Firefox / Chrome 的会话级 HTTP(S) 桥接与生命周期监视 |
 | Python 3.11+ / 标准库 | `HeliumLanguagePatcher/` | Helium Chromium DataPack v5 语言包扫描、翻译缓存与补丁 |
+| Python 3.11+ / 标准库、PowerShell | `Firefox/Zen/` | Zen Fluent 中文补全、快捷键显示修正、安装与配置自动识别 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Firefox 扩展 + Cloudflare Workers） |
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
@@ -61,6 +63,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
 | `Dox Reader/` | 活跃 | local-first RSS 阅读器（Firefox 扩展版 + Cloudflare Workers 网页版） |
 | `Firefox/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
+| `Firefox/Zen/` | 活跃 | Zen 1.22.1b 中文本地补全与可还原的资源包补丁 |
 | `PortableBridge/` | 活跃 | Firefox / Chrome 会话级 HTTP(S) 回退，最新启动者接管 |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `CSS/` | 活跃 | 中文字体映射 CSS 和 VS Code 自定义 CSS |
@@ -86,6 +89,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
 - `DeepSeek Harness/Launcher/bin/`
 - `HeliumLanguagePatcher/__pycache__/`、`*.bak`、`*.bak-*`、`.*.tmp`（均位于该模块内）
+- `Firefox/Zen/build/`、`backups/`、`dist/`、`__pycache__/`、`validation.json`、`runtime-validation.json`（均位于该模块内）
 
 当前源码入口：
 
@@ -97,6 +101,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
 - `PortableBridge/PortableBridge.cs`、`build.ps1`
 - `HeliumLanguagePatcher/helium_language_patcher.py`、`test_helium_language_patcher.py`、`zh-CN-overrides.json`
+- `Firefox/Zen/patch_zen.py`、`discovery.py`、`Install.ps1`、`translations.ftl`、`baseline.json`、`validate.py`、`test_discovery.py`
 - `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`
 - `Stash/external-ip-address-tile.js`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
@@ -1192,6 +1197,59 @@ python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
 
 测试使用临时安装目录和模拟 API，覆盖双协议、配置认证、漏译过滤、结构校验、HTTP 错误脱敏、批次失败后的缓存恢复、原子保存失败、预览只读、应用及离线重应用。安装布局测试覆盖根目录与显式版本、多版本选择及歧义拒绝、非 Helium 目录拒绝、仅修改选中版本及就地 `.bak` 备份。真实 API 验证只发送少量公开界面文案，避免将本机配置或认证信息作为调试输出。
 
+### 3.16 Zen 中文补全
+
+#### 范围与源码边界
+
+`Firefox/Zen/` 为 Windows 版 Zen 1.22.1b / Gecko 155.0.1、Build ID `20260911034930` 提供离线本地补丁。原始资源来自 `zen-browser/desktop` 提交 `d7441097171a1a9d47ee40a3e6fcd71bd01784a4` 对应的安装包；`baseline.json` 固定原版两个资源包的 SHA-256，不能仅因版本号相同就放宽校验。
+
+| 文件 | 职责 |
+|---|---|
+| `translations.ftl` | `# @file` 指定资源包与资源路径；追加 192 个缺失中文消息和 1 个新增“未设置”中文消息，并提供该新增消息的英文回退 |
+| `patch_zen.py` | `detect/build/install/restore/verify` 入口；生成资源包、修改快捷键显示、验证哈希、备份和替换 |
+| `discovery.py` | Windows 进程路径与注册表安装定位、INI 配置枚举、运行锁判断、默认配置选择、缓存路径验证 |
+| `Install.ps1` | 参数透传和本地日志；不自动提权，不修改 ACL |
+| `validate.py` | 依赖 `fluent.syntax` 的资源完整性和翻译结构校验 |
+| `test_discovery.py` | 标准库 unittest；临时配置、真实 Windows 锁、部署与还原测试 |
+
+原有中文消息保持不变，沿用“工作区”“活动文件夹”等术语。翻译追加到 `omni.ja` 与 `browser/omni.ja` 内的指定资源，保留其他资源的内容、ZIP 条目元数据与包注释。`build/resources/` 提供合并后的可读文件；资源包、清单、部署日志、备份、分发 ZIP 和生成的验证报告均为 ignored 本地产物。
+
+#### 快捷键显示
+
+`zen-settings.js` 为 `key_reload2`、`key_reload_skip_cache2`、`key_stop` 引用已有翻译，并将三处显示用 `Not set` 赋值改成 Fluent 文案。`ZenKeyboardShortcuts.mjs` 只修改显示函数：F1–F24 大写，Shift 等修饰键和方向键用文本，Home、End、Delete、PageUp 等采用规范名称。已有绑定和编辑预览共用格式化函数；不得修改实际按键匹配、动作 ID、保存格式或用户键位。
+
+#### 自动定位与写入边界
+
+安装路径优先来自正在运行的 `zen.exe`，否则汇总注册表 App Paths / 卸载信息、配置的 `LastPlatformDir` 和常见路径；只接受唯一完整安装。读取当前用户 `%APPDATA%\zen` 下的 `profiles.ini` 和 `installs.ini`，支持相对及绝对路径。运行配置通过真实 Windows 共享冲突判断，不能仅检查 `parent.lock` 是否存在；关闭浏览器后按安装默认配置、配置默认项和唯一候选选择，同优先级歧义必须要求显式参数，不按时间戳猜测。临时 `-P` / `-profile` 启动的非默认或未注册配置不保证自动识别，应传完整 `--profile` 路径。
+
+普通配置将相对路径映射到 `%LOCALAPPDATA%\zen`；绝对路径配置使用自身目录。自定义 `--profiles-root` 默认兼作本地缓存根，可用 `--local-root` 覆盖。仅允许删除所选配置中的确切 `startupCache` 目录，先验证全部候选，再在删除前复查，拒绝缓存符号链接或 junction。不得更改 prefs.js、user.js、firefox.cfg、扩展、登录状态、书签或标签页数据。
+
+安装与还原要求所有 Zen 进程退出。首次安装缺少构建清单时从目标电脑的原包生成补丁，再校验全部输入、备份原件、在目标目录暂存文件并逐个原子替换。这不是跨两个资源包的文件系统事务；异常时用本次修改前的精确副本回滚已替换文件。资源替换完成后的缓存清理若失败，命令仍报错，资源包可能已生效，应检查 `verify` 并处理缓存权限后重试。既有补丁可幂等安装；构建清单记录上一次生成的补丁哈希用于连续更新，不接受未知安装包覆盖。
+
+只拷贝源码即可在另一台匹配构建的电脑生成补丁，不依赖本机用户名或配置文件名。所有写入权限由 Windows 决定；用当前用户的管理员终端操作，避免切换账户后识别错用户配置。更新 Zen 后重新提取原包、比对翻译及 JavaScript 修改点，再更新基线并验证；旧资源不能覆盖新版安装。
+
+#### 构建与验证
+
+在仓库根目录运行：
+
+```powershell
+python -B -m unittest discover -s Firefox/Zen -p test_discovery.py -v
+python -B Firefox/Zen/patch_zen.py detect
+python -B Firefox/Zen/patch_zen.py verify
+# 已安装补丁时从原版备份重新构建；首次构建也可指定原版安装目录
+python -B Firefox/Zen/patch_zen.py build --install-dir Firefox/Zen/backups/20260911034930
+python -m pip install fluent.syntax
+python -B Firefox/Zen/validate.py --original-dir Firefox/Zen/backups/20260911034930
+node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/preferences/zen-settings.js
+node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/zen-components/ZenKeyboardShortcuts.mjs
+```
+
+验证资源时必须使用原版安装或备份作参照，不能把已打补丁的安装当原包。Fluent 校验检查语法、重复 ID、中文消息/值/属性缺项、变量及引用、命名链接占位符，并比较非目标资源内容。unittest 覆盖相对/绝对配置、默认项、活动配置优先、残留锁与真实锁、多候选拒绝、其他安装排除、自定义缓存路径、首次自动构建，以及安装/还原不改动配置数据。
+
+本次验证结果：12 项 unittest 通过；247 个英文 Fluent 文件均有完整中文消息、值和属性，新增中文消息 193 个；两个修改后的 JavaScript 文件通过语法检查。在独立安装副本和全新配置中实际启动 Zen，确认同步、分享、欢迎页、活动文件夹与工作区提示由 Fluent 正确加载，快捷键设置显示 `F5`、`Ctrl+F5`、`Shift+F5`、`Alt+Home`、`Delete`，命名键预览正确显示 Home、End、PageUp 等。仅含源码的便携包重新构建后，所有资源内容与已验证补丁一致；本机安装资源哈希也已核对。
+
+后续改动界面资源仍需使用独立测试配置做真实启动验证。静态消息覆盖不代表审查了所有硬编码英文，也不涉及第三方扩展或网页翻译；不要宣称所有界面已完整汉化。打包时只包含源码、翻译数据、基线和用户说明，排除本机配置、备份、日志及测试浏览器副本。
+
 ## 4. 开发环境与构建命令速查
 
 | 模块 | 需要的环境 | 主要命令 |
@@ -1202,6 +1260,7 @@ python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
 | Dox Reader | Node.js 24+（Firefox 发布 npm 11+） | 各自目录 `npm ci` + `npm run check` |
 | Firefox AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/AutoSortBookmarks/tests/sorter.test.js` |
+| Zen 中文补全 | Windows；Python 3.11+；Fluent 验证另需 fluent.syntax，JS 校验需 Node.js | `python -B -m unittest discover -s Firefox/Zen -p test_discovery.py -v`；使用见 [README](./Firefox/Zen/README.md) |
 | PortableBridge | Windows；.NET Framework 4.x | `cd PortableBridge; .\build.ps1; .\test.ps1` |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
 | HeliumLanguagePatcher | Windows；Python 3.11+；自动翻译需要本机 API 配置 | `python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py`；使用命令见 [README](./README.md#helium-语言补丁) |
