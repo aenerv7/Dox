@@ -49,7 +49,6 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射和 VS Code 外观自定义 |
 | 批处理 | `Batch files/*.bat` | Edge 清理脚本 |
-| AdGuard 规则 | `magi.txt` | 白名单和网站过滤规则 |
 
 ### 1.3 模块清单
 
@@ -70,7 +69,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `Batch files/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版） |
 | `Android/ApkRename/` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
 | `HeliumLanguagePatcher/` | 活跃 | Helium 语言包扫描、翻译缓存与 DataPack v5 补丁 |
-| `magi.txt` | 活跃 | AdGuard 过滤规则列表 |
+| `magi.txt` | 已移除 | 历史 AdGuard 规则，当前检出不提供；保留第 3.10 节历史维护约定 |
 | `README.md` | 用户文档 | 仓库主说明 |
 
 > `Windhawk/windhawk-mods` 是 git 子模块（独立的 Windhawk mods 集合），其文档与源码不归本仓库维护，使用方式以子模块内文档为准。
@@ -86,6 +85,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `SizerSwift/.build/`、`SizerSwift/build/`
 - `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
 - `DeepSeek Harness/Launcher/bin/`
+- `HeliumLanguagePatcher/__pycache__/`、`*.bak`、`*.bak-*`、`.*.tmp`（均位于该模块内）
 
 当前源码入口：
 
@@ -96,9 +96,9 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `CSS/font-face.css`
 - `Firefox/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
 - `PortableBridge/PortableBridge.cs`、`build.ps1`
+- `HeliumLanguagePatcher/helium_language_patcher.py`、`test_helium_language_patcher.py`、`zh-CN-overrides.json`
 - `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`
 - `Stash/external-ip-address-tile.js`
-- `magi.txt`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
 
 ### 1.5 资源文件（图标）
@@ -135,17 +135,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 
 ### 2.3 生成产物
 
-以下文件或目录不应作为源码提交：
-
-- `AutoHotkey/Test/Test.exe`
-- `SizerSwift/.build/`、`SizerSwift/build/`
-- `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
-- `Firefox/**/web-ext-artifacts/`
-- `PortableBridge/bin/`
-- `DeepSeek Harness/Launcher/bin/`
-- `.DS_Store`
-
-如果这些文件在工作区存在，通常是本地运行或构建产生的结果。
+生成产物边界统一维护在 [1.4](#14-源码与生成产物边界)，具体忽略模式以 `.gitignore` 为准，不在此重复列表。构建输出、备份、临时文件及本机认证配置不应提交；Helium 的 `zh-CN-overrides.json` 是需要维护的翻译数据，应随源码提交，其 `.bak` 不提交。
 
 ### 2.4 提交前检查
 
@@ -791,7 +781,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 ### 3.10 AdGuard（magi.txt）
 
-`magi.txt` 是 AdGuard 兼容规则列表。修改规则内容时必须：
+`magi.txt` 是历史 AdGuard 兼容规则列表，已从仓库移除，当前无需导入或验证。以下约定仅供以后恢复维护时使用：
 
 1. 递增头部 `! Version`。
 2. 更新 `! Last modified`，格式 `YYYY/MM/DD HH:MM:SS +0800`。
@@ -1166,17 +1156,34 @@ cd PortableBridge
 
 ### 3.15 HeliumLanguagePatcher
 
+#### 文件与安装布局
+
 入口为 `HeliumLanguagePatcher/helium_language_patcher.py`，仅使用 Python 3.11+ 标准库。`zh-CN-overrides.json` 同时存放人工翻译与自动补全缓存；按英文原文匹配当前版本的资源 ID，不固定 Chromium ID。DataPack v5 读写保留原包头的编码字段，将别名展开为普通条目。
 
+| 文件 | 维护方式 |
+|---|---|
+| `helium_language_patcher.py` | CLI、安装定位、API 翻译和 DataPack 读写的单文件入口 |
+| `zh-CN-overrides.json` | 英文原文 → 简体中文，已有键不被自动翻译覆盖，可人工修订 |
+| `test_helium_language_patcher.py` | 标准库 unittest；模拟 API、临时安装目录及失败路径 |
+| `*.bak`、`*.bak-*`、`.*.tmp`、`__pycache__/` | 本地产物，保持 ignored |
+
 `resolve_helium_install` 解析平铺安装目录、包含 `Application` 的安装根目录、`Application` 本身或显式版本目录，分别返回入口程序、资源目录与语言包目录。全部用户版的 `chrome.exe` 位于 `Application`，`chrome.dll`、Helium 标识及 `Locales` 位于四段数字版本目录。通过 Windows 版本 API 读取入口的 **FileVersion** 选择对应版本；不能使用 **ProductVersion**，后者是 Chromium 版本。版本明确但资源缺失时报错；读不到版本时只允许唯一完整候选，多个候选要求用户传入版本目录。保留 Helium 标识校验，同时兼容 `Locales`/`locales`。权限错误提示退出浏览器及使用管理员终端，不修改安装目录 ACL、不自动提权。
+
+#### 翻译扫描与 API 配置
 
 带 `--apply` 时扫描英文包与目标包内容一致（或目标缺少 ID）、且翻译表尚未收录的文本；过滤常见字体、快捷键、标识符和搜索词表，跳过并报告 ICU plural/select 表达式。扫描不判断字符串是否实际出现在当前平台的 UI。已有翻译不会重新请求；模型保留原文的专有名词也缓存，避免每次重复请求。
 
 `TranslationClient.from_codex` 读取指定 `config.toml` 的 provider、model 及可选 profile，支持 Responses 和兼容 Chat Completions 的请求。认证支持直接 bearer token、环境变量 API key 和 HTTP headers；不读取 Codex 的会话认证文件，不运行外部凭据 helper。API key 不进入日志、异常文本、对象 repr 或缓存。远程地址要求 HTTPS，拒绝重定向，避免转发认证信息；暂不支持 provider 的 query_params。
 
-每批翻译须覆盖全部输入 key，且译文非空、HTML 标签顺序和属性未变、占位符/URL/实体数量一致。通过后原子保存翻译表；本次首次写入前备份。翻译表与语言包共用 `backup_existing`，固定覆盖 `<原文件名>.bak`，各保留一份，成功创建后仅清理匹配旧版时间戳格式的备份。失败停止本次 `.pak` 应用，已保存批次可供重试复用。`--offline` 使用缓存；不带 `--apply` 的预览不调用 API、不写入翻译表或语言包。
+配置默认位于 `%CODEX_HOME%/config.toml`，未设置时为用户主目录下 `.codex/config.toml`。支持 `experimental_bearer_token`、`env_key`、`http_headers`、`env_http_headers`；provider 的 `wire_api` 为 `responses` 或兼容模式 `chat`。只有存在待翻译项且带 `--apply`、未带 `--offline` 时才读取认证并调用 API。文档和测试只使用通用字段名或虚构测试值，真实服务地址与认证值保留在仓库外的本机配置。
 
-维护验证：
+#### 写入、备份与失败行为
+
+每批翻译须覆盖全部输入 key，且译文非空、HTML 标签顺序和属性未变、占位符/URL/实体数量一致。通过后原子保存翻译表；本轮首次覆盖已有表之前备份，之后逐批保存。翻译表与语言包共用 `backup_existing`，固定覆盖 `<原文件名>.bak`，各保留一份，成功创建后仅清理匹配旧版时间戳格式的备份。备份对应最近一次修改前的内容，不是永久原始副本。
+
+翻译失败停止本次 `.pak` 应用，已保存批次可供重试复用。翻译成功但语言包因权限或占用写入失败时，翻译表同样保留；无变化时不重写语言包或覆盖其备份。`--offline` 使用缓存；不带 `--apply` 的预览不调用 API、不写入翻译表或语言包。`en-US` 在安装校验后直接返回，不承担恢复功能。
+
+#### 维护验证
 
 ```powershell
 python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py
@@ -1197,10 +1204,10 @@ python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
 | Firefox AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/AutoSortBookmarks/tests/sorter.test.js` |
 | PortableBridge | Windows；.NET Framework 4.x | `cd PortableBridge; .\build.ps1; .\test.ps1` |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
+| HeliumLanguagePatcher | Windows；Python 3.11+；自动翻译需要本机 API 配置 | `python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py`；使用命令见 [README](./README.md#helium-语言补丁) |
 | Userscript | Tampermonkey / Greasemonkey | 浏览器安装脚本 |
 | Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
-| AdGuard | AdGuard 兼容规则列表 | 导入 `magi.txt` |
 | Batch files | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
 | Android ApkRename | PowerShell，apktool/Java 等工具 | `.\rename-apk.ps1 [-SetupTools]` |
 

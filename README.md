@@ -20,6 +20,7 @@
 | [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Firefox 扩展版与 Cloudflare Workers 网页版 |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
+| [`DeepSeek Harness/Launcher`](./DeepSeek%20Harness/Launcher/README.md) | Windows 托盘监督器，负责启动、停止和更新本地 DeepSeek Harness |
 | [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
 | [`CSS`](./CSS) | 中文字体映射和 VS Code 外观自定义 CSS |
 | [`Userscript`](./Userscript) | Tampermonkey/Greasemonkey 用户脚本 |
@@ -34,13 +35,15 @@
 
 `HeliumLanguagePatcher/helium_language_patcher.py` 使用 Python 3.11+，不需要安装额外依赖。它按英文原文定位当前版本的资源 ID，修改目标语言的 Chromium DataPack v5 语言包。
 
+### 预览与应用
+
 在仓库根目录运行（安装路径按实际情况替换）：
 
 ```powershell
 # 预览已有翻译匹配和待补全文案，不调用 API、不写文件
 python.exe .\HeliumLanguagePatcher\helium_language_patcher.py zh-CN --root "C:\Program Files\imput\Helium"
 
-# 完全退出 Helium 后，自动补全翻译表并应用补丁
+# 完全退出 Helium，以管理员身份打开终端后应用（Program Files 安装版）
 python.exe .\HeliumLanguagePatcher\helium_language_patcher.py zh-CN --root "C:\Program Files\imput\Helium" --apply
 ```
 
@@ -48,15 +51,30 @@ python.exe .\HeliumLanguagePatcher\helium_language_patcher.py zh-CN --root "C:\P
 
 带 `--apply` 时，每次先扫描英文包与目标语言包，查找仍为英文且本地翻译表中尚未收录的文本，再通过 API 翻译并写入脚本旁的 `<语言>-overrides.json`。已有条目保持不变，每批结果通过校验后立即缓存；中断后重新运行可继续补全。API 只接收待翻译的语言包文案和目标语言，不发送浏览记录或 Codex 对话。新文案会产生所选服务的 API 用量。
 
-默认读取 `%CODEX_HOME%\config.toml`，未设置 `CODEX_HOME` 时读取 `%USERPROFILE%\.codex\config.toml`。使用所选 `model_provider`、`model`、`base_url` 和 `wire_api`；认证支持 `experimental_bearer_token`、`env_key`、静态或环境变量 HTTP 认证头。密钥不会写入翻译表或输出到日志。可用 `--codex-config 路径` 指定其他配置，或用 `--codex-profile 名称` 选择 profile。不会使用 ChatGPT 登录凭据，也不读取 `auth.json`。
+### API 配置与参数
 
-- 语言默认 `zh-CN`，也可用 `--language` / `--lang`；`en-US` 不执行补丁。
-- `--offline --apply` 只应用现有翻译表，不读取 API 配置或联网。
-- `--batch-size 10` 控制每次请求的文案数，范围 1–50。
-- `--overrides 路径` 指定另一份翻译表；缺少翻译表时可自动创建，但对应的目标 `.pak` 必须已经存在。
-- 自动过滤常见字体名、快捷键、搜索词表等资源；ICU 复数/选择表达式会报告并跳过。扫描属于启发式检测，不能保证覆盖所有漏译；机器翻译也可在 JSON 中手动修订。
+默认读取 `%CODEX_HOME%\config.toml`，未设置 `CODEX_HOME` 时读取 `%USERPROFILE%\.codex\config.toml`，使用其中选中的服务、模型和 API 认证。无需把地址或 Key 填进脚本或翻译表；密钥不写入翻译表或日志。配置必须提供可用的 API 认证，脚本不会使用 ChatGPT 登录凭据或读取 `auth.json`。若以另一个管理员账户运行，可通过 `--codex-config` 指定原用户的配置路径。
 
-翻译表与 `.pak` 均通过临时文件替换并备份。备份固定为原文件名加 `.bak`，例如 `zh-CN-overrides.json.bak`、`zh-CN.pak.bak`，各只保留最近一次修改前的一份；新备份覆盖旧备份，成功创建后清理旧版本生成的时间戳备份。API 出错或结果破坏占位符、HTML、URL 时，本次停止应用语言包，已完成的翻译批次保留。若 Windows 报“拒绝访问”，先完全退出 Helium 再重试。更新浏览器后可重新运行补丁，启动 Helium 后才会加载新的语言包。实现细节、测试和安全边界见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#315-heliumlanguagepatcher)。
+| 参数 | 行为 |
+|---|---|
+| `zh-CN` / `--language zh-CN` / `--lang zh-CN` | 指定目标语言，默认 `zh-CN`；`en-US` 只校验安装目录，不执行补丁，也不恢复中文包 |
+| `--root 路径` | 安装根目录、`Application` 或明确版本目录；省略时使用脚本所在文件夹的上一级 |
+| `--apply` | 自动补全翻译表并写入语言包；省略时只预览，不联网、不写文件 |
+| `--offline --apply` | 只应用现有翻译表，不读取 API 配置或联网 |
+| `--codex-config 路径` | 指定另一份本机 Codex 配置 |
+| `--codex-profile 名称` | 使用配置中的指定 profile |
+| `--batch-size 10` | 每次请求的文案数，范围 1–50，默认 10 |
+| `--overrides 路径` | 指定另一份翻译表；文件可自动创建，父目录和目标语言 `.pak` 必须已存在 |
+
+### 备份、恢复与限制
+
+翻译表与 `.pak` 均通过临时文件替换并备份。备份固定为原文件名加 `.bak`，例如 `zh-CN-overrides.json.bak`、`zh-CN.pak.bak`，各保留一份，新备份覆盖旧备份；成功创建后清理旧版时间戳备份。翻译表在本轮首次覆盖已有文件前备份，之后逐批保存。无内容变化的语言包不会重写或覆盖备份。
+
+恢复时先完全退出 Helium，再将对应 `.bak` 复制回原文件名。备份保存的是上次修改前的内容，不保证是最初未打补丁的版本；浏览器升级后不要把旧版本 `.pak` 复制到新版本目录，应重新运行补丁。
+
+自动扫描会过滤常见字体名、快捷键、搜索词表等资源，ICU 复数/选择表达式会报告并跳过，不能保证覆盖所有漏译。机器翻译可在 JSON 中手动修订。API 出错或结果破坏占位符、HTML、URL 时，本次停止应用语言包，已完成批次保留。Windows 报“拒绝访问”时，确认浏览器已完全退出，并用管理员终端写入 `Program Files`。成功后重新启动 Helium 加载新语言包；脚本不会自动切换浏览器界面语言。
+
+实现细节、测试和安全边界见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#315-heliumlanguagepatcher)。
 
 ## 中文字体映射
 
