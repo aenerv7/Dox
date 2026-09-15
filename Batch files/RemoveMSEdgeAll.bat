@@ -7,6 +7,15 @@ if /i "%~1" equ "-h" goto help
 if /i "%~1" equ "/?" goto help
 if defined PROCESSOR_ARCHITEW6432 "%WinDir%\SysNative\cmd.exe" /c ""%~0" %*" & exit /b 0
 
+REM The shared helper is required before any uninstall or elevation.
+if not exist "%~dp0EdgeAssociations.ps1" (
+ echo Missing EdgeAssociations.ps1. Keep it beside this BAT file.
+ exit /b 1
+)
+if /i "%~1" equ "-audit-associations" goto associations.audit
+if /i "%~1" equ "-repair-associations" goto associations.repair
+set "association_cleanup_failed=0"
+
 REM
 REM Check permissions and elevate if required
 REM Obtain required files (from cache or from repo with hash validation)
@@ -37,7 +46,7 @@ if /i "%PROCESSOR_ARCHITECTURE%" equ "x86" goto arch.pass
 echo "%PROCESSOR_ARCHITECTURE%" platform is unsupported & echo. & pause & exit /b %ISSUE_ARCH%
 :arch.pass
 
-set "SCRIPT_VERSION=08/30/2026"
+set "SCRIPT_VERSION=09/14/2026"
 REM set logging verbosity ( log_lvl.none, log_lvl.errors, log_lvl.debug )
 REM also set elevated cmd mode (%ecm% var; /c or /k )
 REM log_lvl.debug checks for argument, but due to the call, batch args "hidden", so pass it
@@ -98,7 +107,7 @@ if /i not "%RUN_MODE%" equ "userchoice" goto userchoice.mode.done
 echo - Cleaning stale Edge UserChoice associations
 call :userchoice_cleanup %USER_SID%
 set "userchoice_result=%errorlevel%"
-if "%userchoice_result%" neq "0" echo Failed to remove one or more protected Edge UserChoice associations.
+if "%userchoice_result%" neq "0" echo Some associations were preserved or failed. Review the report; use Windows Default Apps for protected choices.
 exit /b %userchoice_result%
 
 :userchoice.mode.done
@@ -466,12 +475,14 @@ echo [extra_cleanup().end] %bat_dbg%
 
 
 REM Main script end
-echo - Edge removal complete
+if "%association_cleanup_failed%" equ "0" echo - Edge removal complete
+if not "%association_cleanup_failed%" equ "0" echo - Edge removal finished with unresolved associations. Review the debug log and run -audit-associations.
 echo [main_script.end] %bat_dbg%
 REM remove hardlinks
 del /f /q "%file_setup%" %bat_log%
 del /f /q "%file_SQLite%" %bat_log%
 echo [main_script.done] %bat_dbg%
+if not "%association_cleanup_failed%" equ "0" exit /b 2
 exit /b 0
 
 
@@ -769,36 +780,14 @@ exit /b 0
 
 
 
-REM remove stale Edge UserChoice associations without overwriting another browser choice
-REM arguments: user SID
+REM Clean associations without changing protected choice ACLs.
+REM arguments: loaded user SID
 :userchoice_cleanup
 echo [userchoice_cleanup()] "%1" %cll_dbg%
-set "userchoice_cleanup_failed=0"
-for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r /c:"\\UserChoice$" /c:"\\UserChoiceLatest$"') do call :userchoice_cleanup_key "%%k"
-for /f "tokens=*" %%k in ('reg query "HKU\%~1\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts" /s /f "UserChoice" /k 2^>NUL ^| findstr /i /r /c:"\\UserChoice$" /c:"\\UserChoiceLatest$"') do call :userchoice_cleanup_key "%%k"
-if "%userchoice_cleanup_failed%" equ "1" exit /b 1
-exit /b 0
-
-:userchoice_cleanup_key
-set "userchoice_progid="
-for /f "tokens=1,2,*" %%a in ('reg query "%~1" /v ProgId 2^>NUL') do call :userchoice_capture_value "%%a" "%%c"
-if not defined userchoice_progid for /f "tokens=1,2,*" %%a in ('reg query "%~1\ProgId" /v ProgId 2^>NUL') do call :userchoice_capture_value "%%a" "%%c"
-if not defined userchoice_progid exit /b 0
-if /i "%userchoice_progid:~0,6%" neq "MSEdge" exit /b 0
-echo removing stale Edge UserChoice: "%~1" (%userchoice_progid%) %cll_dbg%
-reg delete "%~1" /f >NUL 2>&1
-if not errorlevel 1 exit /b 0
-echo resetting protected UserChoice ACL: "%~1" %cll_dbg%
-set "userchoice_key=%~1"
-powershell -noprofile -c "$subkey = $env:userchoice_key.Substring($env:userchoice_key.IndexOf('\') + 1); $rights = [System.Security.AccessControl.RegistryRights]::ReadPermissions -bor [System.Security.AccessControl.RegistryRights]::ChangePermissions; $key = [Microsoft.Win32.Registry]::Users.OpenSubKey($subkey, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, $rights); if ($key) { $acl = $key.GetAccessControl(); $rules = @($acl.GetAccessRules($true, $false, [System.Security.Principal.NTAccount])); foreach ($rule in $rules) { if ($rule.AccessControlType -eq 'Deny' -and -not $rule.IsInherited) { [void]$acl.RemoveAccessRuleSpecific($rule) } }; $key.SetAccessControl($acl); $key.Close() }" 2>NUL
-reg delete "%~1" /f
-if errorlevel 1 set "userchoice_cleanup_failed=1"
-exit /b 0
-
-:userchoice_capture_value
-if /i "%~1" neq "ProgId" exit /b 0
-set "userchoice_progid=%~2"
-exit /b 0
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0EdgeAssociations.ps1" -Mode Cleanup -UserSid "%~1"
+set "userchoice_result=%errorlevel%"
+if not "%userchoice_result%" equ "0" set "association_cleanup_failed=1"
+exit /b %userchoice_result%
 
 
 REM =====  PowerShell(psl) based complex functions  =====
@@ -1044,6 +1033,14 @@ main;^
 echo [appx_remove_as_system().end] %cll_dbg%
 exit /b 0
 
+:associations.audit
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0EdgeAssociations.ps1" -Mode Audit
+exit /b %errorlevel%
+
+:associations.repair
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0EdgeAssociations.ps1" -Mode Repair
+exit /b %errorlevel%
+
 :help
 echo.
 echo %~nx0 - remove Microsoft Edge and all shared WebView2 components.
@@ -1051,7 +1048,10 @@ echo.
 echo Usage: %~nx0 [option]
 echo.
 echo Options:
-echo   -userchoice  Only remove stale MSEdge UserChoice/UserChoiceLatest entries.
+echo   -userchoice  Remove only stale, unhashed Edge choices; preserve protected choices.
+echo   -audit-associations   Inspect current-user associations without changing them.
+echo   -repair-associations  Back up and repair recognized legacy parent ACL damage.
+echo                        These two modes do not uninstall, download, or request UAC.
 echo   -auto   Skip the built-in Administrator confirmation when already elevated.
 echo   -help   Show this help and exit without UAC, network, or cleanup actions.
 echo   -h      Alias for -help.

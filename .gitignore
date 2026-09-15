@@ -4,6 +4,7 @@ AutoHotkey/Test/Test.exe
 # Batch script logs
 Batch files/*_dbg.log
 Batch files/*_hlpr.log
+Batch files/RemoveMSEdge-backups/
 
 # Swift
 SizerSwift/.build/
@@ -38,3 +39,9 @@ Android/ApkRename/tools/
 
 # Codex temporary workspace files
 .codex-tmp/
+
+# Helium language patcher cache backups and temporary files
+HeliumLanguagePatcher/__pycache__/
+HeliumLanguagePatcher/*.bak
+HeliumLanguagePatcher/*.bak-*
+HeliumLanguagePatcher/.*.tmp
