@@ -2,13 +2,22 @@
 param(
     [ValidateSet('Audit', 'Repair', 'Cleanup')][string]$Mode = 'Audit',
     [string]$UserSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value,
-    [string]$BackupDirectory = (Join-Path $PSScriptRoot 'RemoveMSEdge-backups'),
-    [string[]]$LegacyLog = @((Join-Path $PSScriptRoot 'RemoveMSEdge_dbg.log'), (Join-Path $PSScriptRoot 'RemoveMSEdgeAll_dbg.log')),
+    [string]$BackupDirectory,
+    [string[]]$LegacyLog,
     [string]$ReportPath
 )
 
 Set-StrictMode -Version 2
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($BackupDirectory)) {
+    $BackupDirectory = Join-Path -Path $PSScriptRoot -ChildPath 'RemoveMSEdge-backups'
+}
+if ($null -eq $LegacyLog -or $LegacyLog.Count -eq 0) {
+    $LegacyLog = @(
+        (Join-Path -Path $PSScriptRoot -ChildPath 'RemoveMSEdge_dbg.log'),
+        (Join-Path -Path $PSScriptRoot -ChildPath 'RemoveMSEdgeAll_dbg.log')
+    )
+}
 
 function Get-EdgeKeyAcl($Key) {
     if ($PSVersionTable.PSEdition -eq 'Core') { return [Microsoft.Win32.RegistryAclExtensions]::GetAccessControl($Key) }
