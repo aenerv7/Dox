@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('detect', 'install', 'restore', 'verify')]
+    [ValidateSet('help', 'detect', 'install', 'restore', 'verify')]
     [string]$Action = 'install',
     [string]$InstallDir,
     [string]$Profile,
@@ -8,6 +8,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ($Action -eq 'help') {
+    & python (Join-Path $PSScriptRoot 'patch_zen.py') --help
+    exit $LASTEXITCODE
+}
 New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'build') -Force | Out-Null
 $logPath = Join-Path $PSScriptRoot 'build\installer.log'
 $resultPath = Join-Path $PSScriptRoot 'build\installer-result.json'

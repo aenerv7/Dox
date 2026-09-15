@@ -29,6 +29,15 @@
 
 ## 安装与还原
 
+查看中文使用指南（命令、示例、权限和配置选择）：
+
+```powershell
+python .\patch_zen.py --help
+python .\patch_zen.py help
+```
+
+直接运行 `python .\patch_zen.py` 也只显示帮助，不执行安装；`install --help` 等写法同样显示指南。PowerShell 入口使用 `.\Install.ps1 -Action help`。帮助无需管理员权限，也不查找浏览器或写入文件。
+
 在另一台电脑上使用时，复制本目录的源文件；如果已有本地打包的 `dist/Zen-zh-CN-1.22.1b.zip`，也可解压使用。仓库不包含生成的 ZIP。
 不需要复制 `build/`、`backups/` 或本机的浏览器配置。目标电脑需要 Python 3.11+，并安装相同版本、相同构建的 Zen；如果版本或资源包不匹配，脚本会停止并说明原因。
 

@@ -1206,13 +1206,15 @@ python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
 | 文件 | 职责 |
 |---|---|
 | `translations.ftl` | `# @file` 指定资源包与资源路径；追加 192 个缺失中文消息和 1 个新增“未设置”中文消息，并提供该新增消息的英文回退 |
-| `patch_zen.py` | `detect/build/install/restore/verify` 入口；生成资源包、修改快捷键显示、验证哈希、备份和替换 |
+| `patch_zen.py` | `help/detect/build/install/restore/verify` 入口；生成资源包、修改快捷键显示、验证哈希、备份和替换 |
 | `discovery.py` | Windows 进程路径与注册表安装定位、INI 配置枚举、运行锁判断、默认配置选择、缓存路径验证 |
 | `Install.ps1` | 参数透传和本地日志；不自动提权，不修改 ACL |
 | `validate.py` | 依赖 `fluent.syntax` 的资源完整性和翻译结构校验 |
 | `test_discovery.py` | 标准库 unittest；临时配置、真实 Windows 锁、部署与还原测试 |
 
 原有中文消息保持不变，沿用“工作区”“活动文件夹”等术语。翻译追加到 `omni.ja` 与 `browser/omni.ja` 内的指定资源，保留其他资源的内容、ZIP 条目元数据与包注释。`build/resources/` 提供合并后的可读文件；资源包、清单、部署日志、备份、分发 ZIP 和生成的验证报告均为 ignored 本地产物。
+
+CLI 使用中文帮助，支持 `-h`、`--help`、`help` 和不传命令；这些入口必须在自动发现和写入前返回，不依赖本机安装或 AppData 环境。`Install.ps1 -Action help` 同样在建立日志目录之前返回。帮助须说明命令用途、安装/还原的权限与退出要求、默认配置选择和版本限制；修改参数时同步维护示例。
 
 #### 快捷键显示
 

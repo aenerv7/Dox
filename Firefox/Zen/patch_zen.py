@@ -253,13 +253,62 @@ def deploy(install, profile, restore=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=('detect', 'build', 'install', 'restore', 'verify'))
-    parser.add_argument('--install-dir', type=Path, help='Zen installation; detected automatically when omitted')
-    parser.add_argument('--profile', help='Profile name, directory name, or full directory path; auto by default')
-    parser.add_argument('--profiles-root', type=Path, help='Custom Zen data root containing profiles.ini')
-    parser.add_argument('--local-root', type=Path, help='Custom local cache root corresponding to --profiles-root')
+    parser = argparse.ArgumentParser(
+        prog='patch_zen.py', add_help=False,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='Zen Browser 简体中文补全与快捷键显示修正（Windows / Python 3.11+）。',
+        epilog=r'''命令说明：
+  help     显示本帮助；不传命令时也显示帮助，不执行安装。
+  detect   只读检查，显示自动识别的 Zen 安装目录、配置与启动缓存路径。
+  install  安装补丁；首次自动构建，先备份原文件，再替换资源并清除启动缓存。
+  verify   校验安装资源是否与本地 build/ 中的补丁一致，需先构建或安装。
+  restore  从 backups/ 还原原版资源，需保留本地 build/ 清单和原版备份。
+  build    仅生成补丁到 build/，不安装；输入必须是匹配基线的原版资源。
+
+推荐步骤（在脚本目录打开终端）：
+  1. python .\patch_zen.py detect
+  2. 保存网页内容并完全退出 Zen（包括后台进程）。
+  3. python .\patch_zen.py install
+  4. python .\patch_zen.py verify
+  5. 重新打开 Zen；需要还原时先退出，再运行 restore。
+
+常用示例：
+  python .\patch_zen.py --help
+  python .\patch_zen.py install --install-dir "D:\Apps\Zen Browser"
+  python .\patch_zen.py install --profile "Default (release)"
+  python .\patch_zen.py install --profile "D:\BrowserData\ZenProfile"
+  python .\patch_zen.py detect --install-dir "D:\Apps\Zen" --profiles-root "D:\ZenData"
+  python .\patch_zen.py restore
+  python .\patch_zen.py build --install-dir ".\backups\20260911034930"
+
+权限与配置：
+  help / detect / verify 通常无需管理员权限；build 需要补丁目录可写。
+  install / restore 需要安装目录可写；Program Files 安装版通常需要管理员终端。
+  脚本不会自动提权。请使用当前账户，避免切换账户后识别到其他用户的配置。
+  自动识别正在使用的已注册配置；Zen 关闭后选择对应默认配置。
+  非默认配置可用 --profile 指定；多个候选无法确定时会停止，不猜测。
+
+适用范围：
+  仅适配 Zen 1.22.1b / Gecko 155.0.1，Build ID 20260911034930。
+  资源包 SHA-256 必须匹配；浏览器升级后需要重新适配，不能覆盖新版资源。
+  不修改书签、密码、标签页、扩展或偏好设置；请保留 backups/ 用于还原。
+  完整使用说明见脚本同目录 README.md。''')
+    parser.add_argument('-h', '--help', action='help', help='显示中文使用指南并退出')
+    parser.add_argument('command', nargs='?', default='help',
+                        choices=('help', 'detect', 'build', 'install', 'restore', 'verify'),
+                        help='要执行的命令，默认只显示帮助')
+    parser.add_argument('--install-dir', type=Path, metavar='目录',
+                        help='Zen 安装目录；省略时自动识别。build 时也可指定原版备份目录')
+    parser.add_argument('--profile', metavar='名称或路径',
+                        help='配置名称、目录名或完整路径；省略时自动识别（build 不使用此参数）')
+    parser.add_argument('--profiles-root', type=Path, metavar='目录',
+                        help='含 profiles.ini 的自定义 Zen 数据根目录，用于便携版等布局')
+    parser.add_argument('--local-root', type=Path, metavar='目录',
+                        help='与数据根目录对应的本地缓存根；自定义数据根默认兼作缓存根')
     args = parser.parse_args()
+    if args.command == 'help':
+        parser.print_help()
+        return
     if args.command == 'build':
         # Explicit build input can be a backup directory without zen.exe.
         if args.install_dir:
