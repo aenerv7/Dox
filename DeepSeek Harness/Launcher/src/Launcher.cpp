@@ -44,6 +44,9 @@ constexpr wchar_t kWndClass[]     = L"DSHLauncherWnd";
 constexpr wchar_t kMutexName[]    = L"Local\\DSHLauncher_SingleInstance";
 constexpr UINT    kTrayMsg        = WM_APP + 1;
 constexpr UINT_PTR kTimerState    = 1;
+// 三种启动方式共用：dsh web 默认会打开默认浏览器，必须显式关闭
+// （dsh-web-app 的 openBrowser 默认 true，仅 --no-open 能关闭）
+constexpr wchar_t kNoOpenFlag[]   = L" --no-open";
 // 私有消息（自动化 / 调试用，不影响正常使用）
 constexpr UINT kMsgStart       = WM_APP + 100;
 constexpr UINT kMsgStop        = WM_APP + 101;
@@ -370,16 +373,16 @@ bool StartDSH() {
     switch (g_mode) {
     case LaunchMode::Dsh: {
         const std::wstring dshCmd = FindDshCmd();
-        cmd = L"cmd.exe /c \"\"" + dshCmd + L"\" web --host " + g_cfg.host +
+        cmd = L"cmd.exe /c \"\"" + dshCmd + L"\" web" + kNoOpenFlag + L" --host " + g_cfg.host +
               L" --port " + ToStr(g_cfg.port) + L"\"";
         break;
     }
     case LaunchMode::Npx:
-        cmd = L"cmd.exe /c npx -y @deepseek-ai/dsh web --host " + g_cfg.host +
+        cmd = L"cmd.exe /c npx -y @deepseek-ai/dsh web" + std::wstring(kNoOpenFlag) + L" --host " + g_cfg.host +
               L" --port " + ToStr(g_cfg.port);
         break;
     default:  // 自定义：node.exe 直接执行 DshBin（.js 脚本）
-        cmd = L"\"" + node + L"\" \"" + g_cfg.dshBin + L"\" web --host " + g_cfg.host +
+        cmd = L"\"" + node + L"\" \"" + g_cfg.dshBin + L"\" web" + kNoOpenFlag + L" --host " + g_cfg.host +
               L" --port " + ToStr(g_cfg.port);
         break;
     }

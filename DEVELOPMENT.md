@@ -906,7 +906,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 不能破坏的行为保证：
 
-1. **不抢前台**：三种模式都保留 `web --no-open`；`CREATE_NO_WINDOW` 只隐藏控制台，不能替代 `--no-open`。
+1. **不抢前台**：三种模式都保留 `web --no-open`；`CREATE_NO_WINDOW` 只隐藏控制台，不能替代 `--no-open`。dsh 的 `openBrowser` 默认 `true`（`dsh-web-app` 的 `Config.openBrowser` 默认值），**省略该参数即会拉起默认浏览器**，必须由 `kNoOpenFlag` 统一拼接，不可在各模式里手写。
 2. **整树托管**：优先带 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 的 Job Object；停止和退出覆盖 Job Object 失败时的单进程兜底。
 3. **外部实例可识别**：运行状态不能只看 `g_hProc`，还须探测配置 Host/Port。
 4. **配置可恢复**：端口落在 1-65535；无效端口自动选空闲端口并写回 ini。
