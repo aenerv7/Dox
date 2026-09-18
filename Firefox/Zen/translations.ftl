@@ -1,5 +1,6 @@
-# Local additions for Zen 1.22.1b / Gecko 155.0.1.
+# Local additions for Zen 1.22.2b / Gecko 156.0.
 # @file headers identify the archive and resource to append to.
+# Messages already translated upstream are omitted; only real gaps are listed.
 
 # @file omni.ja localization/zh-CN/toolkit/about/aboutAddons.ftl
 find-more-addons-promo =
@@ -8,6 +9,56 @@ find-more-addons-promo =
 find-more-themes-promo =
     .heading = 发现更多新外观
     .message = 选择喜爱的样式，让 { -brand-product-name } 更具个人特色。
+
+# @file omni.ja localization/zh-CN/locales-preview/remote-agent.ftl
+remote-agent-connection-prompt-title = 允许远程控制？
+remote-agent-connection-prompt-message =
+    某个应用想要控制此浏览器会话。
+    它可以读取您标签页的内容、访问您保存的数据，并导航到任意网站。
+
+    仅当您自己发起了此连接，并且信任该应用和这台计算机时，才允许。
+remote-agent-connection-prompt-allow-button = 允许
+remote-agent-connection-prompt-deny-button = 拒绝
+remote-agent-connection-prompt-remember-checkbox = 在浏览器退出前记住我的选择
+
+# @file omni.ja localization/zh-CN/services/aboutSyncLog.ftl
+about-sync-log-title = 同步日志
+about-sync-log-page-header =
+    .heading = 同步日志
+    .description = 同步功能写入的诊断日志。
+about-sync-log-filter-type =
+    .aria-label = 类型
+about-sync-log-filter-type-all =
+    .label = 全部
+about-sync-log-filter-type-success =
+    .label = 成功
+about-sync-log-filter-type-error =
+    .label = 错误
+about-sync-log-filter-date =
+    .aria-label = 日期
+about-sync-log-filter-date-all =
+    .label = 全部时间
+about-sync-log-filter-date-today =
+    .label = 今天
+about-sync-log-download-button =
+    .label = 下载当前显示的日志（.zip）
+about-sync-log-clear-button =
+    .label = 清除日志
+about-sync-log-empty = 尚未记录任何同步日志。
+about-sync-log-empty-filtered = 没有日志符合当前的筛选条件。
+about-sync-log-view-error = 无法读取此日志文件。
+about-sync-log-open-raw =
+    .label = 打开原始文件
+about-sync-log-clear-confirm-title = 清除同步日志？
+about-sync-log-clear-confirm-message =
+    { $count ->
+        [one] 这将永久删除 { $count } 个可见的日志文件。
+       *[other] 这将永久删除 { $count } 个可见的日志文件。
+    }
+about-sync-log-clear-confirm-accept = 删除
+
+# @file omni.ja localization/zh-CN/toolkit/about/aboutProcesses.ftl
+about-processes-utility-actor-hw-inference = 硬件加速推理
 
 # @file omni.ja localization/zh-CN/toolkit/about/aboutNetworking.ftl
 about-networking-ssl-tokens-summary-count = { $count } 个令牌
@@ -34,6 +85,31 @@ about-networking-ssl-tokens-handshake-certs = 握手证书（{ $count }）
 # @file omni.ja localization/zh-CN/toolkit/about/aboutPDF.ftl
 about-pdf-file-picker-title = 打开 PDF
 
+# @file omni.ja localization/zh-CN/toolkit/formautofill/formAutofill.ftl
+autofill-card-security-code-label = CVC
+
+# @file omni.ja localization/zh-CN/toolkit/global/processTypes.ftl
+process-type-utility-actor-hw-inference = 实用工具“硬件加速推理”
+
+# @file omni.ja localization/zh-CN/toolkit/neterror/netError.ftl
+neterror-search-cta-title = 无法访问此网站
+neterror-search-cta-intro = 无法连接到 { $domain } 的服务器。
+neterror-search-cta-things-to-try = 请尝试以下步骤：
+neterror-search-cta-hint-check-address = 仔细检查网站地址
+neterror-search-cta-hint-search = 在网上搜索以找到该站点
+neterror-search-cta-hint-search-query = 在网上搜索 <strong>“{ $query }”</strong>
+neterror-search-cta-search-button =
+    .label = 搜索
+    .accesskey = S
+    .tooltiptext = 在新标签页中打开搜索结果
+neterror-search-cta-reload-button =
+    .label = 重新载入
+    .accesskey = R
+neterror-search-cta-loading = 正在载入
+neterror-search-cta-offline = 您似乎处于离线状态。请重新连接后再试。
+neterror-search-cta-error-code = 错误代码：{ $error }
+neterror-search-cta-learn-more = 详细了解
+
 # @file omni.ja localization/zh-CN/toolkit/about/url-classifier.ftl
 url-classifier-content-classifier-loading-url-enabled = 启用加载网址
 url-classifier-content-classifier-probes = 探测
@@ -57,59 +133,23 @@ pdfjs-digital-signature-properties-banner-invalid = 文档有 { $count } 个无�
 pdfjs-digital-signature-properties-banner-revoked = 文档使用了 { $count } 个已吊销的证书签署
 pdfjs-digital-signature-properties-sub-signatures = 子签名（{ $count }）
 
-# @file browser/omni.ja localization/zh-CN/browser/aiWindow.ftl
-aiwindow-firstrun-model-personal-body-v2 = 提供跨语言的个性化帮助
-
-# @file browser/omni.ja localization/zh-CN/browser/appExtensionFields.ftl
-extension-default-theme-description2 = 均衡、熟悉的灰紫色，呈现经典的 { -brand-product-name } 外观。
-
-# @file browser/omni.ja localization/zh-CN/browser/appmenu.ftl
-appmenuitem-share-firefox-description = 邀请他人选择将隐私放在首位的浏览器
-
-# @file browser/omni.ja localization/zh-CN/browser/browser.ftl
-identity-description-tls-key-logging-message = 某个应用或服务可能能够查看您与此网站之间的加密流量。
-
 # @file browser/omni.ja localization/zh-CN/browser/featureCallout.ftl
 taskbar-tabs-chat-callout-title-v3 = 从任务栏随时保持联系
-
-# @file browser/omni.ja localization/zh-CN/browser/firefoxView.ftl
-firefoxview-syncedtabs-adddevice-description-3 = 扫描二维码获取移动版 { -brand-product-name }，开始同步打开的标签页等数据。了解如何<a data-l10n-name="url">连接更多设备</a>。
-firefoxview-tabpickup-password-locked-description-2 = 为保护您的隐私，同步的标签页已受保护。请输入 { -brand-short-name } 的主密码，以查看其他设备上的标签页。
-firefoxview-history-empty-description-2 = 您访问网页后，浏览历史会显示在此处。可在<a data-l10n-name="history-settings-url">设置</a>中选择要记录的内容。
-firefoxview-dont-remember-history-empty-description-2 = { -brand-short-name } 目前不会保存您的历史记录。您可随时在<a data-l10n-name="history-settings-url-two">设置</a>中更改。
 
 # @file browser/omni.ja localization/zh-CN/browser/ipProtection.ftl
 ipprotection-summer-promo-offramp-generic-description = 使用您的 { $maxUsage } GB 流量和 6 个连接位置获得额外隐私保护，让您的浏览活动更难被追溯。
 ipprotection-summer-promo-offramp-generic-description-default-browser-users-no-upgrade = 使用您的 { $maxUsage } GB 流量和超过 20 个连接位置获得额外隐私保护，让您的浏览活动更难被追溯。
-ipprotection-summer-promo-offramp-subscriber-description = 作为 { -mozilla-vpn-brand-name } 订阅者，您现在可享受无限带宽和更多连接位置。
-ipprotection-summer-promo-offramp-default-browser-incentive-title = 保留您额外的内置 VPN 连接位置
-ipprotection-android-promo-callout-description = 扫描二维码获取 Android 版 { -brand-product-name }，开启内置 VPN，随时随地获得更多隐私保护。即将支持 iOS。
-ipprotection-connection-status-blocked-error-description-1 = 当地法律和限制会影响 VPN 的可用地区。<a data-l10n-name="learn-more-link">详细了解</a>
 
 # @file browser/omni.ja localization/zh-CN/browser/newtab/newtab.ftl
-newtab-privacy-message-info-1-cta = 查看保护情况
-newtab-privacy-message-info-2-cta = 查看保护情况
-newtab-privacy-message-info-3-cta = 查看保护情况
-newtab-privacy-message-info-4-cta = 查看保护情况
-newtab-privacy-message-info-5-cta = 查看保护情况
-newtab-privacy-message-info-7-cta = 查看保护情况
-newtab-privacy-message-info-12-cta = 查看保护情况
-newtab-privacy-message-info-13-cta = 查看保护情况
 newtab-privacy-message-milestone-week = 本周已拦截 { $count } 个跟踪器。看看 { -brand-short-name } 为您挡住了什么。
-newtab-privacy-message-milestone-week-cta = 查看保护情况
-newtab-privacy-message-milestone-month-cta = 查看保护情况
-newtab-privacy-message-milestone-year = 今年已拦截 { $count } 个跟踪器。这一年，我们持续守护您的隐私。
-newtab-privacy-message-milestone-year-cta = 查看保护情况
 newtab-privacy-message-milestone-total = 已拦截 { $count } 个跟踪器。您在掌控个人隐私的道路上又迈进了一大步。
-newtab-privacy-message-milestone-total-cta = 查看保护情况
 newtab-privacy-message-daily-cap = （今天已拦截超过 100 个跟踪器。）跟踪器越少，隐私保护越多。
-newtab-privacy-message-daily-cap-cta = 查看保护情况
-newtab-privacy-message-streak = 您已连续受到保护 { $count } 天。
-newtab-privacy-message-streak-cta = 查看保护情况
-newtab-privacy-message-first-protection-cta = 查看保护情况
+newtab-privacy-etp-off-faster-browsing = 浏览更快速。跟踪器更少。
 
-# @file browser/omni.ja localization/zh-CN/browser/preferences/formAutofill.ftl
-autofill-country-warning-message-2 = 表单自动填写目前仅适用于部分国家或地区
+# @file browser/omni.ja localization/zh-CN/browser/preferences/preferences.ftl
+containers-sites-card-header =
+    .label = 站点专用身份
+    .description = 为某个网站选择身份后，{ -brand-short-name } 每次打开该网站时都会使用它。
 
 # @file browser/omni.ja localization/zh-CN/browser/preferences/zen-preferences.ftl
 zen-settings-workspaces-sync =
@@ -123,42 +163,12 @@ zen-local-shortcut-not-set = 未设置
 # @file browser/omni.ja localization/en-US/browser/preferences/zen-preferences.ftl
 zen-local-shortcut-not-set = Not set
 
-# @file browser/omni.ja localization/zh-CN/browser/sharePanel.ftl
-urlbar-share-button =
-    .tooltiptext = 分享此页面
-    .aria-label = 分享此页面
-share-panel-heading = 分享页面
-share-panel-copy-link =
-    .label = 复制链接
-confirmation-hint-link-copied = 已复制链接
-share-panel-os-share =
-    .label = 分享到…
-share-panel-mail =
-    .label = 发送电子邮件
-share-panel-screenshot =
-    .label = 截取屏幕截图
-share-panel-qr-code =
-    .label = 分享二维码
-share-panel-send-to-device =
-    .label = 发送到设备
-share-panel-send-to-mobile =
-    .label = 发送到移动设备
-share-panel-device-subview =
-    .title = 所有设备
-share-panel-os-share-subview =
-    .title = 分享到…
-
-# @file browser/omni.ja localization/zh-CN/browser/sidebar.ftl
-sidebar-opentabs-preview-heading = 最近的标签页
-sidebar-opentabs-preview-close-tab =
-    .title = 关闭 { $tabTitle }
-sidebar-opentabs-preview-mute-tab =
-    .title = 将标签页静音
-sidebar-opentabs-preview-unmute-tab =
-    .title = 取消标签页静音
-
-# @file browser/omni.ja localization/zh-CN/browser/sync.ftl
-fxa-menu-sign-in-promo-message = 随时随地使用您的数据
+# @file browser/omni.ja localization/zh-CN/browser/zen-command-palette.ftl
+zen-action-unsplit-view = 展开当前视图
+zen-action-new-space = 新建工作区
+zen-action-reopen-closed-tab = 重新打开已关闭的标签页
+zen-action-duplicate-tab = 复制当前标签页
+zen-action-reset-pinned-tab = 重置固定标签页
 
 # @file browser/omni.ja localization/zh-CN/browser/zen-live-folders.ftl
 zen-live-folder-options =

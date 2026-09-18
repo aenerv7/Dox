@@ -63,7 +63,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
 | `Dox Reader/` | 活跃 | local-first RSS 阅读器（Firefox 扩展版 + Cloudflare Workers 网页版） |
 | `Firefox/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
-| `Firefox/Zen/` | 活跃 | Zen 1.22.1b 中文本地补全与可还原的资源包补丁 |
+| `Firefox/Zen/` | 活跃 | Zen 1.22.2b 中文本地补全与可还原的资源包补丁 |
 | `PortableBridge/` | 活跃 | Firefox / Chrome 会话级 HTTP(S) 回退，最新启动者接管 |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `CSS/` | 活跃 | 中文字体映射 CSS 和 VS Code 自定义 CSS |
@@ -1201,11 +1201,11 @@ python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
 
 #### 范围与源码边界
 
-`Firefox/Zen/` 为 Windows 版 Zen 1.22.1b / Gecko 155.0.1、Build ID `20260911034930` 提供离线本地补丁。原始资源来自 `zen-browser/desktop` 提交 `d7441097171a1a9d47ee40a3e6fcd71bd01784a4` 对应的安装包；`baseline.json` 固定原版两个资源包的 SHA-256，不能仅因版本号相同就放宽校验。
+`Firefox/Zen/` 为 Windows 版 Zen 1.22.2b / Gecko 156.0、Build ID `20260915091052` 提供离线本地补丁。原始资源来自 `zen-browser/desktop` 提交 `e74571eead515d37edd0914739f744bcb5258c51` 对应的安装包；`baseline.json` 固定原版两个资源包的 SHA-256，不能仅因版本号相同就放宽校验。
 
 | 文件 | 职责 |
 |---|---|
-| `translations.ftl` | `# @file` 指定资源包与资源路径；追加 192 个缺失中文消息和 1 个新增“未设置”中文消息，并提供该新增消息的英文回退 |
+| `translations.ftl` | `# @file` 指定资源包与资源路径；追加 190 个缺失中文消息和 1 个新增“未设置”中文消息，并提供该新增消息的英文回退 |
 | `patch_zen.py` | `help/detect/build/install/restore/verify` 入口；生成资源包、修改快捷键显示、验证哈希、备份和替换 |
 | `discovery.py` | Windows 进程路径与注册表安装定位、INI 配置枚举、运行锁判断、默认配置选择、缓存路径验证 |
 | `Install.ps1` | 参数透传和本地日志；不自动提权，不修改 ACL |
@@ -1239,16 +1239,16 @@ python -B -m unittest discover -s Firefox/Zen -p test_discovery.py -v
 python -B Firefox/Zen/patch_zen.py detect
 python -B Firefox/Zen/patch_zen.py verify
 # 已安装补丁时从原版备份重新构建；首次构建也可指定原版安装目录
-python -B Firefox/Zen/patch_zen.py build --install-dir Firefox/Zen/backups/20260911034930
+python -B Firefox/Zen/patch_zen.py build --install-dir Firefox/Zen/backups/20260915091052
 python -m pip install fluent.syntax
-python -B Firefox/Zen/validate.py --original-dir Firefox/Zen/backups/20260911034930
+python -B Firefox/Zen/validate.py --original-dir Firefox/Zen/backups/20260915091052
 node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/preferences/zen-settings.js
 node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/zen-components/ZenKeyboardShortcuts.mjs
 ```
 
 验证资源时必须使用原版安装或备份作参照，不能把已打补丁的安装当原包。Fluent 校验检查语法、重复 ID、中文消息/值/属性缺项、变量及引用、命名链接占位符，并比较非目标资源内容。unittest 覆盖相对/绝对配置、默认项、活动配置优先、残留锁与真实锁、多候选拒绝、其他安装排除、自定义缓存路径、首次自动构建，以及安装/还原不改动配置数据。
 
-本次验证结果：12 项 unittest 通过；247 个英文 Fluent 文件均有完整中文消息、值和属性，新增中文消息 193 个；两个修改后的 JavaScript 文件通过语法检查。在独立安装副本和全新配置中实际启动 Zen，确认同步、分享、欢迎页、活动文件夹与工作区提示由 Fluent 正确加载，快捷键设置显示 `F5`、`Ctrl+F5`、`Shift+F5`、`Alt+Home`、`Delete`，命名键预览正确显示 Home、End、PageUp 等。仅含源码的便携包重新构建后，所有资源内容与已验证补丁一致；本机安装资源哈希也已核对。
+本次验证结果：12 项 unittest 通过；251 个英文 Fluent 文件均有完整中文消息、值和属性，新增中文消息 191 个；两个修改后的 JavaScript 文件通过语法检查。静态校验确认补丁资源与基线原包一致，未改动任何非目标资源。**尚未在 1.22.2b 上做真实启动验证**：安装后须用独立测试配置重新确认同步、分享、欢迎页、活动文件夹与工作区提示由 Fluent 正确加载，快捷键设置显示 `F5`、`Ctrl+F5`、`Shift+F5`、`Alt+Home`、`Delete`，命名键预览正确显示 Home、End、PageUp 等。
 
 后续改动界面资源仍需使用独立测试配置做真实启动验证。静态消息覆盖不代表审查了所有硬编码英文，也不涉及第三方扩展或网页翻译；不要宣称所有界面已完整汉化。打包时只包含源码、翻译数据、基线和用户说明，排除本机配置、备份、日志及测试浏览器副本。
 
