@@ -118,6 +118,16 @@ const ITEM_PANE_MAX = 0.5;
 const READER_PANE_MIN = 0.3;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_ASYNC_FEEDBACK_MS = 400;
+const SYNC_DEBOUNCE_MS = 1400;
+const ALL_READ_ACTION = "all";
+
+function feedReadAction(feedId: string): string {
+  return `feed:${feedId}`;
+}
+
+function itemReadAction(itemId: string): string {
+  return `item:${itemId}`;
+}
 
 function formatBackendStatus(status: BackendStatus | null): string {
   if (status?.job.running) return "后台正在抓取";
@@ -223,11 +233,15 @@ export function App() {
   const [refreshScope, setRefreshScope] = useState<"all" | string | null>(null);
   const [refreshProgress, setRefreshProgress] = useState<RefreshDisplayProgress | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
+  const [readBusy, setReadBusy] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState("");
   const [ready, setReady] = useState(false);
   const [backendNotice, setBackendNotice] = useState('');
   const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null);
   const syncTimer = useRef<number | null>(null);
+  const syncBusy = useRef(false);
+  const settingsSyncBusy = useRef(false);
+  const readBusyKeys = useRef(new Set<string>());
   const itemListRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
@@ -253,6 +267,11 @@ export function App() {
   const performSync = useCallback(async (currentSettings = settings, quiet = false) => {
     if(currentSettings.storageMode==='backend') {await loadData();return currentSettings;}
     if (!currentSettings.webdavUrl) return currentSettings;
+    if (syncBusy.current) {
+      return currentSettings;
+    }
+    syncBusy.current = true;
+    const startedAt = Date.now();
     setSyncStatus("syncing");
     try {
       const localHadReaderData = await hasLocalReaderData();
@@ -292,6 +311,7 @@ export function App() {
         }
       }
 
+      await keepFeedbackVisible(startedAt);
       setSyncStatus("ok");
       if (!quiet) {
         if (initialRefresh) {
@@ -304,9 +324,12 @@ export function App() {
       }
       return syncedSettings;
     } catch (error) {
+      await keepFeedbackVisible(startedAt);
       setSyncStatus("error");
       if (!quiet) setToast(error instanceof Error ? error.message : String(error));
       return currentSettings;
+    } finally {
+      syncBusy.current = false;
     }
   }, [loadData, settings]);
 
@@ -314,7 +337,16 @@ export function App() {
     if(backendEnabled()) return;
     if (!settings.webdavUrl) return;
     if (syncTimer.current !== null) window.clearTimeout(syncTimer.current);
-    syncTimer.current = window.setTimeout(() => void performSync(settings, true), 1400);
+    // 同步期间的新修改延后重试，不能因防重入而丢失。
+    const syncWhenIdle = () => {
+      if (syncBusy.current || settingsSyncBusy.current) {
+        syncTimer.current = window.setTimeout(syncWhenIdle, SYNC_DEBOUNCE_MS);
+        return;
+      }
+      syncTimer.current = null;
+      void performSync(settings, true);
+    };
+    syncTimer.current = window.setTimeout(syncWhenIdle, SYNC_DEBOUNCE_MS);
   }, [performSync, settings]);
 
   useEffect(() => {
@@ -385,14 +417,7 @@ export function App() {
       if (filter === "unread") {
         setRetainedUnreadIds((current) => new Set(current).add(item.id));
       }
-      await setItemState(item.id, { read: true });
-      setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
-      setCounts((current) => ({ ...current, unread: Math.max(0, current.unread - 1) }));
-      setFeedUnread((current) => ({
-        ...current,
-        [item.feedId]: Math.max(0, (current[item.feedId] ?? 0) - 1),
-      }));
-      queueSync();
+      await toggleRead(item);
     }
   }
 
@@ -406,19 +431,56 @@ export function App() {
     queueSync();
   }
 
+  function beginReadAction(key: string): boolean {
+    // 同步加锁覆盖重渲染前的连点及自动已读，避免交叉写入。
+    if (readBusyKeys.current.size > 0) {
+      return false;
+    }
+    readBusyKeys.current.add(key);
+    setReadBusy((current) => ({ ...current, [key]: true }));
+    return true;
+  }
+
+  function endReadAction(key: string): void {
+    readBusyKeys.current.delete(key);
+    setReadBusy((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function isReadBusy(key: string): boolean {
+    return Boolean(readBusy[key]);
+  }
+
+  function isReadLocked(): boolean {
+    return Object.keys(readBusy).length > 0;
+  }
+
   async function toggleRead(item: ItemRecord) {
+    const action = itemReadAction(item.id);
+    if (!beginReadAction(action)) {
+      return;
+    }
+    const startedAt = Date.now();
     const nextRead = !item.read;
-    await setItemState(item.id, { read: nextRead });
-    setItems((current) => current.map((entry) =>
-      entry.id === item.id ? { ...entry, read: nextRead } : entry
-    ));
-    const delta = nextRead ? -1 : 1;
-    setCounts((current) => ({ ...current, unread: Math.max(0, current.unread + delta) }));
-    setFeedUnread((current) => ({
-      ...current,
-      [item.feedId]: Math.max(0, (current[item.feedId] ?? 0) + delta),
-    }));
-    queueSync();
+    try {
+      await setItemState(item.id, { read: nextRead });
+      setItems((current) => current.map((entry) =>
+        entry.id === item.id ? { ...entry, read: nextRead } : entry
+      ));
+      const delta = nextRead ? -1 : 1;
+      setCounts((current) => ({ ...current, unread: Math.max(0, current.unread + delta) }));
+      setFeedUnread((current) => ({
+        ...current,
+        [item.feedId]: Math.max(0, (current[item.feedId] ?? 0) + delta),
+      }));
+      queueSync();
+    } finally {
+      await keepFeedbackVisible(startedAt);
+      endReadAction(action);
+    }
   }
 
   async function handleRefresh(feedId?: string, auto = false) {
@@ -493,19 +555,42 @@ export function App() {
   }
 
   async function handleMarkAllRead() {
-    const count = await markAllRead();
-    if (!count) return;
-    await loadData();
-    queueSync();
-    setToast(`已将 ${count} 篇文章全部标为已读`);
+    if (!beginReadAction(ALL_READ_ACTION)) {
+      return;
+    }
+    const startedAt = Date.now();
+    try {
+      const count = await markAllRead();
+      if (!count) {
+        return;
+      }
+      await loadData();
+      queueSync();
+      setToast(`已将 ${count} 篇文章全部标为已读`);
+    } finally {
+      await keepFeedbackVisible(startedAt);
+      endReadAction(ALL_READ_ACTION);
+    }
   }
 
   async function handleMarkFeedRead(feed: FeedRecord) {
-    const count = await markFeedRead(feed.id);
-    if (!count) return;
-    await loadData();
-    queueSync();
-    setToast(`已将 ${feedName(feed)} 的 ${count} 篇文章标为已读`);
+    const action = feedReadAction(feed.id);
+    if (!beginReadAction(action)) {
+      return;
+    }
+    const startedAt = Date.now();
+    try {
+      const count = await markFeedRead(feed.id);
+      if (!count) {
+        return;
+      }
+      await loadData();
+      queueSync();
+      setToast(`已将 ${feedName(feed)} 的 ${count} 篇文章标为已读`);
+    } finally {
+      await keepFeedbackVisible(startedAt);
+      endReadAction(action);
+    }
   }
 
   async function handleRemoveFeed(feed: FeedRecord) {
@@ -549,11 +634,23 @@ export function App() {
   }
 
   async function handleSettingsSync(next: AppSettings): Promise<AppSettings> {
-    await updateSyncedPreferences(preferenceValues(next));
-    await saveSettings(next);
-    setSettingsState(next);
-    applyAppearance(next);
-    return performSync(next);
+    if (syncBusy.current || settingsSyncBusy.current) {
+      return next;
+    }
+    settingsSyncBusy.current = true;
+    setSyncStatus("syncing");
+    try {
+      await updateSyncedPreferences(preferenceValues(next));
+      await saveSettings(next);
+      setSettingsState(next);
+      applyAppearance(next);
+      return await performSync(next);
+    } catch (error) {
+      setSyncStatus("error");
+      throw error;
+    } finally {
+      settingsSyncBusy.current = false;
+    }
   }
 
   async function toggleLayoutLock() {
@@ -667,11 +764,11 @@ export function App() {
           <span>Dox Reader</span>
         </button>
         <div class="topbar-actions">
-          {settings.storageMode === "local" && <button class="icon-button" title="同步" disabled={!settings.webdavUrl || syncStatus === "syncing"} onClick={() => void performSync()}>
+          {settings.storageMode === "local" && <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing"} onClick={() => void performSync()}>
             {syncIcon}
           </button>}
-          <button class="icon-button" title="全部标为已读" disabled={refreshing || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
-            <CheckCheck size={18} />
+          <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
+            {isReadBusy(ALL_READ_ACTION) ? <LoaderCircle size={18} class="spin" /> : <CheckCheck size={18} />}
           </button>
           <button class="icon-button" title="刷新所有订阅" disabled={refreshing || !feeds.length} onClick={() => void handleRefresh()}>
             <RefreshCw size={18} class={refreshScope === "all" ? "spin" : ""} />
@@ -711,8 +808,8 @@ export function App() {
                   <span>{feedName(feed)}</span>
                 </button>
                 <div class="feed-row-actions">
-                  <button class="feed-action" title="全部标为已读" disabled={refreshing || count === 0} onClick={() => runAction(handleMarkFeedRead(feed))}>
-                    <ListChecks size={14} />
+                  <button class="feed-action" title="全部标为已读" disabled={refreshing || isReadLocked() || count === 0} onClick={() => runAction(handleMarkFeedRead(feed))}>
+                    {isReadBusy(feedReadAction(feed.id)) ? <LoaderCircle size={14} class="spin" /> : <ListChecks size={14} />}
                   </button>
                   <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
                     <RefreshCw size={14} class={refreshScope === feed.id ? "spin" : ""} />
@@ -738,8 +835,8 @@ export function App() {
           </div>
           {selectedFeed && (
             <div class="items-header-actions">
-              <button class="icon-button" title="全部标为已读" disabled={refreshing || selectedFeedUnread === 0} onClick={() => runAction(handleMarkFeedRead(selectedFeed))}>
-                <ListChecks size={16} />
+              <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || selectedFeedUnread === 0} onClick={() => runAction(handleMarkFeedRead(selectedFeed))}>
+                {isReadBusy(feedReadAction(selectedFeed.id)) ? <LoaderCircle size={16} class="spin" /> : <ListChecks size={16} />}
               </button>
               <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
                 <RefreshCw size={16} class={refreshScope === selectedFeed.id ? "spin" : ""} />
@@ -796,6 +893,8 @@ export function App() {
             onBack={() => setMobilePane("items")}
             onToggleStar={() => runAction(toggleStar(selectedItem))}
             onToggleRead={() => runAction(toggleRead(selectedItem))}
+            readBusy={isReadBusy(itemReadAction(selectedItem.id))}
+            readLocked={isReadLocked()}
           />
         ) : (
           <div class="reader-empty">
@@ -878,6 +977,7 @@ export function App() {
           settings={settings}
           backendNotice={backendNotice}
           backendStatus={backendStatus}
+          syncing={syncStatus === "syncing"}
           onClose={() => setShowSettings(false)}
           onSave={handleSaveSettings}
           onSync={handleSettingsSync}
@@ -906,6 +1006,8 @@ function Article(props: {
   onBack: () => void;
   onToggleStar: () => void;
   onToggleRead: () => void;
+  readBusy: boolean;
+  readLocked: boolean;
 }) {
   const content = useMemo(
     () => renderArticleContent(props.item.content, props.item.url),
@@ -924,8 +1026,8 @@ function Article(props: {
         <button class="mobile-back icon-button" title="返回文章列表" onClick={props.onBack}><ArrowLeft size={19} /></button>
         <span>{props.feed ? feedName(props.feed) : sourceHost(props.item)}</span>
         <div>
-          <button class="icon-button" title={props.item.read ? "标为未读" : "标为已读"} onClick={props.onToggleRead}>
-            {props.item.read ? <Mail size={18} /> : <MailOpen size={18} />}
+          <button class="icon-button" title={props.item.read ? "标为未读" : "标为已读"} disabled={props.readLocked} onClick={props.onToggleRead}>
+            {props.readBusy ? <LoaderCircle size={18} class="spin" /> : props.item.read ? <Mail size={18} /> : <MailOpen size={18} />}
           </button>
           <button class={`icon-button ${props.item.starred ? "accent" : ""}`} title={props.item.starred ? "取消收藏" : "收藏"} onClick={props.onToggleStar}>
             <Star size={18} fill={props.item.starred ? "currentColor" : "none"} />
@@ -1015,6 +1117,7 @@ function SettingsDialog(props: {
   settings: AppSettings;
   backendNotice: string;
   backendStatus: BackendStatus | null;
+  syncing: boolean;
   onClose: () => void;
   onSave: (settings: AppSettings, config?:BackendConfig) => Promise<void>;
   onSync: (settings: AppSettings) => Promise<AppSettings>;
@@ -1027,7 +1130,7 @@ function SettingsDialog(props: {
   const [showPassword, setShowPassword] = useState(false);
   const [showBackendToken, setShowBackendToken] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const syncing = props.syncing;
   const [testResult, setTestResult] = useState("");
   const [webdavRetry, setWebdavRetry] = useState(0);
   const [backendConfig,setBackendConfig]=useState<BackendConfig|null>(null);
@@ -1112,16 +1215,14 @@ function SettingsDialog(props: {
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [draft.storageMode, draft.webdavUrl, draft.webdavUsername, draft.webdavPassword, webdavRetry]);
   const handleSync = async () => {
-    const startedAt = Date.now();
-    setSyncing(true);
+    if (syncing) {
+      return;
+    }
     setTestResult("");
     try {
       setDraft(await props.onSync(draft));
     } catch (error) {
       setTestResult(error instanceof Error ? error.message : String(error));
-    } finally {
-      await keepFeedbackVisible(startedAt);
-      setSyncing(false);
     }
   };
   return (
