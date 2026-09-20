@@ -1,10 +1,10 @@
 AutoHotkey/Test/Test.exe
 .DS_Store
 
-# Batch script logs
-Batch files/*_dbg.log
-Batch files/*_hlpr.log
-Batch files/RemoveMSEdge-backups/
+# Scripts logs
+Scripts/*_dbg.log
+Scripts/*_hlpr.log
+Scripts/RemoveMSEdge-backups/
 
 # Swift
 SizerSwift/.build/

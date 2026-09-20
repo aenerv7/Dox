@@ -65,9 +65,6 @@
 
 ## 验证
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\EdgeAssociations.Tests.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\EdgeAssociations.Batch.Tests.ps1
-```
+`-audit-associations` 和 `-repair-associations` 本身是只读/可回滚入口，可以直接在正常使用的机器上运行：审计不改任何东西，修复会先把原 DACL 写入备份，校验失败即回滚。
 
-注册表测试仅使用随机 `HKCU\Software\Dox.EdgeAssociations.Tests\<GUID>` 子树，并清理测试创建的键。BAT 测试在临时目录用替代辅助脚本验证参数、空格路径、缺少依赖及退出码传播。测试不会运行真正的卸载流程或触碰生产文件关联。
+不要为验证语法而在日常开发机上直接运行完整卸载脚本；卸载流程只能在可回滚的虚拟机或专用测试机上验证。改动关联清理逻辑后，用 Windows 默认应用界面和目标浏览器的实际打开行为复核结果，不要只看退出码。
