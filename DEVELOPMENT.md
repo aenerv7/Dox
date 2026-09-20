@@ -19,7 +19,7 @@
    - 3.8 [Userscript 小脚本](#38-userscript-小脚本)
    - 3.9 [Stash](#39-stash)
    - 3.10 [AdGuard（magi.txt）](#310-adguardmagitxt)
-   - 3.11 [Batch files（RemoveMSEdge）](#311-batch-filesremovemsedge)
+   - 3.11 [Scripts（Edge 清理与 FFmpeg 安装）](#311-scriptsedge-清理与-ffmpeg-安装)
    - 3.12 [DeepSeek Harness Launcher](#312-deepseek-harness-launcher)
    - 3.13 [Android ApkRename](#313-android-apkrename)
    - 3.14 [PortableBridge](#314-portablebridge)
@@ -50,7 +50,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Firefox 扩展 + Cloudflare Workers） |
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射和 VS Code 外观自定义 |
-| 批处理 | `Batch files/*.bat` | Edge 清理脚本 |
+| 批处理 / PowerShell | `Scripts/*.bat`、`Scripts/*.ps1` | Edge 清理脚本和 FFmpeg 安装脚本 |
 
 ### 1.3 模块清单
 
@@ -69,7 +69,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `CSS/` | 活跃 | 中文字体映射 CSS 和 VS Code 自定义 CSS |
 | `Userscript/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
 | `Stash/` | 小工具 | Stash 外部 IP 地址磁贴脚本 |
-| `Batch files/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版） |
+| `Scripts/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版）、Flatten 和 FFmpeg 安装脚本 |
 | `Android/ApkRename/` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
 | `HeliumLanguagePatcher/` | 活跃 | Helium 语言包扫描、翻译缓存与 DataPack v5 补丁 |
 | `magi.txt` | 已移除 | 历史 AdGuard 规则，当前检出不提供；保留第 3.10 节历史维护约定 |
@@ -104,6 +104,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/Zen/patch_zen.py`、`discovery.py`、`Install.ps1`、`translations.ftl`、`baseline.json`、`validate.py`、`test_discovery.py`
 - `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`
 - `Stash/external-ip-address-tile.js`
+- `Scripts/Install-FFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
 
 ### 1.5 资源文件（图标）
@@ -795,7 +796,11 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 维护要求：保持白名单按顶级域或站点分组；元素隐藏规则尽量落实到具体站点，不写过宽选择器。
 
-### 3.11 Batch files（RemoveMSEdge）
+### 3.11 Scripts（Edge 清理与 FFmpeg 安装）
+
+`Scripts/` 收纳 Windows 批处理工具、Edge 清理辅助脚本和 FFmpeg 安装脚本。
+
+#### Edge 清理（RemoveMSEdge）
 
 两个 Edge 清理脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)，头部必须保留来源链接。
 
@@ -821,7 +826,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 - `RemoveMSEdgeAll.bat`：无守卫模式，依次处理机器级 Edge、当前用户级 Edge、机器级/用户级 Evergreen WebView2、Edge AppX 及所有用户和共享更新设施残留。
 - 两脚本都支持 `-auto`（仅内置 Administrator 已启用时跳过身份确认，不等同于 `-guard`）。
 - 两脚本都支持 `-help`、`-h`、`/?` 显示参数说明；帮助在架构切换前退出，不触发 UAC、联网、下载或卸载。
-- 两脚本共用同目录 `EdgeAssociations.ps1`；缺失时必须在提权、下载、卸载前退出。新增 `-audit-associations` / `-repair-associations` 只检查或修复当前用户关联，在日志初始化前分流，不卸载、不联网、不请求 UAC，以便读取旧日志。使用及残留处理见 [RemoveMSEdge.README.md](./Batch%20files/RemoveMSEdge.README.md)。
+- 两脚本共用同目录 `EdgeAssociations.ps1`；缺失时必须在提权、下载、卸载前退出。新增 `-audit-associations` / `-repair-associations` 只检查或修复当前用户关联，在日志初始化前分流，不卸载、不联网、不请求 UAC，以便读取旧日志。使用及残留处理见 [EdgeAssociations.README.md](./Scripts/EdgeAssociations.README.md)。
 
 #### 计划任务约定
 
@@ -829,8 +834,8 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 ```text
 程序或脚本: %SystemRoot%\System32\cmd.exe
-添加参数:   /d /c ""C:\path\to\Batch files\RemoveMSEdge.bat" -guard"
-起始于:     C:\path\to\Batch files
+添加参数:   /d /c ""C:\path\to\Scripts\RemoveMSEdge.bat" -guard"
+起始于:     C:\path\to\Scripts
 ```
 
 #### 执行流程
@@ -866,7 +871,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 静态：`git diff --check`、`git status --short --ignored`；确认所有 `powershell -noprofile -c` 块能被 `[scriptblock]::Create()` 解析、多行管道块经 CMD 转义后可解析、无缺/重标签、`RemoveMSEdge.bat` 无违反保留边界的破坏命令、调试日志保持 ignored。
 
-关联回归：运行 `Batch files/tests/EdgeAssociations.Tests.ps1`（随机隔离 HKCU 子树，覆盖拒绝写入、备份失败、并发选择变化、旧父项修复/回滚、自定义 ACL、旧日志边界）和 `EdgeAssociations.Batch.Tests.ps1`（临时 BAT + stub 验证参数/退出码）。不得以实际卸载或关闭 UCPD 的方式运行测试。
+关联回归：`EdgeAssociations.ps1` 的验证脚本已随模块移除，当前检出不提供自动化关联测试。改动关联清理逻辑后必须人工复核下表场景，不得只凭静态检查通过；不得以实际卸载或关闭 UCPD 的方式运行验证。
 
 破坏性验证只能在可回滚虚拟机/专用测试机：
 
@@ -886,6 +891,64 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 | 依赖文件缓存哈希不匹配 | 删除缓存、重新下载并通过二次 SHA-256 校验后继续 |
 
 不要在日常开发机上为语法验证直接跑完整脚本。
+
+#### FFmpeg 安装（Install-FFmpeg.ps1）
+
+`Scripts/Install-FFmpeg.ps1` 安装 FFmpeg 的 Windows full 构建，需要 PowerShell 7。**本脚本刻意单文件、无测试脚本**：它的逻辑是下载与复制，验证方式是真实运行，见下方清单。
+
+`$Binaries` 是安装契约：`ffmpeg.exe`、`ffplay.exe`、`ffprobe.exe`。`$PayloadExtensions` 决定从解压结果中取出哪些文件（`.exe`、`.dll`），其余是 32 个 HTML 手册、`LICENSE.txt`，共享库构建里还有头文件和导入库。
+
+安装时**只落盘 `.exe` 和 `.dll`，不安装 `.ffpreset`**：这些构建在 `/presets` 目录下查找预设文件，而归档并不提供该目录，`-vpre libvpx-720p` 在有无 `.ffpreset` 时都报 `File for preset 'libvpx-720p' not found`。libvpx 的 `-deadline`、`-cpu-used` 等参数是内置选项，不依赖这些文件。
+
+##### 来源与变体
+
+上游是 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)，它是 [ffmpeg.org Windows 下载页](https://ffmpeg.org/download.html#build-windows)列出的镜像之一。资源名形如：
+
+```text
+ffmpeg-<分支>-latest-win64-gpl[-shared][-<版本>].zip
+        master | n9.0 等           共享库变体   编号发布才有
+```
+
+- `-Git` 选 `master` 分支（每日构建），默认选编号发布（如 `n9.0`）。
+- `-Shared` 选 `-shared` 变体：可执行文件变小，但必须连同 7 个 DLL 一起安装，否则无法启动。这是唯一需要安装非 exe 文件的场景，也是 `$PayloadExtensions` 同时收录 `.dll` 的原因。
+- GPL 变体是唯一含 libx264/libx265 的变体，等价于 gyan.dev 的 full release；gyan.dev 的 full release 只提供 `.7z`，需要外部 7-Zip，因此不选它。
+- **资源名不得硬编码版本号**：编号发布会随上游切换（`n8.1` → `n9.0`）而变。`Select-Asset` 按 `$AssetPattern` 从 release 资源列表里挑选，并优先编号发布、再按 `created_at` 取最新。
+
+##### 下载与校验
+
+1. 先取 `checksums.sha256` 中该资源的行，得到期望摘要；资源不在列表中直接报错，不降级为“跳过校验”。
+2. 再下载整包，对文件算 SHA-256 比对；不匹配则重下，`$ArchiveRetries` 次后仍不匹配才失败。校验在解压之前完成。
+3. GitHub API 与 `checksums.sha256` 都需要请求头 `User-Agent`；未认证 API 限额为每地址每小时 60 次，每次运行只调一次。
+
+##### 安装语义
+
+- 目标目录：位置参数或 `-Directory`；省略时为 `%LOCALAPPDATA%\Programs\FFmpeg`。
+- 目录不存在则创建；存在则**无条件覆盖同名文件**，这是“重复运行即升级”的全部实现。切换 `-Shared` 只覆盖可执行文件，另一变体留下的 DLL 或旧文件不会被删除，需要干净目录时先手动清空。
+- 临时解压目录在 `finally` 中删除，下载失败、校验失败或解压失败都不留残留。
+- 结束时对三个可执行文件跑 `-version` 打印版本；`-Silent` 跳过。这一步同时验证了共享库构建的 DLL 确实可用。
+
+##### macOS 分支
+
+尚未实现。`Get-Platform` 是全脚本唯一的平台判断入口，返回 `MacOS` 时 `Main` 直接 `exit 2`，不触碰任何 Windows 路径。实现时在此分支接入 Homebrew，不要改动 Windows 分支的资产名与校验流程。
+
+##### 验证清单
+
+```powershell
+pwsh -NoProfile -File .\Scripts\Install-FFmpeg.ps1 -Directory $env:TEMP\ff-check
+```
+
+| 场景 | 预期结果 |
+|---|---|
+| 默认运行 | 安装到 `%LOCALAPPDATA%\Programs\FFmpeg`，输出三个可执行文件的版本横幅 |
+| 传目录 | 安装到指定目录，不动默认目录 |
+| 重复运行 | 覆盖同名文件后仍能正常输出 `-version` |
+| `-Shared` | 安装三个可执行文件和 7 个 DLL，`ffmpeg.exe` 可运行（下载体积明显小于静态版） |
+| `-Git` | 下载 `master` 分支资源，版本横幅为 `N-<hash>-<date>` |
+| 静态与共享互切 | 目标目录残留另一变体的 DLL，但三个可执行文件始终可运行 |
+| 安装结果 | 静态变体只有 3 个文件，无 `.ffpreset`、无 HTML 手册、无 `.lib`/`.h` |
+| 篡改期望摘要 | 报 SHA-256 mismatch，重下 `$ArchiveRetries` 次后失败，目标目录不新增文件 |
+| 断开网络 / 无该资源 | 明确报错，不静默跳过校验 |
+| 结束后的临时目录 | `%TEMP%` 下无 `dox-ffmpeg-*` 残留 |
 
 ### 3.12 DeepSeek Harness Launcher
 
@@ -1269,7 +1332,8 @@ node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/
 | Userscript | Tampermonkey / Greasemonkey | 浏览器安装脚本 |
 | Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
-| Batch files | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
+| Scripts（Edge 清理） | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
+| Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\Install-FFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
 | Android ApkRename | PowerShell，apktool/Java 等工具 | `.\rename-apk.ps1 [-SetupTools]` |
 
 ---

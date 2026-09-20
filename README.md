@@ -6,7 +6,8 @@
 
 - 想直接使用某个工具：先看对应目录的 `README.md`；没有目录说明时看本页对应小节。
 - 想构建、测试或修改实现：看 [`DEVELOPMENT.md`](./DEVELOPMENT.md)，其中记录唯一的维护者文档、模块边界和验证命令。
-- 想处理 Edge 默认关联残留：先运行 `Batch files/RemoveMSEdge.bat -audit-associations`，确认后再使用 `-repair-associations`；这两个入口只检查/修复关联，不会卸载 Edge。
+- 想处理 Edge 默认关联残留：先运行 `Scripts/RemoveMSEdge.bat -audit-associations`，确认后再使用 `-repair-associations`；这两个入口只检查/修复关联，不会卸载 Edge。
+- 想安装或升级 FFmpeg：运行 `Scripts/Install-FFmpeg.ps1`，默认安装到 `%LOCALAPPDATA%\Programs\FFmpeg`，重复运行即替换为新版本。
 - 想修改 Helium 翻译：先阅读下方“Helium 语言补丁”，完整实现和测试约束见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#315-heliumlanguagepatcher)。
 
 ## 功能一览
@@ -21,6 +22,7 @@
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`Firefox/Zen`](./Firefox/Zen/README.md) | Zen 简体中文补全与快捷键显示修正，自动识别安装和配置目录，支持备份还原 |
 | [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
+| [`Scripts`](./Scripts) | Windows 批处理工具、Edge 关联清理辅助脚本和 FFmpeg 安装脚本 |
 | [`DeepSeek Harness/Launcher`](./DeepSeek%20Harness/Launcher/README.md) | Windows 托盘监督器，负责启动、停止和更新本地 DeepSeek Harness |
 | [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
 | [`CSS`](./CSS) | 中文字体映射和 VS Code 外观自定义 CSS |
@@ -28,9 +30,10 @@
 | [`Stash`](./Stash) | Stash 磁贴脚本 |
 | [`Android/ApkRename`](./Android/ApkRename) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
 | [`HeliumLanguagePatcher`](./HeliumLanguagePatcher) | 扫描 Helium 漏译文案，通过 Codex 配置中的模型 API 补全翻译并修补语言包 |
-| [`Batch files/Flatten.bat`](./Batch%20files/Flatten.bat) | Windows 目录展平工具 |
-| [`Batch files/RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
-| [`Batch files/RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
+| [`Scripts/Flatten.bat`](./Scripts/Flatten.bat) | Windows 目录展平工具 |
+| [`Scripts/RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
+| [`Scripts/RemoveMSEdgeAll.bat`](./Scripts/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
+| [`Scripts/Install-FFmpeg.ps1`](./Scripts/Install-FFmpeg.ps1) | 下载并安装最新 FFmpeg full 构建，重复运行即替换为新版本 |
 
 ## Helium 语言补丁
 
@@ -298,9 +301,11 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 [`Android/ApkRename`](./Android/ApkRename) 是只修改 Android APK 应用名称的 PowerShell 脚本：基于 apktool 反编译，仅改动名称相关的清单/字符串资源，重新打包并用原 keystore 重新签名，包名、代码与其余资源保持不变，最后还会做逐文件哈希校验。工具（apktool、apksigner、zipalign、aapt）可自动下载到脚本目录 `tools\` 下（`.\rename-apk.ps1 -SetupTools`）。签名“字节”必然变化（内容变了），但只要使用原 keystore，签名“身份”（同一证书）保持不变，可覆盖安装。
 
-## Batch files
+## Scripts
 
-[`Batch files/Flatten.bat`](./Batch%20files/Flatten.bat) 用于分别将一个或多个目标文件夹的所有子目录文件移动到各自的目标根目录，并删除变空的子目录。
+### Flatten
+
+[`Scripts/Flatten.bat`](./Scripts/Flatten.bat) 用于分别将一个或多个目标文件夹的所有子目录文件移动到各自的目标根目录，并删除变空的子目录。
 
 - 支持一次拖拽一个或多个文件夹到脚本，或通过命令行传入多个路径
 - 多个目标会统一预检和确认，再按传入顺序分别展平；重复目标会去重，父子目标组合会被拒绝
@@ -312,9 +317,26 @@ Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/Shad
 
 | 脚本 | 用途 |
 |---|---|
-| [`RemoveMSEdge.bat`](./Batch%20files/RemoveMSEdge.bat) | 删除机器级、用户级 Edge 和相关 AppX，保留 WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-guard`、`-auto`、关联审计/修复及帮助参数 |
-| [`RemoveMSEdgeAll.bat`](./Batch%20files/RemoveMSEdgeAll.bat) | 全量删除 Edge、相关 AppX、WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-auto`、关联审计/修复及帮助参数 |
+| [`RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | 删除机器级、用户级 Edge 和相关 AppX，保留 WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-guard`、`-auto`、关联审计/修复及帮助参数 |
+| [`RemoveMSEdgeAll.bat`](./Scripts/RemoveMSEdgeAll.bat) | 全量删除 Edge、相关 AppX、WebView2 Runtime、EdgeCore、EdgeUpdate 及共享更新任务和服务；支持 `-auto`、关联审计/修复及帮助参数 |
 
-两个 BAT 需与 `EdgeAssociations.ps1` 一起使用。`-audit-associations` 只读检查旧关联残留，`-repair-associations` 备份并修复已识别的父项权限异常；这两个入口不执行卸载。正常清理不再修改 `UserChoice` 权限，受保护或无法判断的选择会保留并报告。详情见 [关联清理与旧权限残留说明](./Batch%20files/RemoveMSEdge.README.md)。
+两个 BAT 需与 `EdgeAssociations.ps1` 一起使用。`-audit-associations` 只读检查旧关联残留，`-repair-associations` 备份并修复已识别的父项权限异常；这两个入口不执行卸载。正常清理不再修改 `UserChoice` 权限，受保护或无法判断的选择会保留并报告。
 
-两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留；卸载后扫描各用户 URL 协议和文件扩展名的选择记录，仅清理确认失效、无 Hash 且无冲突的 Edge 选择值。职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留；卸载后扫描各用户 URL 协议和文件扩展名的选择记录，仅清理确认失效、无 Hash 且无冲突的 Edge 选择值。关联审计、修复入口、退出码与验证方式见 [`Scripts/EdgeAssociations.README.md`](./Scripts/EdgeAssociations.README.md)；职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+
+### FFmpeg
+
+[`Scripts/Install-FFmpeg.ps1`](./Scripts/Install-FFmpeg.ps1) 从 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds) 下载 FFmpeg 的最新 full 构建并安装其中的可执行文件。该来源是 [ffmpeg.org Windows 下载页](https://ffmpeg.org/download.html#build-windows) 列出的镜像之一，其 win64 GPL 构建与 gyan.dev 的 full release 同属一个变体（essentials 之外另含 libx264、libx265）。
+
+```powershell
+pwsh -File .\Scripts\Install-FFmpeg.ps1
+```
+
+- 需要 PowerShell 7；解压使用内置的 `Expand-Archive`，不依赖 7-Zip
+- 下载前先取发布页公布的 SHA-256 并校验，校验不通过不会解压
+- 默认安装到 `%LOCALAPPDATA%\Programs\FFmpeg`，可传目录作为位置参数或 `-Directory` 指定其他位置
+- 重复运行即替换目录内的版本，无需先卸载
+- 只安装 ffmpeg、ffplay、ffprobe 三个可执行文件，归档里的手册、头文件和导入库都不落盘
+- `-Shared` 换成共享库构建（下载小，但必须额外安装 7 个 DLL，脚本会自动一并装上），`-Git` 换成每日 master 构建，`-Silent` 跳过结束时的版本输出
+
+macOS 分支尚未实现，脚本在非 Windows 平台会直接报错退出。
