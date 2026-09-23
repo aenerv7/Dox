@@ -687,6 +687,19 @@ struct UpdateJob {
     bool         restartAfter = false;
 };
 
+// 从 `npm view ... --json` 的输出里取第一个字符串值。
+// 输出形态随 npm 版本与查询方式变化，故统一按「首个引号串」解析：
+//   ["0.1.7-alpha.2"]   单字段查询（数组包裹）
+//   "0.1.7-alpha.2"     裸字符串
+//   { "latest": "..." } 对象（取到的即首个值，用于 dist-tags 单 tag 场景）
+std::wstring JsonFirstString(const std::wstring& json) {
+    const size_t q1 = json.find(L'"');
+    if (q1 == std::wstring::npos) return L"";
+    const size_t q2 = json.find(L'"', q1 + 1);
+    if (q2 == std::wstring::npos) return L"";
+    return json.substr(q1 + 1, q2 - q1 - 1);
+}
+
 // 更新检查线程：按安装通道取远端版本，对比本地版本，结果回传 UI
 unsigned __stdcall CheckThread(void*) {
     // 本地版本决定通道（auto 模式下），必须在取远端版本之前解析
@@ -698,13 +711,10 @@ unsigned __stdcall CheckThread(void*) {
     std::wstring json;
     const std::wstring cmd = L"cmd.exe /c npm view " + std::wstring(kPkgName) + L"@" + g_channel +
                              L" version --json";
-    std::wstring latest;
     bool got = RunCommandCapture(cmd, json, 30000);
+    std::wstring latest;
     if (got) {
-        // --json 输出形如 "0.1.7-alpha.1"（带引号），去引号与换行
-        const size_t b = json.find_first_not_of(L" \t\r\n\"");
-        const size_t e = json.find_last_not_of(L" \t\r\n\"");
-        latest = (b == std::wstring::npos) ? L"" : json.substr(b, e - b + 1);
+        latest = JsonFirstString(json);
         if (latest.find(L'.') == std::wstring::npos) got = false;  // 输出不是版本号 → 视为失败
     }
     int code = 0;  // 0=获取失败

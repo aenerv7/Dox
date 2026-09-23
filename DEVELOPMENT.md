@@ -1067,9 +1067,9 @@ npm view @deepseek-ai/dsh dist-tags
 2. ini `UpdateChannel`（默认 `auto`）非空且非 `auto` 时**覆盖**自动判定，`g_chanForced=true`；菜单据此显示「Launcher.ini 指定」。
 3. 后缀推断出的通道必须真实存在于远端 dist-tags（`ChannelExists`），否则回退 `latest`（例：本地 `0.1.6-beta.1` 而远端无 `beta`）。校验只在 `auto` 且后缀非空时执行，避免每次检查多发一次网络请求。
 4. npx 模式无通道可言（不是常驻安装），固定 `@latest` 刷新缓存；`ChannelLabel` 显示「npx 缓存」。
-5. 检查命令必须带 `--json` 并剥掉引号：`npm view ... version` 的非 JSON 输出在不同 npm 版本下格式不一，`--json` 稳定为带引号的字符串。
+5. 检查命令必须带 `--json`（非 JSON 输出在不同 npm 版本下格式不一），并按 JSON 取值而非 trim：`npm view <pkg>@<tag> version --json` 返回**数组**，用 `JsonFirstString` 取首个引号串，避免 `[`/`]` 混入版本号导致比较永不相等。
 6. 更新命令用 `@<通道>` 而非 `@latest`，保证 alpha 安装不被降级。
-7. `dist-tags --json` 在 npm 各版本下可能输出对象或单元素数组，`JsonTagValue` 按「找 `"tag"` → 找其后首个引号串」解析，两种形态都接受。
+7. `dist-tags --json` 输出被数组包裹（`[{ "latest": "...", "alpha": "..." }]`），`JsonTagValue` 按「找 `"tag"` → 找其后首个引号串」解析，与数组/对象形态无关。
 
 #### 更新检查
 
@@ -1106,6 +1106,7 @@ npm view @deepseek-ai/dsh dist-tags
 16. 测试脚本严禁按进程名杀 Launcher（`Get-Process Launcher | Stop-Process`）：本机运行中的 Launcher 正是 DSH 的宿主，按名杀会连带掐断正在使用 DSH 的会话。一律按 PID 结束本脚本启动的实例（`Stop-TestLauncher`）。
 17. 更新测试用的 ini 端口避开正在运行的实例端口（本机 16100）：否则测试 Launcher 会把真实实例识别为「外部启动的 Harness」并可能提示结束它。
 18. 跑 Launcher 测试前必须先退出正在运行的 Launcher：单实例互斥体使测试实例只弹「已在运行」后退出，而 `FindWindow`（类名+标题）会命中已有实例的窗口，消息发错对象、日志断言全部落空。
+19. `npm view ... --json` 的输出必须按 JSON 解析，不能按「去首尾空白与引号」处理：`npm view <pkg>@<tag> version --json` 返回的是**数组**（`[\n  "0.1.7-alpha.2"\n]`），粗暴 trim 会把 `[`、`]` 留在版本号里，导致版本比较永远不相等（明明同版本仍提示「有新版本」），提示框还会显示成 JSON 数组。统一用 `JsonFirstString` 取首个引号串。
 
 #### 测试
 
