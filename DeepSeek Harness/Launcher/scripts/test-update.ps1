@@ -7,9 +7,17 @@
 #   * (成功, 重启)  → 系统通知 + 自动重启，不弹窗口
 #   * (失败, _)     → 弹错误框
 #   * (成功, 不重启) → 系统通知，不启动、不弹窗口
+# 场景 6-7：更新通道判定（npm dist-tag）——安装的是哪条通道就查哪条通道：
+#   * 全局安装 alpha 版本 → 日志通道=alpha，远端版本=npm 的 alpha 版本
+#   * UpdateChannel 显式指定 → 日志通道=指定值
 #
 # 注意：本测试不会执行真实更新（避免修改全局 npm 环境），只验证
 # “检查更新 → 结果提示” 的完整链路。
+#
+# 运行前提：本机不能有另一个 Launcher 在运行。托盘是单实例（互斥体
+# Local\DSHLauncher_SingleInstance），已有实例时测试实例只会弹「已在运行」
+# 并退出；且 FindWindow 按类名+标题查找，会命中那个已有实例的窗口，
+# 导致日志断言落空（读到的仍是 bin\Launcher.log，但消息发给了别人）。
 # ============================================================================
 $ErrorActionPreference = 'Stop'
 
@@ -22,6 +30,7 @@ $log  = Join-Path $bin "Launcher.log"
 if (-not (Test-Path $exe)) { throw "未找到 $exe，请先运行 scripts\build.ps1" }
 
 $kMsgCheckUpdate = 0x8000 + 105   # WM_APP+105
+$pkgName = '@deepseek-ai/dsh'
 
 Add-Type @"
 using System;
@@ -41,11 +50,18 @@ Port=16100
 AutoStart=0
 NodePath=
 DshBin=
+UpdateChannel=auto
 '@ | Set-Content -Path $ini -Encoding ascii
 }
 
+# 只结束本脚本启动的实例（按 PID），绝不按进程名杀 ——
+# 运行中的 Launcher 正是本机 DSH 的宿主，按名杀会连带掐断当前开发会话。
+function Stop-TestLauncher($proc) {
+    if ($null -eq $proc) { return }
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+}
+
 function Cleanup-All {
-    Get-Process Launcher -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Remove-Item $log -ErrorAction SilentlyContinue
     Restore-DefaultIni
 }
@@ -111,7 +127,7 @@ try {
     $log1 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log1 -notlike '*update: 获取远端版本失败*') { throw "失败：日志未记录检查失败：$log1" }
     Write-Host '   OK：提示框出现，日志确认 获取远端版本失败'
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher $proc
     Start-Sleep -Milliseconds 800
 
     # ============ 场景 2：真实环境 → 正常检查链路 ============
@@ -128,7 +144,7 @@ try {
     $deadline = (Get-Date).AddSeconds(45)
     while ((Get-Date) -lt $deadline) {
         $log2 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
-        if ($log2 -like '*update: 本地版本=*') { break }
+        if ($log2 -like '*update: 通道=*') { break }
         $mb = [UpdNative]::FindWindow('#32770', 'DeepSeek Harness Launcher')
         if ($mb -ne [IntPtr]::Zero) {
             [UpdNative]::PostMessage($mb, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
@@ -145,7 +161,7 @@ try {
     } else {
         Write-Host '   OK：检查完成（网络不可用时为失败提示，链路本身正常）'
     }
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher $proc
     Start-Sleep -Milliseconds 800
 
     # ============ 场景 3-5：更新完成通知的弹窗策略 ============
@@ -193,7 +209,7 @@ DshBin=$($testServer.Replace('\','\\'))
     Write-Host '   OK：服务已重启且无任何弹窗，日志记录静默重启'
     Send-Cmd 0x8065 | Out-Null   # kMsgStop 停止测试服务
     if (-not (Wait-PortState 16555 $false)) { throw '失败：测试服务未停止' }
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher $proc
     Start-Sleep -Milliseconds 800
 
     # 场景 4：更新失败 → 弹错误框
@@ -209,7 +225,7 @@ DshBin=$($testServer.Replace('\','\\'))
     $log4 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log4 -notlike '*update: 更新失败*') { throw '失败：日志未记录更新失败' }
     Write-Host '   OK：弹出错误框且日志记录更新失败'
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher $proc
     Start-Sleep -Milliseconds 800
 
     # 场景 5：更新成功但不重启 → 静默，不启动、不弹窗
@@ -225,8 +241,72 @@ DshBin=$($testServer.Replace('\','\\'))
     $log5 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log5 -notlike '*update: 更新完成*') { throw '失败：日志未记录更新完成' }
     Write-Host '   OK：无弹窗、未启动服务，日志记录更新完成'
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher $proc
     Start-Sleep -Milliseconds 800
+
+    # ============ 场景 6-7：更新通道判定 ============
+    # 只断言日志里的通道与远端版本，不触碰全局 npm。
+    # 本机若未全局安装 dsh（Npx 模式）则跳过：npx 无安装通道可言。
+    $globalDsh = Get-Command dsh.cmd -ErrorAction SilentlyContinue
+    if (-not $globalDsh) {
+        Write-Host '== 6-7) 跳过：本机未全局安装 dsh（npx 模式无安装通道） =='
+    } else {
+        $dshPkg = Join-Path (Split-Path $globalDsh.Source) "node_modules\@deepseek-ai\dsh\package.json"
+        $localVersion = (Get-Content $dshPkg -Raw | ConvertFrom-Json).version
+        # 本地版本后缀即期望通道："0.1.6-alpha.1" → "alpha"；正式版 → "latest"
+        $expectedChannel = if ($localVersion -match '-([A-Za-z]+)\.') { $Matches[1] } else { 'latest' }
+        $distTags = (npm view $pkgName dist-tags --json 2>$null | Out-String | ConvertFrom-Json)
+        $expectedRemote = $distTags.$expectedChannel
+
+        # 用空闲端口，避免与正在运行的实例（本机 16100 上的 DSH）互相干扰
+        $chanPort = 16611
+
+        function Write-ChannelIni([string]$channel) {
+            $lines = @('[General]', "Port=$chanPort", 'AutoStart=0', 'NodePath=', 'DshBin=')
+            if ($channel) { $lines += "UpdateChannel=$channel" }
+            $lines -join "`r`n" | Set-Content -Path $ini -Encoding ascii
+        }
+
+        function Assert-Channel([string]$channel, [string]$expectedRemote, [string]$label) {
+            Remove-Item $log -ErrorAction SilentlyContinue
+            $p = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
+            Start-Sleep -Seconds 2
+            $h = [UpdNative]::FindWindow('DSHLauncherWnd', 'DeepSeek Harness Launcher')
+            if ($h -eq [IntPtr]::Zero) { throw '找不到 Launcher 窗口' }
+            [UpdNative]::PostMessage($h, $kMsgCheckUpdate, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+            $text = ''
+            $deadline = (Get-Date).AddSeconds(45)
+            while ((Get-Date) -lt $deadline) {
+                $text = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
+                if ($text -like '*update: 通道=*') { break }
+                $mb = [UpdNative]::FindWindow('#32770', 'DeepSeek Harness Launcher')
+                if ($mb -ne [IntPtr]::Zero) {
+                    [UpdNative]::PostMessage($mb, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+                }
+                Start-Sleep -Milliseconds 500
+            }
+            Close-MessageBox 3 | Out-Null
+            Stop-TestLauncher $p
+            Start-Sleep -Milliseconds 800
+            $text = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
+            $line = ($text -split "`r?`n" | Select-String 'update: 通道=' | Select-Object -Last 1)
+            if (-not $line) { throw "失败：$label 未记录通道日志：$text" }
+            $line = $line.ToString()
+            if ($line -notlike "*通道=$channel，*") { throw "失败：$label 期望通道 $channel，实际：$line" }
+            if ($expectedRemote -and $line -notlike "*远端版本=$expectedRemote*") {
+                throw "失败：$label 期望远端版本 $expectedRemote，实际：$line"
+            }
+            Write-Host "   OK：$line"
+        }
+
+        Write-Host "== 6) 全局安装 v$localVersion：应按本地版本后缀查 $expectedChannel 通道 =="
+        Write-ChannelIni ''      # 不写 UpdateChannel → 默认 auto
+        Assert-Channel $expectedChannel $expectedRemote '按本地版本推断通道'
+
+        Write-Host '== 7) UpdateChannel=latest 显式指定：应查 latest 通道 =='
+        Write-ChannelIni 'latest'
+        Assert-Channel 'latest' $distTags.latest 'ini 指定通道'
+    }
 
     Write-Host ''
     Write-Host '更新检查测试全部通过 ✔'

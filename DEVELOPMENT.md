@@ -975,6 +975,7 @@ pwsh -NoProfile -File .\Scripts\Install-FFmpeg.ps1 -Directory $env:TEMP\ff-check
 3. **外部实例可识别**：运行状态不能只看 `g_hProc`，还须探测配置 Host/Port。
 4. **配置可恢复**：端口落在 1-65535；无效端口自动选空闲端口并写回 ini。
 5. **更新不阻塞托盘**：npm 检查和更新在线程执行，经私有窗口消息回 UI 线程；测试不改开发机全局 npm。
+6. **更新跟随安装通道**：检查和升级都必须用本地版本后缀解析出的 dist-tag，不得硬编码 `latest`（见「更新通道」小节）。
 
 #### 目录结构
 
@@ -1009,12 +1010,13 @@ Launcher/
 | 进程管理 | `StartDSH`/`StopDSH`/`RestartDSH`/`StopManaged` | 派生、整树终止、重启 |
 | 托盘 UI | `ShowTrayMenu`/`HandleCommand`/`WndProc` | 托盘图标、右键菜单、命令分发 |
 | 端口收束 | `RandomFreePort` | 无效端口修正为随机可用端口 |
-| 更新检查 | `CheckForUpdate`/`CheckThread`/`DoUpdate`/`UpdateThread`/`RunCommandCapture`/`LocalDshVersion` | npm 版本对比、后台更新、完成通知 |
+| 更新检查 | `CheckForUpdate`/`CheckThread`/`DoUpdate`/`UpdateThread`/`RunCommandCapture`/`LocalDshVersion` | 按安装通道对比 npm 版本、后台更新、完成通知 |
+| 安装通道 | `VersionSuffix`/`ResolveChannel`/`ChannelLabel`/`JsonTagValue`/`ChannelExists` | 由本地版本后缀判定 npm dist-tag，不存在则回退 latest |
 | 日志 | `Log` | 追加写 `Launcher.log`（UTF-16LE，超 256KB 截断）|
 
 启动自检：找不到 node.exe → 弹窗并退出；`LoadConfig` 读 `Host`（默认 `127.0.0.1`）与 `Port`（默认 0 无效），端口不在 1-65535 → `RandomFreePort()` 随机探测未占用端口（1024-65535，最多 100 次）并写回 ini；`Host=0.0.0.0` 不支持则友好提示。
 
-启动方式：`DetectLaunchMode()` 返回 `Dsh`（ini 无 `DshBin` 且 PATH 上有 `dsh.cmd`/`dsh`）/ `Npx`（无 dsh）/ `Custom`（ini 指定存在 `DshBin`）。判定结果存 `g_mode`，每次弹菜单和启动时刷新；菜单前两条灰色显示启动方式与监听地址。
+启动方式：`DetectLaunchMode()` 返回 `Dsh`（ini 无 `DshBin` 且 PATH 上有 `dsh.cmd`/`dsh`）/ `Npx`（无 dsh）/ `Custom`（ini 指定存在 `DshBin`）。判定结果存 `g_mode`，每次弹菜单和启动时刷新；菜单前三条灰色显示启动方式、安装通道与监听地址。
 
 进程模型（核心）：
 
@@ -1037,7 +1039,41 @@ Launcher/
 
 单实例：互斥体 `Local\DSHLauncher_SingleInstance`（`CreateMutex` + `ERROR_ALREADY_EXISTS`）。
 
-更新检查：后台 `npm view @deepseek-ai/dsh version`（以退出码判定成功，避免错误文本冒充版本号），与 `LocalDshVersion`（读全局 dsh 的 `package.json` 的 `version`）对比，结果 `PostMessage(kMsgCheckResult)`。更新：dsh 模式 `npm i -g @deepseek-ai/dsh@latest`，npx 模式 `npx -y @deepseek-ai/dsh@latest --version` 刷新缓存；更新期间防重入（`g_updating`）；完成 `kMsgUpdateDone`，成功按用户选择自动重启 Harness 并重新检测启动方式。
+#### 更新通道（npm dist-tag）
+
+npm 全局安装必须按**安装通道**检查更新。官方对同一包按通道发布多个 dist-tag，通道之间版本号**互不包含**：
+
+```text
+npm view @deepseek-ai/dsh dist-tags
+  latest = 0.1.5-rc.2      ← 旧逻辑只看这个
+  alpha  = 0.1.7-alpha.1   ← 实际安装的通道，版本号更高
+  next   = 0.1.5-rc.3
+
+本地 0.1.6-alpha.1  vs  latest 0.1.5-rc.2   → 不相等 → 判为「有更新」但方向是降级
+本地 0.1.6-alpha.1  vs  alpha  0.1.7-alpha.1 → 正确的比较对象
+```
+
+只比 `latest` 会同时产生两种错误：装了 alpha 的用户永远收不到 alpha 更新（`latest` 版本号更小），以及「更新」可能把 alpha 降级成正式版。因此通道由**本地已安装版本的预发布后缀**判定——`npm i -g @deepseek-ai/dsh` 默认装 `latest`，能装到 alpha 必然显式指定过通道，故后缀可靠地反映安装来源：
+
+| 本地版本 | 判定通道 | 检查命令 |
+|---|---|---|
+| `0.1.6-alpha.1` | `alpha` | `npm view @deepseek-ai/dsh@alpha version --json` |
+| `0.1.5-rc.2` | `rc` | `npm view @deepseek-ai/dsh@rc version --json` |
+| `0.1.5` | `latest` | `npm view @deepseek-ai/dsh@latest version --json` |
+
+约束：
+
+1. `ResolveChannel` 是通道的唯一判定入口；`g_channel` 每次检查与每次弹菜单前重新解析，不缓存。
+2. ini `UpdateChannel`（默认 `auto`）非空且非 `auto` 时**覆盖**自动判定，`g_chanForced=true`；菜单据此显示「Launcher.ini 指定」。
+3. 后缀推断出的通道必须真实存在于远端 dist-tags（`ChannelExists`），否则回退 `latest`（例：本地 `0.1.6-beta.1` 而远端无 `beta`）。校验只在 `auto` 且后缀非空时执行，避免每次检查多发一次网络请求。
+4. npx 模式无通道可言（不是常驻安装），固定 `@latest` 刷新缓存；`ChannelLabel` 显示「npx 缓存」。
+5. 检查命令必须带 `--json` 并剥掉引号：`npm view ... version` 的非 JSON 输出在不同 npm 版本下格式不一，`--json` 稳定为带引号的字符串。
+6. 更新命令用 `@<通道>` 而非 `@latest`，保证 alpha 安装不被降级。
+7. `dist-tags --json` 在 npm 各版本下可能输出对象或单元素数组，`JsonTagValue` 按「找 `"tag"` → 找其后首个引号串」解析，两种形态都接受。
+
+#### 更新检查
+
+后台线程先取本地版本并解析通道，再 `npm view @deepseek-ai/dsh@<通道> version --json`（以退出码判定成功，避免错误文本冒充版本号），与 `LocalDshVersion`（读全局 dsh 的 `package.json` 的 `version`）对比，结果 `PostMessage(kMsgCheckResult)`。更新：dsh 模式 `npm i -g @deepseek-ai/dsh@<通道>`，npx 模式 `npx -y @deepseek-ai/dsh@latest --version` 刷新缓存；更新期间防重入（`g_updating`）；完成 `kMsgUpdateDone`，成功按用户选择自动重启 Harness 并重新检测启动方式。日志行格式固定为 `update: 通道=<tag>，本地版本=<v>，远端版本=<v>`，测试据此断言。
 
 #### 构建
 
@@ -1066,6 +1102,10 @@ Launcher/
 12. `npx -y @deepseek-ai/dsh` 未全局安装时自动拉取缓存；托盘不主动校验网络，启动失败由端口探测体现。
 13. `RunCommandCapture` 必须同时校验退出码与输出格式（版本号含 `.`），否则 npm 缺失的错误文本被误判为版本。
 14. 系统通知：非打包桌面应用直接 WinRT `ToastNotificationManager` 会抛 `0x80070490`；为保持“完全便携、不写注册表”，非错误提示统一用 `Shell_NotifyIcon` 的 `NIF_INFO`（`ShowNotify`），仅错误用 `MessageBox`。
+15. 更新通道：绝不硬编码 `@latest` 查版本或升级（见「更新通道」小节）；`latest` 的版本号可能低于已装的 alpha，会把 alpha 误判为最新甚至降级。
+16. 测试脚本严禁按进程名杀 Launcher（`Get-Process Launcher | Stop-Process`）：本机运行中的 Launcher 正是 DSH 的宿主，按名杀会连带掐断正在使用 DSH 的会话。一律按 PID 结束本脚本启动的实例（`Stop-TestLauncher`）。
+17. 更新测试用的 ini 端口避开正在运行的实例端口（本机 16100）：否则测试 Launcher 会把真实实例识别为「外部启动的 Harness」并可能提示结束它。
+18. 跑 Launcher 测试前必须先退出正在运行的 Launcher：单实例互斥体使测试实例只弹「已在运行」后退出，而 `FindWindow`（类名+标题）会命中已有实例的窗口，消息发错对象、日志断言全部落空。
 
 #### 测试
 
@@ -1080,7 +1120,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 
 - `test-lifecycle.ps1`：用临时 Node HTTP 服务器（`test-server.js`）代替真实 Harness；经私有消息驱动：自启 → 查询 → 停止 → 再启 → 重启（对比监听 PID）→ 强杀托盘验证 `KILL_ON_JOB_CLOSE`（端口关、无残留 node）→ 日志断言；`finally` 清理。
 - `test-modes.ps1`：受限 PATH + 假 shim 模拟 dsh/npx 环境，断言 `启动方式=dsh/npx`、命令含 `web --no-open`。
-- `test-update.ps1`：无 npm → 检查失败并断言日志；真实环境 → 完整检查链路但不执行真实更新。
+- `test-update.ps1`：无 npm → 检查失败并断言日志；真实环境 → 完整检查链路但不执行真实更新；通道场景 → 全局安装 dsh 时断言日志 `通道=` 等于本地版本后缀（正式版为 `latest`）且远端版本等于该 tag 的实际版本，再用 `UpdateChannel=latest` 断言 ini 覆盖生效；未全局安装 dsh 则跳过（npx 无通道）。
 - `test-port.ps1`：有效端口不变；越界/非数字端口被修正为 [1024,65535] 内可用端口且日志记录。
 
 #### 扩展指引与版本库约定
@@ -1088,6 +1128,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 - 新增菜单项：`Resource.h` 加 ID → `ShowTrayMenu` 加 `AppendMenuW` → `HandleCommand` 加 case。
 - 端口即时生效可在 `IDM_PORT` 成功后调 `RestartDSH()`（先确认用户意图）。
 - 接入其它启动方式集中在 `DetectLaunchMode()`；扩展枚举与 `StartDSH` 命令构造。
+- 新增更新通道无需改代码：`ResolveChannel` 已按本地版本后缀泛化，任何 dist-tag 名（`beta`、`canary` …）都能自动跟随；只有在版本号后缀与 dist-tag 名不一致时才需要用户写 `UpdateChannel`。
 - `bin\` 整体忽略，产物不入库；源码、脚本、文档、图标、`Launcher.ini.example` 入库；提交信息前缀 `launcher: ...`。
 
 交接清单：先改行为源（`Launcher.cpp`，配置默认同步 `Launcher.ini.example`）→ 图标先更 SVG 再 `make-icon.ps1` 生成 ICO → 编译并跑到至少生命周期/启动方式/端口测试（更新逻辑另跑更新测试）→ 检查无残留 exe/测试 node/日志/临时 shim，`git diff --check` 通过 → README 写使用，本文记录实现约束。

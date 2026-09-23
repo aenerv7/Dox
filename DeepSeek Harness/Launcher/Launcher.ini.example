@@ -13,6 +13,10 @@ AutoStart=0
 NodePath=
 ; 高级：自定义启动入口（node.exe 直接执行的 .js 文件；留空则自动判定 dsh / npx）
 DshBin=
+; 高级：更新通道（npm dist-tag）。auto（默认）= 按本地已安装版本的后缀自动判定：
+;   0.1.6-alpha.1 → alpha，0.1.5-rc.2 → rc，0.1.5 → latest
+; 也可显式指定通道（alpha / next / latest 等）；npx 启动方式不适用
+UpdateChannel=auto
 
 ; 提示：本程序完全便携，不写注册表。托盘程序自身的开机自启请使用
 ; 任务计划程序（登录时运行 Launcher.exe），配合 AutoStart=1 即可实现
@@ -24,4 +28,7 @@ DshBin=
 ;      已全局安装（npm i -g @deepseek-ai/dsh）→ 以 dsh 命令启动
 ;      未安装                           → 以 npx -y @deepseek-ai/dsh 方式启动
 ;   3. 端口收束：Port 无效（非数字或越界）→ 自动改为随机可用端口
-;   托盘菜单顶部会以浅色文本显示当前启动方式（dsh / npx / 自定义）与监听地址。
+;   4. 判定更新通道：按本地已安装版本的后缀选择 npm dist-tag
+;      （alpha 安装只跟 alpha，不会被误判成「已是最新」）
+; 托盘菜单顶部会以浅色文本显示当前启动方式（dsh / npx / 自定义）、
+; 安装通道与监听地址。

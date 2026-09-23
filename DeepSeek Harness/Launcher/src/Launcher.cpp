@@ -6,10 +6,12 @@
 //   * 监听地址（Host）与端口（Port）直接编辑 exe 同目录 Launcher.ini；
 //     无效端口自动修正为随机可用端口，右键菜单顶部以浅色文本显示当前监听地址
 //   * 随托盘程序自启动 DeepSeek Harness（写入 ini）
-//   * 检查并更新 DeepSeek Harness（npm 最新版本对比，停止 → 更新 → 重启）
+//   * 检查并更新 DeepSeek Harness（按安装通道对比 npm 版本，停止 → 更新 → 重启）
 //
 // 实现要点：
 //   * 按环境自适应启动：dsh 全局安装 → dsh 命令；未安装 → npx -y @deepseek-ai/dsh
+//   * 更新按安装通道走：npm 全局安装时读本地版本后缀判定通道（alpha / rc / next …），
+//     只对比该通道的 npm dist-tag，避免 alpha 安装被误判为「已是最新」
 //   * 作业对象整树终止；按配置的 Host 做端口探测识别外部启动的实例
 //   * 完全便携：不写注册表、无安装过程，所有设置通过 GetPrivateProfileString /
 //     WritePrivateProfileString 读写 exe 同目录的 Launcher.ini；
@@ -56,6 +58,15 @@ constexpr UINT kMsgUpdateDone  = WM_APP + 104;  // 更新线程完成通知
 constexpr UINT kMsgCheckUpdate = WM_APP + 105;  // 触发更新检查
 constexpr UINT kMsgCheckResult = WM_APP + 106;  // 检查线程结果通知
 
+// npm 包名与安装通道（dist-tag）
+// 官方按通道发布同一包的不同 dist-tag：latest / alpha / next …
+//   npm view @deepseek-ai/dsh dist-tags → { latest: 0.1.5-rc.2, alpha: 0.1.7-alpha.1, next: 0.1.5-rc.3 }
+// 装的是哪条通道，就必须查哪条通道的最新版：alpha 安装若去比 latest，
+// 会因为 latest 版本号更小而永远「已是最新」，永远收不到 alpha 更新。
+constexpr wchar_t kPkgName[]        = L"@deepseek-ai/dsh";
+constexpr wchar_t kChannelLatest[]  = L"latest";
+constexpr wchar_t kChannelAuto[]    = L"auto";  // 由本地已安装版本的后缀自动判定
+
 HINSTANCE g_hInst = nullptr;
 HWND      g_hwnd   = nullptr;
 HICON     g_hIcon  = nullptr;
@@ -68,6 +79,7 @@ struct Config {
     std::wstring host       = L"127.0.0.1";  // 监听地址（默认回环）
     std::wstring nodePath;             // 高级：node.exe 完整路径（留空自动查找）
     std::wstring dshBin;               // 高级：dsh 的 lib\bin.js 完整路径（留空自动查找）
+    std::wstring updateChannel;        // 更新通道：auto（按本地版本后缀）/ latest / 自定义 dist-tag
 };
 Config       g_cfg;
 std::wstring g_iniPath;
@@ -173,6 +185,8 @@ void LoadConfig() {
     g_cfg.autoStart  = ReadIniInt(L"General", L"AutoStart", 0) != 0;
     g_cfg.nodePath   = ReadIniStr(L"General", L"NodePath", L"");
     g_cfg.dshBin     = ReadIniStr(L"General", L"DshBin", L"");
+    // 更新通道：默认 auto（按本地已安装版本的预发布后缀推断），可显式指定 dist-tag
+    g_cfg.updateChannel = ReadIniStr(L"General", L"UpdateChannel", kChannelAuto);
 }
 
 // ---------- 组件路径查找 ----------
@@ -556,16 +570,6 @@ bool RunCommandCapture(const std::wstring& cmd, std::wstring& out, DWORD timeout
     return true;
 }
 
-// 取第一行并去首尾空白
-std::wstring TrimLine(std::wstring s) {
-    const size_t nl = s.find_first_of(L"\r\n");
-    if (nl != std::wstring::npos) s.resize(nl);
-    const size_t b = s.find_first_not_of(L" \t");
-    if (b == std::wstring::npos) return L"";
-    const size_t e = s.find_last_not_of(L" \t");
-    return s.substr(b, e - b + 1);
-}
-
 // 从 package.json 提取 version 字段（首个 "version" 键，UTF-8 文件）
 std::wstring ExtractJsonVersion(const std::wstring& path) {
     HANDLE h = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
@@ -608,11 +612,74 @@ std::wstring LocalDshVersion() {
     return ExtractJsonVersion(pkg);
 }
 
-// 更新命令：dsh 全局安装 → npm 升级；npx 模式 → 显式 latest 刷新缓存
+// ---------- 安装通道（npm dist-tag） ----------
+// 通道由「本地已安装版本的预发布后缀」推断，而不是由启动方式推断：
+//   0.1.6-alpha.1 → alpha      （npm i -g @deepseek-ai/dsh 默认 latest，
+//   0.1.5-rc.2    → rc          要装到 alpha 必然显式指定过 @alpha 或版本号）
+//   0.1.5         → latest      （无预发布后缀 = 正式版）
+// 匹配到的后缀必须真实存在于远端 dist-tags，否则回退 latest（见 ResolveChannel）。
+// ini 的 UpdateChannel 可显式覆盖：auto（默认）/ latest / 任意 dist-tag。
+std::wstring g_channel    = kChannelLatest;  // 当前生效通道（已解析）
+bool         g_chanForced = false;           // 通道来自 ini 显式指定（false = 由本地版本推断）
+
+// 版本号的预发布后缀："0.1.6-alpha.1" → "alpha"；正式版返回空
+std::wstring VersionSuffix(const std::wstring& version) {
+    const size_t dash = version.find(L'-');
+    if (dash == std::wstring::npos) return L"";
+    const size_t dot = version.find(L'.', dash);
+    return version.substr(dash + 1, dot == std::wstring::npos ? std::wstring::npos : dot - dash - 1);
+}
+
+// 解析出用于查询/安装的 dist-tag，并回写 g_channel / g_chanForced
+std::wstring ResolveChannel(const std::wstring& local) {
+    std::wstring c = g_cfg.updateChannel;
+    if (!c.empty() && c != kChannelAuto) {
+        g_chanForced = true;
+        g_channel = c;
+        return c;
+    }
+    g_chanForced = false;
+    const std::wstring suffix = VersionSuffix(local);
+    g_channel = suffix.empty() ? kChannelLatest : suffix;
+    return g_channel;
+}
+
+// 菜单顶部显示的通道说明
+std::wstring ChannelLabel() {
+    if (g_mode == LaunchMode::Npx) return L"npx 缓存（不跟随全局安装通道）";
+    if (g_chanForced) return g_channel + L"（Launcher.ini 指定）";
+    return g_channel + (g_channel == kChannelLatest ? L"（正式版）" : L"（按本地版本后缀）");
+}
+
+// 从 `npm view <pkg> dist-tags --json` 的输出里取指定 tag 的版本号。
+// npm 在各版本下可能输出对象或单元素数组，故两种形态都接受。
+std::wstring JsonTagValue(const std::wstring& json, const std::wstring& tag) {
+    const std::wstring key = L"\"" + tag + L"\"";
+    const size_t k = json.find(key);
+    if (k == std::wstring::npos) return L"";
+    const size_t colon = json.find(L':', k + key.size());
+    if (colon == std::wstring::npos) return L"";
+    const size_t q1 = json.find(L'"', colon);
+    if (q1 == std::wstring::npos) return L"";
+    const size_t q2 = json.find(L'"', q1 + 1);
+    if (q2 == std::wstring::npos) return L"";
+    return json.substr(q1 + 1, q2 - q1 - 1);
+}
+
+// 该通道在 npm 上是否有版本（决定推断出的通道是否可用）
+bool ChannelExists(const std::wstring& tag) {
+    std::wstring json;
+    const std::wstring cmd = L"cmd.exe /c npm view " + std::wstring(kPkgName) + L" dist-tags --json";
+    if (!RunCommandCapture(cmd, json, 30000)) return false;
+    return !JsonTagValue(json, tag).empty();
+}
+
+// 更新命令：dsh 全局安装 → 按安装通道升级（alpha 装 alpha，不会把 alpha 拉回 latest）；
+// npx 模式 → 显式 latest 刷新缓存（npx 不是常驻安装，无通道可言）
 std::wstring UpdateCommand() {
     if (g_mode == LaunchMode::Npx)
-        return L"cmd.exe /c npx -y @deepseek-ai/dsh@latest --version";
-    return L"cmd.exe /c npm i -g @deepseek-ai/dsh@latest";
+        return L"cmd.exe /c npx -y " + std::wstring(kPkgName) + L"@latest --version";
+    return L"cmd.exe /c npm i -g " + std::wstring(kPkgName) + L"@" + g_channel;
 }
 
 struct UpdateJob {
@@ -620,18 +687,28 @@ struct UpdateJob {
     bool         restartAfter = false;
 };
 
-// 更新检查线程：npm view 获取远端版本，对比本地版本，结果回传 UI
+// 更新检查线程：按安装通道取远端版本，对比本地版本，结果回传 UI
 unsigned __stdcall CheckThread(void*) {
+    // 本地版本决定通道（auto 模式下），必须在取远端版本之前解析
+    std::wstring local;
+    if (g_mode == LaunchMode::Dsh) local = LocalDshVersion();
+    ResolveChannel(local);
+
+    // 只查当前通道的 dist-tag：@alpha 查 alpha，@latest 查 latest
+    std::wstring json;
+    const std::wstring cmd = L"cmd.exe /c npm view " + std::wstring(kPkgName) + L"@" + g_channel +
+                             L" version --json";
     std::wstring latest;
-    bool got = RunCommandCapture(L"cmd.exe /c npm view @deepseek-ai/dsh version", latest, 30000);
-    int code = 0;  // 0=获取失败
+    bool got = RunCommandCapture(cmd, json, 30000);
     if (got) {
-        latest = TrimLine(latest);
+        // --json 输出形如 "0.1.7-alpha.1"（带引号），去引号与换行
+        const size_t b = json.find_first_not_of(L" \t\r\n\"");
+        const size_t e = json.find_last_not_of(L" \t\r\n\"");
+        latest = (b == std::wstring::npos) ? L"" : json.substr(b, e - b + 1);
         if (latest.find(L'.') == std::wstring::npos) got = false;  // 输出不是版本号 → 视为失败
     }
+    int code = 0;  // 0=获取失败
     if (got) {
-        std::wstring local;
-        if (g_mode == LaunchMode::Dsh) local = LocalDshVersion();
         wcsncpy(g_checkLatest, latest.c_str(), 63);
         g_checkLatest[63] = L'\0';
         wcsncpy(g_checkLocal, local.c_str(), 63);
@@ -643,9 +720,9 @@ unsigned __stdcall CheckThread(void*) {
         } else {
             code = 2;  // 有更新
         }
-        Log(L"update: 本地版本=" + local + L"，远端版本=" + latest);
+        Log(L"update: 通道=" + g_channel + L"，本地版本=" + local + L"，远端版本=" + latest);
     } else {
-        Log(L"update: 获取远端版本失败");
+        Log(L"update: 通道=" + g_channel + L"，获取远端版本失败");
     }
     PostMessageW(g_hwnd, kMsgCheckResult, code, 0);
     return 0;
@@ -658,6 +735,16 @@ void CheckForUpdate() {
         return;
     }
     if (g_checking) return;
+    // 通道推断出的后缀可能并不存在对应的 dist-tag（如 0.1.6-beta.1 而远端只有 alpha）；
+    // 先确认通道可用，否则回退 latest，避免整条检查链路以「无法获取更新信息」失败。
+    // 网络不可用时不额外弹窗，交给随后的检查失败路径统一提示。
+    if (g_mode == LaunchMode::Dsh && !g_chanForced) {
+        const std::wstring suffix = VersionSuffix(LocalDshVersion());
+        if (!suffix.empty() && suffix != kChannelLatest && !ChannelExists(suffix)) {
+            Log(L"update: 通道 " + suffix + L" 在 npm 上不存在，回退 " + std::wstring(kChannelLatest));
+            g_cfg.updateChannel = kChannelLatest;  // 本次检查内生效
+        }
+    }
     g_checking = true;
     const HANDLE h = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, CheckThread, nullptr, 0, nullptr));
     if (!h) {
@@ -750,9 +837,11 @@ void ShowTrayMenu() {
     POINT pt{};
     GetCursorPos(&pt);
     HMENU menu = CreatePopupMenu();
-    // 顶部：当前启动方式与监听地址（浅色、不可编辑），每次弹出菜单时刷新检测
+    // 顶部：当前启动方式、安装通道与监听地址（浅色、不可编辑），每次弹出菜单时刷新检测
     g_mode = DetectLaunchMode();
+    ResolveChannel(g_mode == LaunchMode::Dsh ? LocalDshVersion() : L"");
     AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"启动方式：" + ModeName(g_mode)).c_str());
+    AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"安装通道：" + ChannelLabel()).c_str());
     AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, (L"监听地址：http://" + g_cfg.host + L":" + ToStr(g_cfg.port)).c_str());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     const std::wstring toggle = running ? L"停止 DeepSeek Harness" : L"启动 DeepSeek Harness";
@@ -821,10 +910,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             MessageBoxW(g_hwnd, L"无法获取 DeepSeek Harness 的更新信息。\n\n请检查网络连接以及 npm 是否可用。",
                         kAppName, MB_ICONWARNING | MB_OK);
         } else if (code == 1) {
-            ShowNotify(kAppName, L"DeepSeek Harness 已是最新版本（v" + std::wstring(g_checkLatest) + L"）。");
+            ShowNotify(kAppName, L"DeepSeek Harness 已是最新版本（" + ChannelLabel() + L" 通道 v" +
+                                 std::wstring(g_checkLatest) + L"）。");
         } else if (code == 3) {
             const std::wstring msg =
-                L"已获取 DeepSeek Harness 最新版本 v" + std::wstring(g_checkLatest) +
+                L"已获取 DeepSeek Harness " + ChannelLabel() + L" 通道最新版本 v" + std::wstring(g_checkLatest) +
                 L"，但无法确定当前安装版本。\n\n是否现在更新？";
             if (MessageBoxW(g_hwnd, msg.c_str(), kAppName, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES)
                 DoUpdate(false);
@@ -832,7 +922,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             const bool running = IsRunning();
             std::wstring msg =
                 L"检测到 DeepSeek Harness 有新版本：v" + std::wstring(g_checkLatest) +
-                (g_checkLocal[0] ? (L"（当前 v" + std::wstring(g_checkLocal) + L"）") : L"");
+                (g_checkLocal[0] ? (L"（当前 v" + std::wstring(g_checkLocal) + L"）") : L"") +
+                L"\n更新通道：" + ChannelLabel();
             if (g_mode == LaunchMode::Npx) msg += L"（当前以 npx 方式运行，更新将刷新缓存）";
             if (running) {
                 msg += L"。\n\n是否停止当前实例并更新，然后重新启动？";
@@ -931,6 +1022,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
         WriteIniStr(L"General", L"AutoStart", L"0");
         WriteIniStr(L"General", L"NodePath", L"");
         WriteIniStr(L"General", L"DshBin", L"");
+        WriteIniStr(L"General", L"UpdateChannel", kChannelAuto);
         Log(L"init: 已生成默认配置文件 " + g_iniPath);
     }
     LoadConfig();  // 端口收束：无效端口在此修正为随机可用端口并写回 ini

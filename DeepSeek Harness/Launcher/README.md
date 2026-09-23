@@ -9,8 +9,8 @@ DeepSeek Harness 系统托盘启动器 —— **纯 Windows 11 原生代码实�
 - **系统托盘图标**，右键弹出菜单
 - **启动 / 停止 DeepSeek Harness**：同一菜单项二选一显示（运行中显示「停止」，已停止显示「启动」）
 - **重启 DeepSeek Harness**（先停止、等端口释放、再启动）
-- **启动方式自动判定**：dsh 全局安装 → `dsh` 命令；未安装 → `npx -y @deepseek-ai/dsh`；菜单顶部以浅色不可编辑文本显示当前启动方式（dsh / npx / 自定义）
-- **检查并更新 DeepSeek Harness**：对比 npm 最新版本；有更新且 Harness 正在运行 → 询问「停止当前实例并更新后重启」，确认后自动完成 停止 → 更新 → 重新启动
+- **启动方式自动判定**：dsh 全局安装 → `dsh` 命令；未安装 → `npx -y @deepseek-ai/dsh`；菜单顶部以浅色不可编辑文本显示当前启动方式（dsh / npx / 自定义）与安装通道
+- **检查并更新 DeepSeek Harness**：**按安装通道**对比 npm 版本（装的是 alpha 就查 alpha，不会被误判成「已是最新」）；有更新且 Harness 正在运行 → 询问「停止当前实例并更新后重启」，确认后自动完成 停止 → 更新 → 重新启动
 - **系统通知**：更新开始、没有更新、更新成功等非错误提示通过 Windows 系统通知（托盘通知，纯原生、不写注册表）呈现，不弹窗不阻塞；仅错误仍用弹窗提示
 - **监听地址与端口（ini 配置）**：直接编辑 `Launcher.ini` 的 `Host`（默认 `127.0.0.1`）与 `Port` 即可；右键菜单顶部以浅色文本显示当前监听地址（`http://<Host>:<Port>`）；填写无效端口（非数字 / 越界）会自动修正为随机可用端口
 - **随托盘程序自启动 DeepSeek Harness**：勾选后，托盘程序一启动就自动拉起 Harness（配合任务计划程序的登录自启即可实现开机全自动启动）
@@ -79,9 +79,13 @@ AutoStart=0
 NodePath=
 ; 高级：自定义启动入口（node.exe 直接执行的 .js 文件；留空则自动判定 dsh / npx）
 DshBin=
+; 高级：更新通道（npm dist-tag）。auto（默认）= 按本地已安装版本的后缀自动判定：
+;   0.1.6-alpha.1 → alpha，0.1.5-rc.2 → rc，0.1.5 → latest
+; 也可显式指定通道（alpha / next / latest 等）；npx 启动方式不适用
+UpdateChannel=auto
 ```
 
-托盘右键菜单顶部以浅色不可编辑文本显示「启动方式」与「监听地址」。
+托盘右键菜单顶部以浅色不可编辑文本显示「启动方式」「安装通道」与「监听地址」。
 
 启动方式判定规则（托盘菜单顶部浅色文本显示）：
 
@@ -91,12 +95,23 @@ DshBin=
 | dsh 未全局安装 | npx | `npx -y @deepseek-ai/dsh web --no-open --host <Host> --port <Port>` |
 | ini 显式指定了 `DshBin` | 自定义 | `node.exe <DshBin> web --no-open --host <Host> --port <Port>` |
 
+更新通道判定规则（仅 dsh 全局安装时适用；npx 不常驻安装，无通道可言）：
+
+| 本地已安装版本 | 判定通道 | 检查/更新时使用的 npm dist-tag |
+|---|---|---|
+| `0.1.6-alpha.1` | alpha | `@deepseek-ai/dsh@alpha` |
+| `0.1.5-rc.2` | rc | `@deepseek-ai/dsh@rc` |
+| `0.1.5`（无预发布后缀） | latest | `@deepseek-ai/dsh@latest` |
+| ini 写了 `UpdateChannel=<tag>` | 该 tag | `@deepseek-ai/dsh@<tag>`（覆盖自动判定） |
+
+> npm 上同一个包按通道发布多个 dist-tag（`latest` / `alpha` / `next` …）。alpha 安装若去比 `latest`，会因为 `latest` 版本号更小而永远显示「已是最新」，永远收不到更新，所以必须按通道查。
+
 ## 实现要点
 
 - **进程管理**：以 `dsh web --no-open --host <Host> --port <Port>` / `npx -y @deepseek-ai/dsh web --no-open --host <Host> --port <Port>` 在后台派生进程（经 cmd.exe，作业对象整树管理），不会自动打开浏览器；进程句柄可直接判断存活。停止时用**作业对象**整树终止（Harness 可能派生子进程）。作业对象启用 `KILL_ON_JOB_CLOSE`：托盘退出（包括被强制结束、崩溃）时 Harness 一并终止，保证托盘完全接管启停状态。
-- **启动环境自检**：启动时检测 Node.js（缺失则弹窗提示并自动退出），并判定 dsh 是否全局安装（PATH 上存在 dsh 命令）：全局 → `dsh` 命令；未全局 → `npx` 方式。托盘菜单顶部以浅色不可编辑文本显示当前启动方式与监听地址。
+- **启动环境自检**：启动时检测 Node.js（缺失则弹窗提示并自动退出），并判定 dsh 是否全局安装（PATH 上存在 dsh 命令）：全局 → `dsh` 命令；未全局 → `npx` 方式。托盘菜单顶部以浅色不可编辑文本显示当前启动方式、安装通道与监听地址。
 - **端口收束**：`Launcher.ini` 的 `Port` 读取后校验 1-65535；无效（非数字 / 越界）自动改为**随机可用端口**（按配置的 Host 探测未占用）并写回 ini，避免错误端口导致 Harness 起不来。
-- **更新检查**：后台线程执行 `npm view @deepseek-ai/dsh version` 获取最新版本，本地版本读取全局 dsh 的 `package.json`；有更新时按场景询问。更新命令：dsh 模式 `npm i -g @deepseek-ai/dsh@latest`，npx 模式 `npx -y @deepseek-ai/dsh@latest --version`（刷新缓存）；更新在后台线程执行，完成后按用户选择自动重新启动。
+- **更新检查**：后台线程先读全局 dsh 的 `package.json` 得到本地版本，据其预发布后缀判定**安装通道**（alpha / rc / …，无后缀即 `latest`），再执行 `npm view @deepseek-ai/dsh@<通道> version` 取该通道最新版本对比；推断出的通道在 npm 上不存在时回退 `latest`。更新命令：dsh 模式 `npm i -g @deepseek-ai/dsh@<通道>`（alpha 装 alpha，不会把 alpha 拉回 latest），npx 模式 `npx -y @deepseek-ai/dsh@latest --version`（刷新缓存）；更新在后台线程执行，完成后按用户选择自动重新启动。
 - **系统通知**：非错误提示（更新开始 / 没有更新 / 更新成功）用 `Shell_NotifyIcon` 的 `NIF_INFO` 托盘通知，纯原生、零注册表；错误（更新失败、检查失败、启动失败）仍用 `MessageBox`。注：真正的 WinRT Toast 通知需要先在注册表注册 AUMID，与「完全便携、不写注册表」原则冲突，故未采用。
 - **运行状态判定**：托管进程存活 **或** TCP 探测 `<Host>:<Port>` 可连接，二者任一为真即视为运行中——因此能正确识别“由其他方式启动的实例”。
 - **外部实例停止**：若端口被外部启动的 Harness 占用，停止时会先询问用户，再通过 TCP 表找到监听进程并结束。
@@ -115,7 +130,7 @@ powershell -ExecutionPolicy Bypass -File scripts\test-port.ps1
 
 - `test-lifecycle.ps1`：用临时 Node HTTP 服务器代替真实 Harness，验证随托盘自启动、停止、再启动、重启、强杀托盘即停 Harness、日志记录。
 - `test-modes.ps1`：受限 PATH + 假 shim 验证 dsh / npx 两种启动方式判定。
-- `test-update.ps1`：验证更新检查链路（无 npm 的失败提示 + 真实环境的结果提示）；不执行真实更新，避免改动全局 npm 环境。
+- `test-update.ps1`：验证更新检查链路（无 npm 的失败提示 + 真实环境的结果提示 + 更新通道判定）；不执行真实更新，避免改动全局 npm 环境。
 - `test-port.ps1`：验证端口收束——有效端口保持不变，越界（99999）与非数字（abc）自动修正为随机可用端口并写回 ini。
 
 ## 常见问题
@@ -133,7 +148,10 @@ powershell -ExecutionPolicy Bypass -File scripts\test-port.ps1
 会一并停止。托盘程序是 Harness 的唯一启停控制器：菜单「退出」（或托盘进程被强制结束）都会终止 Harness（外部启动的实例退出前会先询问）。
 
 **Q：如何更新 DeepSeek Harness？**
-托盘菜单「检查并更新 DeepSeek Harness」：自动对比 npm 最新版本；有更新且 Harness 正在运行时，会询问「是否停止当前实例并更新后重启」，确认后自动完成 停止 → 更新 → 重新启动（npx 模式则刷新 npx 缓存）。
+托盘菜单「检查并更新 DeepSeek Harness」：按**当前安装通道**对比 npm 版本（alpha 安装只跟 alpha，不会被误判成「已是最新」）；有更新且 Harness 正在运行时，会询问「是否停止当前实例并更新后重启」，确认后自动完成 停止 → 更新 → 重新启动（npx 模式则刷新 npx 缓存）。当前通道可在托盘菜单顶部看到；如需强制切换通道，改 `Launcher.ini` 的 `UpdateChannel`。
+
+**Q：装的是 alpha 版，却提示「已是最新」？**
+旧版本按 `latest` 对比，而 npm 上 `latest` 的版本号可能低于你装的 alpha（例如 `latest=0.1.5-rc.2` 而 `alpha=0.1.7-alpha.1`），因此永远判定为最新。现按本地版本后缀自动选通道；若版本号后缀与 npm 上的 dist-tag 名不一致，在 `Launcher.ini` 里显式写 `UpdateChannel=alpha` 即可。
 
 **Q：如何实现开机自动启动 Harness？**
 本程序完全便携、不写注册表。请用任务计划程序（`taskschd.msc`）新建任务：登录时运行 `Launcher.exe`，并在托盘菜单勾选「随托盘程序自启动 DeepSeek Harness」：开机 → 任务计划启动托盘程序 → Harness 自动启动。
