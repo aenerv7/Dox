@@ -1,10 +1,10 @@
 {
-  "version": "1.22.2b",
-  "gecko_version": "156.0",
-  "build_id": "20260915091052",
-  "source_revision": "e74571eead515d37edd0914739f744bcb5258c51",
+  "version": "1.22.3b",
+  "gecko_version": "156.0.1",
+  "build_id": "20260922050124",
+  "source_revision": "ca522d448d3df8a0d264ea0ceafc9c684c36ea6a",
   "archives": {
-    "omni.ja": "cb4cbf8824fa4608558f7fa02fd7f74708adcc137243fdf80ba15d4a7c928c17",
-    "browser/omni.ja": "60556333ca7002fdd7da41235644d2342e25e4d62acd8127e0d4e9bc50b830af"
+    "omni.ja": "bf8115c588c653ae4dc416cf8b194ed1001cc2b25b1c7802deac55d26a5df4f6",
+    "browser/omni.ja": "0cbb712f2f5f417112b1e8af21df2a037ec95fb115058a9ea7842eda5b0cc715"
   }
 }

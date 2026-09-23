@@ -279,7 +279,7 @@ def main():
   python .\patch_zen.py install --profile "D:\BrowserData\ZenProfile"
   python .\patch_zen.py detect --install-dir "D:\Apps\Zen" --profiles-root "D:\ZenData"
   python .\patch_zen.py restore
-  python .\patch_zen.py build --install-dir ".\backups\20260915091052"
+  python .\patch_zen.py build --install-dir ".\backups\20260922050124"
 
 权限与配置：
   help / detect / verify 通常无需管理员权限；build 需要补丁目录可写。
@@ -289,7 +289,7 @@ def main():
   非默认配置可用 --profile 指定；多个候选无法确定时会停止，不猜测。
 
 适用范围：
-  仅适配 Zen 1.22.2b / Gecko 156.0，Build ID 20260915091052。
+  仅适配 Zen 1.22.3b / Gecko 156.0.1，Build ID 20260922050124。
   资源包 SHA-256 必须匹配；浏览器升级后需要重新适配，不能覆盖新版资源。
   不修改书签、密码、标签页、扩展或偏好设置；请保留 backups/ 用于还原。
   完整使用说明见脚本同目录 README.md。''')

@@ -1,4 +1,4 @@
-# Local additions for Zen 1.22.2b / Gecko 156.0.
+# Local additions for Zen 1.22.3b / Gecko 156.0.1.
 # @file headers identify the archive and resource to append to.
 # Messages already translated upstream are omitted; only real gaps are listed.
 
@@ -143,7 +143,6 @@ ipprotection-summer-promo-offramp-generic-description-default-browser-users-no-u
 # @file browser/omni.ja localization/zh-CN/browser/newtab/newtab.ftl
 newtab-privacy-message-milestone-week = 本周已拦截 { $count } 个跟踪器。看看 { -brand-short-name } 为您挡住了什么。
 newtab-privacy-message-milestone-total = 已拦截 { $count } 个跟踪器。您在掌控个人隐私的道路上又迈进了一大步。
-newtab-privacy-message-daily-cap = （今天已拦截超过 100 个跟踪器。）跟踪器越少，隐私保护越多。
 newtab-privacy-etp-off-faster-browsing = 浏览更快速。跟踪器更少。
 
 # @file browser/omni.ja localization/zh-CN/browser/preferences/preferences.ftl
@@ -169,6 +168,7 @@ zen-action-new-space = 新建工作区
 zen-action-reopen-closed-tab = 重新打开已关闭的标签页
 zen-action-duplicate-tab = 复制当前标签页
 zen-action-reset-pinned-tab = 重置固定标签页
+zen-action-open = 打开
 
 # @file browser/omni.ja localization/zh-CN/browser/zen-live-folders.ftl
 zen-live-folder-options =
