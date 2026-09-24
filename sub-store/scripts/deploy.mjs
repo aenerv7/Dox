@@ -6,12 +6,11 @@
  * 口令必须后写：首次部署时 Worker 还不存在，secret put 会失败。
  *
  * 需要 SUB_STORE_TOKEN；认证交给 wrangler（本地 login 或 CI 里的 API Token）。
- * 先跑 scripts/prepare.mjs 生成 wrangler.deploy.jsonc。
  */
 
 import { deployAndGetUrl, wrangler } from './cloudflare.mjs';
 
-const CONFIG = 'wrangler.deploy.jsonc';
+const CONFIG = 'wrangler.jsonc';
 const D1_BINDING = 'SUB_STORE_DB';
 const SECRET_NAME = 'SUB_STORE_TOKEN';
 const HEALTH_PATH = '/api/utils/env';

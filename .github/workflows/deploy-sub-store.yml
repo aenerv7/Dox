@@ -49,6 +49,11 @@ jobs:
         working-directory: sub-store
         run: npm ci
 
+      # 失败时先看这一步：它打印 API Token 实际拿到的权限，便于定位 10000 认证错误。
+      - name: Show token permissions
+        working-directory: sub-store
+        run: npx wrangler whoami
+
       # 构建会拉取 Sub-Store 最新 release 源码并打上 Workers 适配补丁；
       # 上游结构变化时补丁自检会让这一步直接失败，而不是部署一个坏 Worker。
       - name: Build backend
@@ -59,10 +64,6 @@ jobs:
       - name: Smoke test backend
         working-directory: sub-store
         run: node scripts/smoke.mjs
-
-      - name: Ensure D1 and render wrangler config
-        working-directory: sub-store
-        run: node scripts/prepare.mjs
 
       - name: Deploy backend
         working-directory: sub-store

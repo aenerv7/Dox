@@ -12,7 +12,7 @@
     {
       "binding": "SUB_STORE_DB",
       "database_name": "sub-store",
-      "database_id": "__D1_DATABASE_ID__",
+      "database_id": "325ca788-6bba-41c1-ad1e-594497374399",
       "migrations_dir": "migrations"
     }
   ]

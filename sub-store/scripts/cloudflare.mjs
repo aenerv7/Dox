@@ -40,29 +40,6 @@ function capture(args) {
     return output;
 }
 
-export function ensureD1(name) {
-    const existing = listD1().find((database) => database.name === name);
-
-    if (existing) {
-        return existing;
-    }
-
-    console.log(`创建 D1 数据库 ${name}`);
-    capture(['d1', 'create', name]);
-
-    const created = listD1().find((database) => database.name === name);
-
-    if (!created) {
-        throw new Error(`D1 数据库 ${name} 创建后仍未在列表中出现`);
-    }
-
-    return created;
-}
-
-function listD1() {
-    return JSON.parse(capture(['d1', 'list', '--json']));
-}
-
 /** 部署并返回 wrangler 打印的 workers.dev 地址。 */
 export function deployAndGetUrl(args = []) {
     const output = capture(['deploy', ...args]);

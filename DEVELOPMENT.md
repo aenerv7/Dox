@@ -95,7 +95,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `DeepSeek Harness/Launcher/bin/`
 - `HeliumLanguagePatcher/__pycache__/`、`*.bak`、`*.bak-*`、`.*.tmp`（均位于该模块内）
 - `Firefox/Zen/build/`、`backups/`、`dist/`、`__pycache__/`、`validation.json`、`runtime-validation.json`（均位于该模块内）
-- `sub-store/.upstream/`、`sub-store/build/`、`sub-store/wrangler.deploy.jsonc`
+- `sub-store/.upstream/`、`sub-store/build/`
 - `sub-store-front-end/dist/`、`sub-store-front-end/build/`
 
 当前源码入口：
@@ -1380,7 +1380,7 @@ node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/
 | `sub-store-front-end/` | 前端 Worker：上游 release `dist.zip` 的静态资源托管 |
 | `.github/workflows/deploy-sub-store.yml` | 唯一入口，先部署后端再部署前端 |
 
-`.upstream/`、`build/`、`wrangler.deploy.jsonc`、`dist/` 均为构建产物，保持 ignored；两个模块各自带 `package-lock.json`，CI 用 `npm ci`。
+`.upstream/`、`build/`、`dist/` 均为构建产物，保持 ignored；两个模块各自带 `package-lock.json`，CI 用 `npm ci`。D1 的 `database_id` 直接入库在 `wrangler.jsonc`：CI 只做 migration，不查询/创建数据库，这样 API Token 只需要 Workers Scripts 与 D1 两项权限。
 
 #### 架构
 

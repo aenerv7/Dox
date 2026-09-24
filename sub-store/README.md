@@ -23,7 +23,7 @@ Token 在 [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens
 - **每天北京时间 05:00**（UTC 21:00）拉取 Sub-Store 与 Sub-Store-Front-End 的最新 release 重新部署；
 - 在 Actions 页面 **Run workflow** 手动触发。
 
-部署脚本会自动创建 D1 数据库 `sub-store`、执行 migration、写入 `SUB_STORE_TOKEN`，并在结束时自检线上接口。
+部署脚本会执行 D1 migration、部署 Worker、写入 `SUB_STORE_TOKEN`，并在结束时自检线上接口。
 
 ## 拿到后端地址
 
@@ -80,6 +80,7 @@ npm run check   # 构建 + 冒烟测试
 
 ```bash
 npx wrangler login          # 本地登录；CI 里改用 CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
-node scripts/prepare.mjs    # 创建 D1 数据库并渲染 wrangler.deploy.jsonc
 SUB_STORE_TOKEN=<你的口令> npm run deploy
 ```
+
+D1 数据库只需建一次，`database_id` 已经写进 `wrangler.jsonc`；换账号部署时先 `npx wrangler d1 create sub-store`，再把返回的 uuid 填进去。

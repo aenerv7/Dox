@@ -364,7 +364,7 @@ macOS 分支尚未实现，脚本在非 Windows 平台会直接报错退出。
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard 右侧的 Account ID |
 | `SUB_STORE_TOKEN` | 自定义的后端路径口令，只能用 `A-Z a-z 0-9 . _ ~ -` |
 
-部署脚本会自动创建 D1 数据库、执行 migration、写入口令并自检。之后在 Sub-Store 前端的「后端地址」里填：
+部署脚本会执行 D1 migration、部署 Worker、写入口令并自检。之后在 Sub-Store 前端的「后端地址」里填：
 
 ```text
 https://sub-store.<你的子域>.workers.dev/<口令>
