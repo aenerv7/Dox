@@ -19,6 +19,8 @@
 | [`CapsLockOSD`](./CapsLockOSD) | Windows 原生 Caps Lock 状态屏幕提示 |
 | [`SizerSwift`](./SizerSwift) | macOS 菜单栏窗口调整工具 |
 | [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Firefox 扩展版与 Cloudflare Workers 网页版 |
+| [`sub-store`](./sub-store) | Sub-Store 后端的 Cloudflare Workers 部署（D1 持久化、路径口令鉴权、每日自动更新） |
+| [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`Firefox/Zen`](./Firefox/Zen/README.md) | Zen 简体中文补全与快捷键显示修正，自动识别安装和配置目录，支持备份还原 |
 | [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
@@ -340,3 +342,38 @@ pwsh -File .\Scripts\Install-FFmpeg.ps1
 - `-Shared` 换成共享库构建（下载小，但必须额外安装 7 个 DLL，脚本会自动一并装上），`-Git` 换成每日 master 构建，`-Silent` 跳过结束时的版本输出
 
 macOS 分支尚未实现，脚本在非 Windows 平台会直接报错退出。
+
+## Sub-Store
+
+把 [Sub-Store](https://github.com/sub-store-org/Sub-Store) 后端与 [Sub-Store-Front-End](https://github.com/sub-store-org/Sub-Store-Front-End) 部署到两个 Cloudflare Worker，全部落在免费额度内。上游源码不入库，构建期按 release tag 拉取。
+
+| 目录 | Cloudflare Worker | 说明 |
+|---|---|---|
+| [`sub-store`](./sub-store) | `sub-store` | 后端：D1 存数据，路径口令鉴权，CORS 全域放行 |
+| [`sub-store-front-end`](./sub-store-front-end) | `sub-store-front-end` | 前端：上游 release 产物，纯静态资源 |
+
+部署由 [`.github/workflows/deploy-sub-store.yml`](./.github/workflows/deploy-sub-store.yml) 负责：**每天北京时间 05:00** 自动拉取两者最新 release 重新部署，也可在 Actions 页面手动触发。
+
+### 配置
+
+在 GitHub 仓库 **Settings → Secrets and variables → Actions** 添加：
+
+| Secret | 说明 |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | 权限：Account → Workers Scripts → Edit、Account → D1 → Edit |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard 右侧的 Account ID |
+| `SUB_STORE_TOKEN` | 自定义的后端路径口令，只能用 `A-Z a-z 0-9 . _ ~ -` |
+
+部署脚本会自动创建 D1 数据库、执行 migration、写入口令并自检。之后在 Sub-Store 前端的「后端地址」里填：
+
+```text
+https://sub-store.<你的子域>.workers.dev/<口令>
+```
+
+绑自定义域名不影响使用：CORS 固定返回 `Access-Control-Allow-Origin: *`。
+
+### 限制
+
+Cloudflare Workers 运行时禁止 `eval` / `new Function`，因此**不支持**「脚本过滤」「脚本操作」「修改响应」；前端界面仍会显示这些选项，使用时后端返回明确报错。另外不支持本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理和 Node 专属的定时同步。免费版 CPU 为 10 ms/请求，节点特别多时可能超时。
+
+完整说明见 [`sub-store/README.md`](./sub-store/README.md)，维护规范见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#317-sub-storecloudflare-workers)。

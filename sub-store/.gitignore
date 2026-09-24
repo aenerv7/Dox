@@ -1,0 +1,6 @@
+# Sub-Store 部署产物与本地上游源码
+.upstream/
+build/
+node_modules/
+wrangler.deploy.jsonc
+.wrangler/

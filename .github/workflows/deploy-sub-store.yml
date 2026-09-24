@@ -1,0 +1,85 @@
+name: Deploy Sub-Store
+
+# 每天北京时间 05:00（UTC 21:00）拉取上游最新 release 并重新部署；
+# 也可以从 Actions 页面手动触发。
+on:
+  schedule:
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-sub-store
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SUB_STORE_TOKEN: ${{ secrets.SUB_STORE_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check required secrets
+        run: |
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUB_STORE_TOKEN; do
+            if [ -z "${!name}" ]; then
+              echo "::error::缺少 Repository secret：$name"
+              exit 1
+            fi
+          done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            sub-store/package-lock.json
+            sub-store-front-end/package-lock.json
+
+      - name: Install backend deps
+        working-directory: sub-store
+        run: npm ci
+
+      # 构建会拉取 Sub-Store 最新 release 源码并打上 Workers 适配补丁；
+      # 上游结构变化时补丁自检会让这一步直接失败，而不是部署一个坏 Worker。
+      - name: Build backend
+        working-directory: sub-store
+        run: npm run build
+
+      # 在禁止 eval / new Function 的沙箱里跑一遍，等价于 Workers 的硬约束。
+      - name: Smoke test backend
+        working-directory: sub-store
+        run: node scripts/smoke.mjs
+
+      - name: Ensure D1 and render wrangler config
+        working-directory: sub-store
+        run: node scripts/prepare.mjs
+
+      - name: Deploy backend
+        working-directory: sub-store
+        run: npm run deploy
+
+      - name: Install frontend deps
+        working-directory: sub-store-front-end
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: sub-store-front-end
+        run: npm run build
+
+      - name: Deploy frontend
+        working-directory: sub-store-front-end
+        run: npm run deploy
+
+      - name: Report versions
+        working-directory: sub-store
+        run: node scripts/summary.mjs

@@ -25,6 +25,7 @@
    - 3.14 [PortableBridge](#314-portablebridge)
    - 3.15 [HeliumLanguagePatcher](#315-heliumlanguagepatcher)
    - 3.16 [Zen 中文补全](#316-zen-中文补全)
+   - 3.17 [Sub-Store（Cloudflare Workers）](#317-sub-storecloudflare-workers)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -48,6 +49,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | Python 3.11+ / 标准库、PowerShell | `Firefox/Zen/` | Zen Fluent 中文补全、快捷键显示修正、安装与配置自动识别 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Firefox 扩展 + Cloudflare Workers） |
+| JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码） |
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射和 VS Code 外观自定义 |
 | 批处理 / PowerShell | `Scripts/*.bat`、`Scripts/*.ps1` | Edge 清理脚本和 FFmpeg 安装脚本 |
@@ -72,6 +74,9 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `Scripts/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版）、Flatten 和 FFmpeg 安装脚本 |
 | `Android/ApkRename/` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
 | `HeliumLanguagePatcher/` | 活跃 | Helium 语言包扫描、翻译缓存与 DataPack v5 补丁 |
+| `sub-store/` | 活跃 | Sub-Store 后端在 Cloudflare Workers 上的适配（D1 持久化、路径口令鉴权） |
+| `sub-store-front-end/` | 活跃 | Sub-Store-Front-End 静态资源 Worker |
+| `.github/workflows/` | 活跃 | Sub-Store 前后端的定时与手动部署 |
 | `magi.txt` | 已移除 | 历史 AdGuard 规则，当前检出不提供；保留第 3.10 节历史维护约定 |
 | `README.md` | 用户文档 | 仓库主说明 |
 
@@ -90,6 +95,8 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `DeepSeek Harness/Launcher/bin/`
 - `HeliumLanguagePatcher/__pycache__/`、`*.bak`、`*.bak-*`、`.*.tmp`（均位于该模块内）
 - `Firefox/Zen/build/`、`backups/`、`dist/`、`__pycache__/`、`validation.json`、`runtime-validation.json`（均位于该模块内）
+- `sub-store/.upstream/`、`sub-store/build/`、`sub-store/wrangler.deploy.jsonc`
+- `sub-store-front-end/dist/`、`sub-store-front-end/build/`
 
 当前源码入口：
 
@@ -106,6 +113,9 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Stash/external-ip-address-tile.js`
 - `Scripts/Install-FFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
+- `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
+- `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
+- `.github/workflows/deploy-sub-store.yml`
 
 ### 1.5 资源文件（图标）
 
@@ -1358,6 +1368,114 @@ node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/
 
 后续改动界面资源仍需使用独立测试配置做真实启动验证。静态消息覆盖不代表审查了所有硬编码英文，也不涉及第三方扩展或网页翻译；不要宣称所有界面已完整汉化。打包时只包含源码、翻译数据、基线和用户说明，排除本机配置、备份、日志及测试浏览器副本。
 
+### 3.17 Sub-Store（Cloudflare Workers）
+
+把上游 [Sub-Store](https://github.com/sub-store-org/Sub-Store) 后端与 [Sub-Store-Front-End](https://github.com/sub-store-org/Sub-Store-Front-End) 部署到两个 Cloudflare Worker（`sub-store`、`sub-store-front-end`）。上游源码不入库，构建期按 release tag 拉取；`.github/workflows/deploy-sub-store.yml` 每天北京时间 05:00 自动重部署，也可手动触发。**本节是维护规范，用户使用见两个模块的 `README.md`。**
+
+#### 模块边界
+
+| 路径 | 角色 |
+|---|---|
+| `sub-store/` | 后端 Worker：上游源码适配、D1 持久化、路径口令鉴权、构建与部署脚本 |
+| `sub-store-front-end/` | 前端 Worker：上游 release `dist.zip` 的静态资源托管 |
+| `.github/workflows/deploy-sub-store.yml` | 唯一入口，先部署后端再部署前端 |
+
+`.upstream/`、`build/`、`wrangler.deploy.jsonc`、`dist/` 均为构建产物，保持 ignored；两个模块各自带 `package-lock.json`，CI 用 `npm ci`。
+
+#### 架构
+
+```text
+浏览器 / 客户端
+  │  /<token>/api/...        → Sub-Store REST API
+  │  /<token>/download/...   → 订阅产物
+  │  /share/...              → 公开分享链接（Sub-Store 自校验 ?token=）
+  ▼
+sub-store Worker
+  fetch ─▶ route() 校验口令前缀 ─▶ createContext(D1 预载整表)
+        ─▶ runInContext: 首次 import upstream → refreshCache → dispatch
+        ─▶ await context.done（$done 落点）─▶ 回写 D1 ─▶ Response
+
+  src/runtime.js 提供 Surge 形态全局对象：
+  $persistentStore → 请求上下文 Map → D1 (kv 表)
+  $httpClient      → fetch
+  $done            → 本次请求的 Promise
+```
+
+上游为 QX / Loon / Surge / Stash 设计，通过全局变量访问宿主能力。适配层把 Workers 的 `fetch` 与 D1 包装成 Surge 形态（`isSurge` 为真、`isNode` 为假），上游走它已经过测试的 Surge 分支，业务逻辑零改动。
+
+#### 运行时不变量
+
+1. **禁止动态求值**：Workers 不允许 `eval` / `new Function`。`vendor/open-api.js` 的 `isNode` 探测固定为 `false`；三个 peggy 语法在构建期用 `output: 'source', format: 'bare'` 预编译；`createDynamicFunction`（脚本过滤 / 脚本操作 / 修改响应）改为抛出明确错误，压缩后 `new Function` 分支被当死代码删除。
+2. **`$persistentStore.read` 必须同步**：上游在模块初始化时就读取主缓存，所以每次请求先 `loadState()` 预载整表再触发 upstream 导入，顺序不能调换。
+3. **请求隔离**：一个 isolate 并发处理多个请求。`$done` 落点、预载数据、待落盘写入全部挂在 `AsyncLocalStorage` 的请求上下文上。禁止改回模块级变量——否则并发请求会串响应，`checkConcurrency` 会以挂起的形式暴露。
+4. **`self` 必须存在**：lodash 用 `self` / `global` 探测全局对象，两者都缺失时会执行 `Function("return this")()` 并抛 EvalError。`installGlobals()` 按 Service Worker 规范补 `self`。
+5. **落盘时机**：`$done` 之后、返回响应之前 `await saveState()`。`$done` 之后才写的数据会丢，与上游 Surge 行为一致。
+6. **`$.cache` 每次请求从 D1 刷新**：isolate 复用会留下上一次请求的内存状态。多 isolate 并发写仍有极小概率丢更新，与上游 Node 版同源，不额外加锁。
+7. **CORS 全域放行**：通过全局 `$argument = 'cors=*'` 走上游自带的 CORS 解析，不改上游 `cors.js` 默认值。
+8. **未匹配路径返回 404**：上游非 Node 分支把未知路径 302 到官方站点，`restful/miscs.js` 的跳转与问候 catch-all 路由必须保持移除。
+
+#### 上游补丁清单
+
+`sub-store/scripts/upstream-plugin.mjs` 以 esbuild 插件在内存里改上游源码，不落地修改检出，构建可重复。每个补丁带唯一标记，`build.onEnd` 断言命中次数，上游结构变化会直接让构建失败：
+
+| 文件 | 改动 |
+|---|---|
+| `vendor/open-api.js` | `isNode` 探测 → `false` |
+| `vendor/express.js` | 非 Node 的 `app.start` 改为把 `dispatch` 挂到 `globalThis` |
+| `utils/rs.js` | 整体替换为 `node:crypto` 版本，去掉 jsrsasign |
+| `restful/token.js` | 两处 `eval('require("ms"/"nanoid")')` → 全局变量 |
+| `restful/miscs.js` | 移除 302 跳转与 catch-all 问候路由 |
+| `core/proxy-utils/processors/index.js` | `createDynamicFunction` 改为明确报错 |
+| `core/proxy-utils/parsers/peggy/{loon,qx,surge}.js` | 语法构建期预编译 |
+| `runtime/{child-process,dgram,fs,net,path,stream-promises,tls}.js` | 替换为显式报错的替身 |
+
+peggy 自身的语法解析器不可重入，`compileParser()` 必须串行化，否则 esbuild 并发调用 `onLoad` 会让 `peggy.generate` 崩在 `charCodeAt`。
+
+#### 数据与鉴权
+
+- D1 表 `kv(key TEXT PRIMARY KEY, value TEXT NOT NULL)`：`sub-store` 一行是主缓存 JSON，其余是上游 `#key` 形式的旁路键值。
+- 鉴权即路径前缀：`SUB_STORE_TOKEN` 以 secret 写入 Worker，前端填 `{sub-store URL}/{token}`。口令限定 `[A-Za-z0-9._~-]+`，含需要百分号编码的字符直接 500，避免前端拼出的地址对不上。
+- `/share/` 不带口令前缀：上游前端会把后端地址的路径段裁掉再拼 `/share/`，分享链接自带 `?token=` 由 Sub-Store 自校验。
+- 部署顺序固定：migration → deploy → `wrangler secret put` → 自检。首次部署时 Worker 还不存在，secret 必须后写。
+
+#### 构建与验证
+
+```powershell
+cd sub-store
+npm ci
+npm run check          # 拉上游最新 release 构建 + 冒烟测试
+```
+
+```powershell
+cd sub-store-front-end
+npm ci
+npm run build          # 下载上游 release dist.zip 并解压到 dist/
+```
+
+`sub-store/scripts/smoke.mjs` 用 `node:vm` 的 `codeGeneration.strings = false` 复刻 Workers 禁止动态求值的约束：
+
+| 场景 | 预期 |
+|---|---|
+| `/api/utils/env` | 200 且含 `data.backend` |
+| `OPTIONS` 带任意 Origin | 200 且 `access-control-allow-origin: *` |
+| 裸路径 `/api/...`、未知路由、未知分享路径 | 404 |
+| 创建订阅后重新读取 | 订阅持久化，D1 出现 `sub-store` 行 |
+| 下载本地订阅（`target=ClashMeta`） | 200 且输出含节点地址 |
+| 8 个并发请求（必须混入异步的下载端点） | 无串响应，否则挂起 |
+| 三个 peggy 解析器解析真实样本 | server / port 正确 |
+
+静态兜底：构建产物不得含 `new Function(`，且必须含脚本操作的兜底报错文案。前端侧另断言 `dist/index.html` 存在且默认后端已被清空。
+
+#### 免费额度与已知限制
+
+免费版 Worker CPU 为 10 ms/请求、10 万请求/天、Cron 5 个/账号；D1 免费版 10 万行写/天。本部署不用 KV、R2、Durable Objects、Queues。**不得为了功能引入免费版之外的资源。**
+
+不支持：脚本过滤 / 脚本操作 / 修改响应、本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理、`insecure`、Node 专属定时同步。上游 `resolve-domain` 走 DNS over HTTPS 正常。前端界面照常显示脚本类选项，用户使用时由后端返回明确报错。
+
+#### 文档维护
+
+用户说明在 `sub-store/README.md` 与 `sub-store-front-end/README.md`。改动补丁清单、鉴权方式、存储结构、部署顺序或免费额度取舍时，同一提交更新本节。
+
 ## 4. 开发环境与构建命令速查
 
 | 模块 | 需要的环境 | 主要命令 |
@@ -1372,6 +1490,7 @@ node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/
 | PortableBridge | Windows；.NET Framework 4.x | `cd PortableBridge; .\build.ps1; .\test.ps1` |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
 | HeliumLanguagePatcher | Windows；Python 3.11+；自动翻译需要本机 API 配置 | `python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py`；使用命令见 [README](./README.md#helium-语言补丁) |
+| Sub-Store（Cloudflare Workers） | Node.js 24+；Cloudflare 账号与 API Token | `cd sub-store; npm ci; npm run check`；`cd sub-store-front-end; npm ci; npm run build` |
 | Userscript | Tampermonkey / Greasemonkey | 浏览器安装脚本 |
 | Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
