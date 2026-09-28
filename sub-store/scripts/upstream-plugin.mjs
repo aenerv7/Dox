@@ -66,7 +66,6 @@ const EXPECTED = {
     'core/proxy-utils/parsers/peggy/loon.js': 1,
     'core/proxy-utils/parsers/peggy/qx.js': 1,
     'core/proxy-utils/parsers/peggy/surge.js': 1,
-    'runtime/child-process.js': 1,
     'runtime/dgram.js': 1,
     'runtime/fs.js': 1,
     'runtime/net.js': 1,
@@ -75,7 +74,10 @@ const EXPECTED = {
     'runtime/tls.js': 1,
 };
 
-// worker-threads 只被上游 main.js 引用，本项目用自己的入口，因此不在断言清单里。
+// 这两个模块不在断言清单里，因为非测试代码已经不引用它们：
+//   worker-threads  只被上游 main.js 引用，本项目用自己的入口
+//   child-process   2.42.2 起只被上游测试引用（open-api.js 改用 eval('import("shoutrrr-ts")')）
+// 仍留在过滤器里：上游一旦重新引用，这里会给出明确报错而不是 TypeError。
 const RUNTIME_MODULE = /[\\/]runtime[\\/](child-process|dgram|fs|net|path|stream-promises|tls|worker-threads)\.js$/;
 
 /**
