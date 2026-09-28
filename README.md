@@ -374,6 +374,6 @@ https://sub-store.<你的子域>.workers.dev/<口令>
 
 ### 限制
 
-Cloudflare Workers 运行时禁止 `eval` / `new Function`，因此**不支持**「脚本过滤」「脚本操作」「修改响应」；前端界面仍会显示这些选项，使用时后端返回明确报错。另外不支持本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理和 Node 专属的定时同步。免费版 CPU 为 10 ms/请求，节点特别多时可能超时。
+Cloudflare Workers 运行时禁止 `eval` / `new Function`，脚本功能改由内置的 QuickJS（Wasm）解释器执行，「脚本过滤」「脚本操作」「修改响应」照常可用。不支持的是本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理和 Node 专属的定时同步。免费版 CPU 为 10 ms/请求，节点特别多或脚本较重时可能超时。
 
 完整说明见 [`sub-store/README.md`](./sub-store/README.md)，维护规范见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#317-sub-storecloudflare-workers)。

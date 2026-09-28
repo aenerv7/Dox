@@ -12,7 +12,14 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { build } from 'esbuild';
-import { MODULE_ROOT, UPSTREAM_ROOT, UPSTREAM_SRC, upstreamPlugin } from './upstream-plugin.mjs';
+import {
+    MODULE_ROOT,
+    QUICKJS_WASM,
+    UPSTREAM_ROOT,
+    UPSTREAM_SRC,
+    quickjsWasmPath,
+    upstreamPlugin,
+} from './upstream-plugin.mjs';
 
 const REPOSITORY = 'https://github.com/sub-store-org/Sub-Store.git';
 const RELEASE_TAG_PATTERN = /^\d+\.\d+\.\d+$/;
@@ -40,7 +47,8 @@ const result = await build({
     legalComments: 'none',
     // Workers 的 nodejs_compat 提供 node:crypto / node:async_hooks；
     // 其余 Node 内建只出现在死分支里。
-    external: ['node:crypto', 'node:async_hooks'],
+    // quickjs.wasm 留给 wrangler 打包：Workers 只接受预编译模块，必须由它生成 WebAssembly.Module。
+    external: ['node:crypto', 'node:async_hooks', './quickjs.wasm'],
     outfile: OUTFILE,
     metafile: true,
     // 上游死分支（isNode 恒假）里的 eval 是已知无害的，冒烟测试用
@@ -53,6 +61,9 @@ fs.writeFileSync(
     path.join(BUILD_DIR, 'release.json'),
     `${JSON.stringify({ tag, builtAt: new Date().toISOString() }, null, 2)}\n`,
 );
+
+// Worker 里用 import './quickjs.wasm' 引用，wrangler 会把它打包成预编译模块。
+fs.copyFileSync(quickjsWasmPath(), path.join(BUILD_DIR, QUICKJS_WASM));
 
 const bytes = Object.values(result.metafile.outputs)[0].bytes;
 console.log(`\nSub-Store ${tag} -> build/worker.mjs (${(bytes / 1024).toFixed(1)} KiB)`);

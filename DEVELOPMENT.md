@@ -1376,7 +1376,7 @@ node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/
 
 | 路径 | 角色 |
 |---|---|
-| `sub-store/` | 后端 Worker：上游源码适配、D1 持久化、路径口令鉴权、构建与部署脚本 |
+| `sub-store/` | 后端 Worker：上游源码适配、QuickJS 脚本解释器、D1 持久化、路径口令鉴权、构建与部署脚本 |
 | `sub-store-front-end/` | 前端 Worker：上游 release `dist.zip` 的静态资源托管 |
 | `.github/workflows/deploy-sub-store.yml` | 唯一入口，先部署后端再部署前端 |
 
@@ -1405,7 +1405,7 @@ sub-store Worker
 
 #### 运行时不变量
 
-1. **禁止动态求值**：Workers 不允许 `eval` / `new Function`。`vendor/open-api.js` 的 `isNode` 探测固定为 `false`；三个 peggy 语法在构建期用 `output: 'source', format: 'bare'` 预编译；`createDynamicFunction`（脚本过滤 / 脚本操作 / 修改响应）改为抛出明确错误，压缩后 `new Function` 分支被当死代码删除。
+1. **禁止动态求值**：Workers 不允许 `eval` / `new Function`。`vendor/open-api.js` 的 `isNode` 探测固定为 `false`；三个 peggy 语法在构建期用 `output: 'source', format: 'bare'` 预编译；脚本过滤 / 脚本操作 / 修改响应改由内置的 QuickJS 解释器执行（见「脚本引擎」）。构建产物中不得出现 `new Function(`。
 2. **`$persistentStore.read` 必须同步**：上游在模块初始化时就读取主缓存，所以每次请求先 `loadState()` 预载整表再触发 upstream 导入，顺序不能调换。
 3. **请求隔离**：一个 isolate 并发处理多个请求。`$done` 落点、预载数据、待落盘写入全部挂在 `AsyncLocalStorage` 的请求上下文上。禁止改回模块级变量——否则并发请求会串响应，`checkConcurrency` 会以挂起的形式暴露。
 4. **`self` 必须存在**：lodash 用 `self` / `global` 探测全局对象，两者都缺失时会执行 `Function("return this")()` 并抛 EvalError。`installGlobals()` 按 Service Worker 规范补 `self`。
@@ -1425,11 +1425,35 @@ sub-store Worker
 | `utils/rs.js` | 整体替换为 `node:crypto` 版本，去掉 jsrsasign |
 | `restful/token.js` | 两处 `eval('require("ms"/"nanoid")')` → 全局变量 |
 | `restful/miscs.js` | 移除 302 跳转与 catch-all 问候路由 |
-| `core/proxy-utils/processors/index.js` | `createDynamicFunction` 改为明确报错 |
+| `core/proxy-utils/processors/index.js` | `createDynamicFunction` 整体替换为委托给 `dox:scripting`；6 个 `const x = createDynamicFunction(` 调用点补 `await`，文件头部注入 `import { createScriptFunction } from 'dox:scripting'` |
 | `core/proxy-utils/parsers/peggy/{loon,qx,surge}.js` | 语法构建期预编译 |
 | `runtime/{child-process,dgram,fs,net,path,stream-promises,tls}.js` | 替换为显式报错的替身 |
 
+`dox:` 前缀由插件解析到本项目 `src/`，用来在不动上游检出的前提下注入自己的实现。`DYNAMIC_FUNCTION_TAIL` 依赖「`createDynamicFunction` 的 `flowUtils` 块之后直到文件末尾全是 `new Function`」这一结构：上游一旦重排就会断言失败，而不是悄悄留下动态求值。
+
 peggy 自身的语法解析器不可重入，`compileParser()` 必须串行化，否则 esbuild 并发调用 `onLoad` 会让 `peggy.generate` 崩在 `charCodeAt`。
+
+#### 脚本引擎
+
+`src/scripting.js` 用 QuickJS（`quickjs-emscripten-core` + `@jitl/quickjs-wasmfile-release-sync`）解释执行用户脚本，绕开 Workers 的动态求值禁令。
+
+```text
+上游 createDynamicFunction(name, script, globals)
+  └─ createScriptFunction()                      每个脚本一次
+       ├─ Scope.withScopeAsync                    handle 全托管，退出时统一释放
+       ├─ QuickJS.newContext()                    运行时至多 64 MB / 2 MB 栈 / 指令预算
+       ├─ evalCode('(function (globals...) {...})')  ← 脚本源码
+       └─ 调用入口函数 ─▶ 驱动循环 ─▶ 结果搬回宿主
+```
+
+- **Wasm 只能预编译导入**：Workers 的 `WebAssembly.instantiate` 不收字节码，`quickjs.wasm` 由 `build.mjs` 复制到 `build/`，`worker.mjs` 里保留 `import ... from './quickjs.wasm'`（esbuild 标记 external），再由 wrangler 打包成 `WebAssembly.Module`。`newVariant(variant, { wasmModule })` 把它接进 emscripten 的 `instantiateWasm`。
+- **模块按需初始化**：`loadQuickJS()` 在首次用脚本时才实例化，Wasm 出问题不会拖垮 `/api/utils/env` 等其它路径。
+- **搬运规则**：批量数据（节点列表、返回值、宿主函数返回的纯数据）走 JSON；宿主对象与函数在 VM 内是带 `HOST` 符号的 `Proxy`，读写与调用都落回宿主；`$options`、`context` 以及宿主对象上读到的成员一律按引用，脚本里的增删改直接生效。宿主函数调用必须把 `thisArg` 传下去，否则 `array.push` 这类方法会丢调用者。
+- **异步**：宿主函数返回 promise 时挂一个 QuickJS deferred，驱动循环 `await Promise.race(pending)` → `executePendingJobs()`，直到脚本返回的 promise 落地；没有待落地宿主操作时直接报错，避免死等。
+- **执行边界**：`Date.now()` 在 Workers 里执行期间冻结，做不了墙钟超时，只能给 `setInterruptHandler` 一个指令数预算（`INTERRUPT_BUDGET`），跑飞脚本被中止并翻译成可读报错。另设内存与栈上限。
+- **`newContext()` 不会把运行时选项转交给 `newRuntime()`**，内存/栈/中断必须在 `ctx.runtime` 上显式设置；创建上下文要走 `QuickJS.newContext()`（它把 runtime 挂进上下文的 lifetime），否则 `runtime.dispose()` 会先于上下文释放并触发 `JS_FreeRuntime` 断言。
+
+成本：解释执行远慢于原生，实测免费档 10 ms 内可跑完几百节点的一次 `map` 改写，节点上千或脚本密集调用宿主函数时会撞 Error 1102，属预期，不是缺陷。**不得为此引入免费版之外的资源。**
 
 #### 数据与鉴权
 
@@ -1463,14 +1487,19 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 | 下载本地订阅（`target=ClashMeta`） | 200 且输出含节点地址 |
 | 8 个并发请求（必须混入异步的下载端点） | 无串响应，否则挂起 |
 | 三个 peggy 解析器解析真实样本 | server / port 正确 |
+| 脚本操作改写节点名 / 原地改写后不返回 / 异步脚本 | 三种写法都要生效 |
+| 脚本过滤保留一半节点 | 命中的留下，未命中的不出现 |
+| 修改响应追加内容 | 输出里出现追加串 |
+| 脚本里 `throw` | 500 且报错文案透出，不含 `EvalError` |
+| 直接压 `src/scripting.js`：宿主异步函数、宿主对象身份还原、`$options` 嵌套改写、`context` 增删、跑飞脚本 | 全部按桥接规则生效，跑飞被预算中止 |
 
-静态兜底：构建产物不得含 `new Function(`，且必须含脚本操作的兜底报错文案。前端侧另断言 `dist/index.html` 存在且默认后端已被清空。
+静态兜底：构建产物不得含 `new Function(`，且必须含解释器标记（`doxHostFunction`）。前端侧另断言 `dist/index.html` 存在且默认后端已被清空。
 
 #### 免费额度与已知限制
 
 免费版 Worker CPU 为 10 ms/请求、10 万请求/天、Cron 5 个/账号；D1 免费版 10 万行写/天。本部署不用 KV、R2、Durable Objects、Queues。**不得为了功能引入免费版之外的资源。**
 
-不支持：脚本过滤 / 脚本操作 / 修改响应、本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理、`insecure`、Node 专属定时同步。上游 `resolve-domain` 走 DNS over HTTPS 正常。前端界面照常显示脚本类选项，用户使用时由后端返回明确报错。
+不支持：本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理、`insecure`、Node 专属定时同步。上游 `resolve-domain` 走 DNS over HTTPS 正常。脚本功能可用，但在免费档的 10 ms CPU 内只跑得动中小订阅，且 `require` 与上游浏览器分支一样是 `undefined`。
 
 #### 文档维护
 

@@ -6,6 +6,7 @@
  *   2. eval('require("ms")') / eval('require("nanoid")') 在分享 token 路径上是活代码
  *   3. 未匹配路径会被 302 到官方前端站点
  *
+ * 脚本操作不再禁用：createDynamicFunction 改成委托给 src/scripting.js 的 QuickJS 解释器。
  * 持久化不走这里的补丁：上游的 $persistentStore 分支由本项目 src/ 提供实现。
  *
  * 补丁以 esbuild 插件形式在内存里改，不落地修改 .upstream 检出，构建可重复。
@@ -13,6 +14,7 @@
  */
 
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import peggy from 'peggy';
 
@@ -20,18 +22,43 @@ export const MODULE_ROOT = path.resolve(import.meta.dirname, '..');
 export const UPSTREAM_ROOT = path.join(MODULE_ROOT, '.upstream', 'Sub-Store');
 export const UPSTREAM_SRC = path.join(UPSTREAM_ROOT, 'backend', 'src');
 
+/** QuickJS 的 Wasm，随 Worker 一起上传，由 wrangler 打包成 WebAssembly.Module。 */
+export const QUICKJS_WASM = 'quickjs.wasm';
+
 const PEGGY_IMPORT = "import peggy from 'peggy';";
 const PEGGY_CALL = 'peggy.generate(grammars)';
 const PEGGY_GRAMMAR = /const grammars = String\.raw`([\s\S]*?)`;/;
 
-const DYNAMIC_FUNCTION_HEAD =
-    'function createDynamicFunction(name, script, $arguments, $options) {';
+// 脚本解释器由本项目提供，这里把上游的 new Function 版本整段换掉。
+const SCRIPT_IMPORT = "import { createScriptFunction } from 'dox:scripting';\n";
+// 上游源码是 CRLF，正则必须容忍 \r\n。
+const DYNAMIC_FUNCTION_TAIL =
+    /        normalizeFlowHeader,\r?\n    \};\r?\n    if \(\$\.env\.isLoon\) \{[\s\S]*\r?\n\}\s*$/;
+const DYNAMIC_FUNCTION_REPLACEMENT = `        normalizeFlowHeader,
+    };
 
-const SCRIPT_UNSUPPORTED = `    // patched: Cloudflare Workers 禁止 eval / new Function
-    throw new Error(
-        'Sub-Store on Cloudflare Workers 不支持脚本过滤 / 脚本操作 / 修改响应：Workers 运行时禁止 eval 与 new Function。',
-    );
+    return createScriptFunction(name, script, {
+        $arguments,
+        $options,
+        $substore: $,
+        lodash,
+        ProxyUtils,
+        yaml: ProxyUtils.yaml,
+        Buffer: ProxyUtils.Buffer,
+        b64d: ProxyUtils.Base64.decode,
+        b64e: ProxyUtils.Base64.encode,
+        DOMAIN_RESOLVERS,
+        scriptResourceCache,
+        flowUtils,
+        produceArtifact,
+        require: undefined,
+    });
+}
 `;
+
+// createDynamicFunction 现在返回 Promise，六个调用点都要 await。
+const DYNAMIC_FUNCTION_CALL = /const (\w+) = createDynamicFunction\(/g;
+const DYNAMIC_FUNCTION_CALL_COUNT = 6;
 
 // jsrsasign 体积大且在 Workers 上不可靠；证书指纹改用 node:crypto 计算。
 const RS_MODULE = `import { createHash } from 'node:crypto';
@@ -107,6 +134,11 @@ export function upstreamPlugin({ expected = EXPECTED } = {}) {
         setup(build) {
             build.onResolve({ filter: /^@\// }, (args) => ({
                 path: resolveUpstream(args.path.slice(2)),
+            }));
+
+            // dox:xxx 指向本项目 src/xxx.js，用来给上游注入自己的实现。
+            build.onResolve({ filter: /^dox:/ }, (args) => ({
+                path: path.join(MODULE_ROOT, 'src', `${args.path.slice('dox:'.length)}.js`),
             }));
 
             build.onLoad({ filter: RUNTIME_MODULE }, (args) => {
@@ -196,13 +228,22 @@ export function upstreamPlugin({ expected = EXPECTED } = {}) {
                 (args) => {
                     let code = read(args.path);
 
-                    // 抛错同时让 esbuild 把 new Function 分支当作死代码删掉。
+                    // 上游的 new Function 版本整段换成本项目的 QuickJS 解释器；
+                    // flowUtils 是脚本可见的全局，留在原位不动。
                     code = replaceOnce(
                         code,
-                        DYNAMIC_FUNCTION_HEAD,
-                        `${DYNAMIC_FUNCTION_HEAD}\n${SCRIPT_UNSUPPORTED}`,
+                        DYNAMIC_FUNCTION_TAIL,
+                        DYNAMIC_FUNCTION_REPLACEMENT,
                         'processors/index.js createDynamicFunction',
                     );
+                    code = replaceMany(
+                        code,
+                        DYNAMIC_FUNCTION_CALL,
+                        'const $1 = await createDynamicFunction(',
+                        DYNAMIC_FUNCTION_CALL_COUNT,
+                        'processors/index.js createDynamicFunction 调用点',
+                    );
+                    code = `${SCRIPT_IMPORT}${code}`;
 
                     bump('core/proxy-utils/processors/index.js');
                     return { contents: code, loader: 'js' };
@@ -286,6 +327,21 @@ function replaceOnce(code, pattern, replacement, label) {
     }
 
     return next;
+}
+
+function replaceMany(code, pattern, replacement, expected, label) {
+    const actual = code.match(pattern)?.length ?? 0;
+
+    if (actual !== expected) {
+        throw new Error(`上游补丁命中数不符：${label} 期望 ${expected} 处，实际 ${actual} 处`);
+    }
+
+    return code.replace(pattern, replacement);
+}
+
+/** QuickJS Wasm 在 node_modules 里的位置，构建时复制到 build/ 供 wrangler 打包。 */
+export function quickjsWasmPath() {
+    return createRequire(import.meta.url).resolve('@jitl/quickjs-wasmfile-release-sync/wasm');
 }
 
 /** 复刻上游 jsconfig.json 的 "@/*" -> "src/*" 映射，esbuild 默认不读 jsconfig。 */

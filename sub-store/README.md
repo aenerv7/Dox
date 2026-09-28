@@ -57,13 +57,35 @@ curl https://sub-store.<你的子域>.workers.dev/<口令>/api/utils/env
 | D1 | 免费版 5 GB、500 万行读/天、10 万行写/天，个人使用远用不满 |
 | Worker 数量 | 免费版 100 个，本部署占 2 个 |
 
-功能上的取舍（Cloudflare Workers 运行时禁止 `eval` / `new Function`）：
+Workers 运行时禁止 `eval` / `new Function`，但脚本功能没被砍掉：本部署内置一个 QuickJS（Wasm）解释器，
+「脚本过滤」「脚本操作」「修改响应」照常可用，见下节。真正**不支持**的是依赖 Node 内建模块的能力：
 
-- **不支持**「脚本过滤」「脚本操作」「修改响应」，使用时后端会返回明确报错；前端界面照常显示这些选项，请勿使用。
-- **不支持**依赖 Node 内建模块的能力：本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理（`proxy`）、跳过证书校验（`insecure`）。
+- 本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理（`proxy`）、跳过证书校验（`insecure`）。
 - 上游 `resolve-domain` 走 DNS over HTTPS 时正常。
 - 定时同步（`SUB_STORE_BACKEND_SYNC_CRON`）是 Node 专属，本部署不提供；需要定时拉取时用外部定时请求 `/api/sync/artifacts`。
 - 数据是「一个 isolate 一份内存缓存 + D1 落盘」。单 isolate 内并发请求已隔离，但多 isolate 同时写入仍有极小概率丢更新（与上游 Node 版同源问题）。
+
+## 脚本功能
+
+脚本不在 V8 里跑，而是在随 Worker 一起上传的 QuickJS（Wasm）里解释执行，所以不碰 Workers 的 `eval` 禁令。
+脚本可见的全局对象与上游一致（`$arguments`、`$options`、`$substore`、`lodash`、`ProxyUtils`、`yaml`、
+`Buffer`、`b64d`、`b64e`、`DOMAIN_RESOLVERS`、`scriptResourceCache`、`flowUtils`、`produceArtifact`），
+`require` 与上游浏览器分支一样是 `undefined`。
+
+数据搬运规则：
+
+| 数据 | 方式 |
+|---|---|
+| 节点列表、返回值 | JSON 整体过桥，快 |
+| `$options`、`context` | 按引用共享，脚本里的增删改会落回宿主 |
+| `lodash`、`ProxyUtils`、`$substore` 等 | 按需懒桥接，点和调才过桥 |
+
+代价是 CPU：解释执行比原生慢，脚本本身的耗时受免费档 10 ms 限制。实测单个七百节点以内的订阅做一次
+`map` 型改写仍在免费额度内，节点几千个或脚本里密集调用宿主函数时会撞 Error 1102。届时升级到 Workers
+付费档（默认 30 s CPU，可在 `wrangler.jsonc` 里用 `"limits": { "cpu_ms": 300000 }` 拉到 5 分钟）即可。
+
+脚本还有两个硬性边界：单次执行有指令数预算（跑飞会被中止并返回可读报错），`await` 只能等宿主函数的
+promise 落地，等不到就报错。
 
 ## 本地开发
 
@@ -74,7 +96,7 @@ npm run build   # 拉取上游最新 release 源码并打包成 build/worker.mjs
 npm run check   # 构建 + 冒烟测试
 ```
 
-冒烟测试用 `node:vm` 的 `codeGeneration.strings = false` 复刻 Workers 禁止动态求值的约束，并覆盖路由、CORS、D1 读写、订阅下载、并发隔离和 peggy 解析器。`SMOKE_VERBOSE=1` 可打印 Sub-Store 日志。
+冒烟测试用 `node:vm` 的 `codeGeneration.strings = false` 复刻 Workers 禁止动态求值的约束，并覆盖路由、CORS、D1 读写、订阅下载、并发隔离、peggy 解析器和三种脚本算子。`SMOKE_VERBOSE=1` 可打印 Sub-Store 日志。
 
 部署需要先准备 Cloudflare 资源（认证交给 wrangler，本地 OAuth 或下面的环境变量都行）：
 
