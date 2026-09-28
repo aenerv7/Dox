@@ -24,8 +24,10 @@ import { Scope, newVariant, newQuickJSWASMModuleFromVariant } from 'quickjs-emsc
 const MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
 const STACK_LIMIT_BYTES = 2 * 1024 * 1024;
 
-// Workers 里 Date.now() 在执行期间冻结，做不了墙钟超时，只能按字节码指令数给预算。
-const INTERRUPT_BUDGET = 4_000_000;
+// Workers 里 Date.now() 在执行期间冻结，做不了墙钟超时，只能按中断轮询次数给预算。
+// 实测：4000 节点的 map 改写用 1 次轮询，2000 节点 filter+sort 用 5 次；每次轮询约 4000
+// 条指令，而宿主侧回调本身约 30 µs。50000 次既留出四位数倍余量，跑飞脚本也只烧约 1.5 s。
+const INTERRUPT_BUDGET = 50_000;
 const BUDGET_MESSAGE = '脚本执行超出 CPU 预算被中止；免费档 10 ms 上限下基本必然触发';
 const DANGLING_AWAIT_MESSAGE = '脚本 await 的异步操作无法在 Worker 中完成';
 
