@@ -2,7 +2,7 @@
 
 > **本文档是 Dox 仓库唯一的开发文档。** 项目定位、全局规则、以及所有模块的架构、维护约束、构建与验证清单都集中在这里。以后任何新增或修改的开发文档，一律写入本文档对应的模块小节，不再在模块目录或 `.codex`、`.kiro` 等位置增建独立的开发文档。
 >
-> 只读类的对外说明文件不在此约定范围内，保持原位：各模块的 `README.md`（用户使用说明）、各 `PRIVACY.md`（隐私说明）、`Dox Reader/Firefox/AMO_REVIEW_NOTES.md`（提交给 Mozilla AMO 审核的英文审查材料）。本文档只负责维护者视角的开发、架构与维护规范。
+> 只读类的对外说明文件不在此约定范围内，保持原位：各模块的 `README.md`（用户使用说明）、各 `PRIVACY.md`（隐私说明）。本文档只负责维护者视角的开发、架构与维护规范。
 
 ## 目录
 
@@ -14,7 +14,7 @@
    - 3.3 [SizerWin](#33-sizerwin)
    - 3.4 [SizerSwift](#34-sizerswift)
    - 3.5 [CapsLockOSD](#35-capslockosd)
-   - 3.6 [Dox Reader](#36-dox-readerfirefox--cloudflare-workers)
+   - 3.6 [Dox Reader](#36-dox-readercloudflare-workers--backend)
    - 3.7 [Firefox Auto Sort Bookmarks](#37-firefox-auto-sort-bookmarks)
    - 3.8 [Userscript 小脚本](#38-userscript-小脚本)
    - 3.9 [Stash](#39-stash)
@@ -48,7 +48,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | Python 3.11+ / 标准库 | `HeliumLanguagePatcher/` | Helium Chromium DataPack v5 语言包扫描、翻译缓存与补丁 |
 | Python 3.11+ / 标准库、PowerShell | `Firefox/Zen/` | Zen Fluent 中文补全、快捷键显示修正、安装与配置自动识别 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
-| TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Firefox 扩展 + Cloudflare Workers） |
+| TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码） |
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射和 VS Code 外观自定义 |
@@ -63,7 +63,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `SizerWin/` | 活跃 | 纯 C + Win32 API 版窗口调整工具，适合 AHK 被拦截的场景 |
 | `SizerSwift/` | 活跃 | macOS 原生菜单栏窗口调整工具，Swift Package Manager 项目 |
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
-| `Dox Reader/` | 活跃 | local-first RSS 阅读器（Firefox 扩展版 + Cloudflare Workers 网页版） |
+| `Dox Reader/` | 活跃 | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
 | `Firefox/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
 | `Firefox/Zen/` | 活跃 | Zen 1.22.3b 中文本地补全与可还原的资源包补丁 |
 | `PortableBridge/` | 活跃 | Firefox / Chrome 会话级 HTTP(S) 回退，最新启动者接管 |
@@ -601,9 +601,9 @@ cd CapsLockOSD
 | 修改 ini 越界值 | 下次启动生效且被 clamp |
 | `taskkill /IM CapsLockOSD.exe /F` | 进程结束，无残留托盘或前台效果 |
 
-### 3.6 Dox Reader（Firefox + Cloudflare Workers）
+### 3.6 Dox Reader（Cloudflare Workers + Backend）
 
-local-first RSS/Atom 阅读器，覆盖 Firefox 扩展版（`Dox Reader/Firefox/`）和 Cloudflare Workers 网页版（`Dox Reader/Cloudflare Workers/`）。**本节是唯一开发规范；各平台 README 只写安装/使用/发布入口。**
+local-first RSS/Atom 阅读器，仅维护 Cloudflare Workers 网页版（`Dox Reader/Cloudflare Workers/`）和可选个人后端（`Dox Reader/Backend/`）。**本节是唯一开发规范；各模块 README 只写安装/使用/发布入口。**
 
 #### 产品摘要与边界
 
@@ -611,26 +611,20 @@ local-first RSS/Atom 阅读器，覆盖 Firefox 扩展版（`Dox Reader/Firefox/
 
 模式边界：默认本地模式保持原有 IndexedDB/WebDAV 行为。用户显式选后端模式时，连接自己部署的 Dox Reader Backend，订阅、文章、已读/收藏保存在个人后端；WebDAV 不参与此模式。后端凭据只存本机，按后端根地址分隔缓存；切换模式不合并、不上传或删除原有本地数据。网页版 Worker 本身仍只负责静态资源和受限代理，持久后端独立部署；应用不使用共享开发者服务、广告、分析或远程可执行代码。
 
-#### 版本与运行架构
+#### 运行架构
 
-| 版本 | 目录 | RSS/WebDAV 网络方式 | 设置存储 | 发布形态 |
+| 模块 | 目录 | 网络方式 | 设置存储 | 发布形态 |
 |---|---|---|---|---|
-| Firefox 扩展 | `Firefox/` | 扩展 host 权限直接请求 | `browser.storage.local` | Manifest V3、AMO 签名 XPI |
 | Cloudflare Workers 网页版 | `Cloudflare Workers/` | 请求同源 `/api/feed`、`/api/webdav`，Worker 再访问上游 | `localStorage` | Workers Static Assets + Worker |
+| 可选个人后端 | `Backend/` | HTTPS API 与定时 RSS 抓取 | SQLite Durable Object；访问令牌用 Worker Secret | Worker + SQLite Durable Object |
 
-两端数据流相同：`Preact UI → Dexie/IndexedDB（订阅、文章缓存、状态、同步元数据）`，平台设置存凭据/外观/布局，RSS 直接或经 Worker 代理，WebDAV 合并 `Dox Reader/state.json` 后条件写回。Cloudflare 版不使用 KV、D1、R2、Durable Objects、Queues 或 Workers AI。
+网页端数据流：`Preact UI → Dexie/IndexedDB（订阅、文章缓存、状态、同步元数据）`，本地设置存凭据/外观/布局，RSS 经 Worker 代理，WebDAV 合并 `Dox Reader/state.json` 后条件写回。网页 Worker 不使用 KV、D1、R2、Durable Objects、Queues 或 Workers AI。
 
-#### 代码所有权与双端同步
+#### 代码所有权
 
-两个子目录是独立 npm 工程，但 `src/` 大部分核心文件必须保持字节一致：
+网页端和后端是独立 npm 工程。网页端 UI、IndexedDB 与同步代码位于 `Cloudflare Workers/src/`，代理位于 `Cloudflare Workers/worker/`。
 
-**共享核心（必须双端同步，含测试）**：`app.tsx`、`article-content.tsx`、`styles.css`、`model.ts`、`database.ts`、`feed-parser.ts`、`feed-service.ts`、`html-entities.ts`、`item-list.ts`、`initial-sync.ts`、`opml.ts`、`webdav.ts`、`sync-model.ts` 及对应 `*.test.ts` 和 `test/fixtures/`。
-
-新增共享核心：backend.ts、backend.test.ts、repository.ts，仍须在 Firefox 与 Cloudflare Workers 前端保持字节一致。Backend/src/shared 中 feed-parser.ts、html-entities.ts 和 model.ts 镜像前端对应文件，修改解析规则时同步维护。
-
-**平台适配层（分别维护，不互相覆盖）**：Firefox 的 `src/background.ts`、`src/runtime-fetch.ts`、`src/settings.ts`、`src/main.tsx`、`public/manifest.json`、`vite.config.ts`、`release.ps1`、`updates.json`；Workers 的 `worker/`、`src/runtime-fetch.ts`、`src/settings.ts`、`src/main.tsx`、`public/`、`wrangler.jsonc`、部署脚本。
-
-共享代码没有长期指定某一端为唯一源文件：可以在任一端先改，提交前必须镜像到另一端。只改平台适配层时可只改一端，提交说明写明平台范围。
+`Backend/src/shared/` 中 `feed-parser.ts`、`html-entities.ts` 和 `model.ts` 镜像网页端对应文件；修改解析规则时同步维护。
 
 #### 本地数据模型
 
@@ -643,7 +637,7 @@ IndexedDB 库名 `dox-rss-reader`（Dexie 管理）：
 | `itemStates` | 每篇文章独立的已读和收藏寄存器 | 是 |
 | `meta` | 设备 actor、Lamport clock、全量刷新时间、同步偏好和迁移标记 | 部分 |
 
-平台设置：WebDAV URL/用户名/应用密码、三栏宽度/布局锁定只存本机；主题/配色/强调色、摘要开关同步。
+本机设置：WebDAV URL/用户名/应用密码、三栏宽度/布局锁定只存本机；主题/配色/强调色、摘要开关同步。
 
 删除订阅用墓碑传播；文章状态即使没有正文缓存也必须保留。文章列表一次最多读 2000 篇渲染，侧栏计数用独立查询，不受列表上限影响。
 
@@ -690,18 +684,7 @@ RSS 上游超时 90 秒，WebDAV 上游保持 20 秒。RSS 上游使用固定、
 
 #### 开发流程
 
-要求 Node.js 24+（Firefox 发布还约定 npm 11+），两个子项目独立 `package-lock.json`，检出/锁文件变化后分别 `npm ci`。
-
-Firefox：
-
-```powershell
-cd "Dox Reader/Firefox"
-npm ci
-npm run dev       # 仅调试网页界面
-npm run check     # Vitest + TypeScript + 生产构建
-```
-
-验证真实扩展：`npm run build` 后 `npx --yes web-ext@10.6.0 run --source-dir dist`。
+要求 Node.js 24+。网页端和后端各有独立 `package-lock.json`，检出/锁文件变化后分别 `npm ci`。
 
 Cloudflare Workers：
 
@@ -716,13 +699,11 @@ npx wrangler deploy --dry-run
 
 `npm run dev` 会先生产构建，不是 Vite 热更新入口。
 
-核心修改完成标准：判断共享核心还是适配层 → 共享核心双端同步 + 测试同步 → 两端 `npm run check` → Cloudflare 版 `npx wrangler deploy --dry-run` → 交互/响应式检查桌面与移动视口 → WebDAV 改覆盖空远端/已有远端/并发 412/错误凭据/首次同步 → 数据结构/权限/网络/收集行为改检查 schema、Manifest、`PRIVACY.md`、`AMO_REVIEW_NOTES.md`。
+核心修改完成标准：相关工程 `npm run check` → 网页端 `npx wrangler deploy --dry-run` → 交互/响应式检查桌面与移动视口 → WebDAV 改覆盖空远端/已有远端/并发 412/错误凭据/首次同步 → 数据结构/权限/网络/收集行为改检查 schema 和 `PRIVACY.md`。
 
 #### 发布流程
 
-默认发布范围：代码修改完成并经验证后，直接部署 Cloudflare Workers；Firefox 扩展只有用户明确要求同步发布时才运行 AMO 发布流程。Cloudflare Workers：`npm run deploy`；一键部署 `pwsh -File deploy-cloudflare.ps1 [-DryRun] [-SkipInstall]`（脚本不含账号密钥，Wrangler 首跑登录部署者账号）。发布后从公网请求首页和新资源验证。
-
-Firefox：自 `1.0.0` 起使用 AMO listed 公开发行，保留原扩展 ID，manifest 不得设置 `update_url`。发布前 `package.json`、`package-lock.json`、`public/manifest.json` 版本一致；`amo-listing.json` 保存公开条目资料和已确认的许可证；`npm run release` 测试、构建、上传源码并提交 listed 审核。`unreviewed` 只代表待审核，脚本正常退出且不更新签名包、更新清单或执行提交推送；AMO 审核通过后重新运行 `npm run release:push`，校验下载包的 SHA-256、版本、ID 和 Mozilla 签名条目后提交推送。`-Push` 要求预先暂存区为空，避免纳入其他模块改动。AMO 凭据只放被忽略的 `.env.release`，通过 `WEB_EXT_API_KEY`/`WEB_EXT_API_SECRET` 环境变量传递给 web-ext，不放命令行。`release.ps1` 继续维护当前路径和旧路径 `Firefox/Dox Reader/` 的更新清单与签名 XPI，使 0.x 用户升级后转交 AMO 更新；旧路径不是源码副本。商店介绍、隐私政策、分类和图标须在 AMO 单独核验，签名状态不等于公共商店已经上线。
+网页端代码修改并验证后，默认直接部署：`npm run deploy`；一键部署 `pwsh -File deploy-cloudflare.ps1 [-DryRun] [-SkipInstall]`（脚本不含账号密钥，Wrangler 首跑登录部署者账号）。发布后从公网请求首页和新资源验证。
 
 #### Dox Reader Backend（1.1.0 前端可选）
 
@@ -734,11 +715,11 @@ Firefox：自 `1.0.0` 起使用 AMO listed 公开发行，保留原扩展 ID，m
 
 SQL 使用绑定参数，插入去重并保留已有 read/starred；快照以 revision 验证一致性，按发布时间/ID 游标分页避免 OFFSET 扫描开销。缓存快照完整收齐后原子替换，不得部分失败覆盖已缓存数据。后端列表按 200 篇渐进展示。每分钟仅在可见客户端查询状态，revision 不变不重传全库。
 
-后端 npm run check 使用本地 Workers runtime 集成测试，验证鉴权、Alarm、条件抓取、全库裁剪、竞态删除、预算顺延和手动抓取。部署前 npx wrangler deploy --dry-run；默认创建 dox-reader-backend，令牌经 wrangler secret bulk/put 配置。生产验证添加临时测试源、确认无人在线抓取与手动刷新、清理测试源，不能遗留测试用户数据。前端新增模式时同步修改两份 PRIVACY.md、AMO_REVIEW_NOTES.md 与商店资料。
+后端 npm run check 使用本地 Workers runtime 集成测试，验证鉴权、Alarm、条件抓取、全库裁剪、竞态删除、预算顺延和手动抓取。部署前 npx wrangler deploy --dry-run；默认创建 dox-reader-backend，令牌经 wrangler secret bulk/put 配置。生产验证添加临时测试源、确认无人在线抓取与手动刷新、清理测试源，不能遗留测试用户数据。前端新增模式时同步修改网页端和后端的隐私说明。
 
 #### 文档维护
 
-AMO 审核说明在 `Dox Reader/Firefox/AMO_REVIEW_NOTES.md`，两个 `PRIVACY.md` 必须与实际数据流一致。修改默认设置、配色枚举、同步字段、Worker 限制、最低运行版本或发布命令时，同一提交更新本模块小节。
+网页端和后端的 `PRIVACY.md` 必须与实际数据流一致。修改默认设置、配色枚举、同步字段、Worker 限制、最低运行版本或发布命令时，同一提交更新本模块小节。
 
 ### 3.7 Firefox Auto Sort Bookmarks
 
@@ -1513,7 +1494,7 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 | SizerWin | VS Build Tools / Windows SDK `cl.exe`+`rc.exe`，可选 CMake | `cd SizerWin; .\build.ps1` |
 | SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; swift build -c release` |
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
-| Dox Reader | Node.js 24+（Firefox 发布 npm 11+） | 各自目录 `npm ci` + `npm run check` |
+| Dox Reader | Node.js 24+ | 网页端和后端各自目录 `npm ci` + `npm run check` |
 | Firefox AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/AutoSortBookmarks/tests/sorter.test.js` |
 | Zen 中文补全 | Windows；Python 3.11+；Fluent 验证另需 fluent.syntax，JS 校验需 Node.js | `python -B -m unittest discover -s Firefox/Zen -p test_discovery.py -v`；使用见 [README](./Firefox/Zen/README.md) |
 | PortableBridge | Windows；.NET Framework 4.x | `cd PortableBridge; .\build.ps1; .\test.ps1` |

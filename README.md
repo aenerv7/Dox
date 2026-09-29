@@ -18,7 +18,7 @@
 | [`SizerWin`](./SizerWin) | 不依赖 AutoHotkey 运行时的原生 Windows 窗口调整工具 |
 | [`CapsLockOSD`](./CapsLockOSD) | Windows 原生 Caps Lock 状态屏幕提示 |
 | [`SizerSwift`](./SizerSwift) | macOS 菜单栏窗口调整工具 |
-| [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Firefox 扩展版与 Cloudflare Workers 网页版 |
+| [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Cloudflare Workers 网页版和可选个人后端 |
 | [`sub-store`](./sub-store) | Sub-Store 后端的 Cloudflare Workers 部署（D1 持久化、路径口令鉴权、每日自动更新） |
 | [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
