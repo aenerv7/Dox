@@ -19,7 +19,7 @@
     "nanoid": "^3.3.11",
     "peggy": "^2.0.1",
     "quickjs-emscripten-core": "^0.32.0",
-    "wrangler": "^4.42.0"
+    "wrangler": "^4.147.0"
   },
   "allowScripts": {
     "esbuild": true,
