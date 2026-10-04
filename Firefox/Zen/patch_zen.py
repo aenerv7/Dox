@@ -1,7 +1,14 @@
-"""Version-locked, reversible local zh-CN supplement. Python 3.11+, stdlib only."""
+"""Version-locked, reversible local zh-CN supplement for Zen Browser (Windows).
+
+Only `validate` needs fluent.syntax; every other command uses the standard library alone.
+"""
 from __future__ import annotations
 
 import argparse
+import configparser
+import ctypes
+from ctypes import wintypes
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -12,14 +19,224 @@ import subprocess
 import tempfile
 import zipfile
 
-from discovery import cache_targets, discover, find_install, load_profiles
-
 ROOT = Path(__file__).resolve().parent
 BUILD = ROOT / 'build'
 ARCHIVES = ('omni.ja', 'browser/omni.ja')
 SETTINGS = 'chrome/browser/content/browser/preferences/zen-settings.js'
 SHORTCUTS = 'chrome/browser/content/browser/zen-components/ZenKeyboardShortcuts.mjs'
 
+
+# ---------------------------------------------------------------------------
+# Discovery: locate the installation, the profile and its startup caches.
+# ---------------------------------------------------------------------------
+
+def read_ini(path):
+    parser = configparser.ConfigParser(interpolation=None)
+    parser.read(path, encoding='utf-8-sig')
+    return parser
+
+
+def unique(paths):
+    return list(dict.fromkeys(Path(path).resolve() for path in paths))
+
+
+@dataclass
+class Profile:
+    path: Path
+    name: str
+    local_path: Path
+    last_install: Path | None = None
+    default: bool = False
+
+    def describe(self):
+        return {'name': self.name, 'path': str(self.path), 'local_path': str(self.local_path),
+                'last_install': str(self.last_install) if self.last_install else None}
+
+
+def load_profiles(roaming, local):
+    config = read_ini(roaming / 'profiles.ini')
+    profiles = []
+    for section in config.sections():
+        if not section.startswith('Profile') or not config.has_option(section, 'Path'):
+            continue
+        value = Path(config.get(section, 'Path'))
+        relative = config.getboolean(section, 'IsRelative', fallback=True)
+        if relative and (value.is_absolute() or '..' in value.parts):
+            raise ValueError(f'Invalid relative profile path: {value}')
+        path = ((roaming / value) if relative else value).resolve()
+        if not relative and not value.is_absolute():
+            raise ValueError(f'Expected absolute profile path: {value}')
+        if not path.is_dir():
+            continue
+        compatibility = read_ini(path / 'compatibility.ini')
+        platform_dir = compatibility.get('Compatibility', 'LastPlatformDir', fallback='')
+        profiles.append(Profile(
+            path, config.get(section, 'Name', fallback=path.name),
+            (local / value).resolve() if relative else path,
+            Path(platform_dir).resolve() if platform_dir else None,
+            config.getboolean(section, 'Default', fallback=False),
+        ))
+    defaults = []
+    for source in (config, read_ini(roaming / 'installs.ini')):
+        for section in source.sections():
+            if section.startswith('Profile') or section in ('General', 'BackgroundTasksProfiles'):
+                continue
+            value = source.get(section, 'Default', fallback='')
+            if value:
+                path = Path(value)
+                defaults.append((path if path.is_absolute() else roaming / path).resolve())
+    return profiles, unique(defaults)
+
+
+def profile_in_use(profile):
+    # parent.lock remains after shutdown. Test Windows sharing, not mere existence.
+    lock = profile.path / 'parent.lock'
+    if os.name != 'nt' or not lock.exists():
+        return False
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                       wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    create.restype = wintypes.HANDLE
+    handle = create(str(lock), 0x80000000, 7, None, 3, 0, None)
+    if handle == ctypes.c_void_p(-1).value:
+        return ctypes.get_last_error() in (32, 33)
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle(handle)
+    return False
+
+
+def select_profile(install, profiles, defaults, explicit=None, is_active=profile_in_use):
+    if explicit:
+        supplied = Path(explicit)
+        matches = [p for p in profiles if explicit in (p.name, p.path.name)
+                   or (supplied.is_absolute() and p.path == supplied.resolve())]
+        if len(matches) == 1:
+            return matches[0], 'explicit'
+        if not matches and supplied.is_absolute() and (supplied / 'prefs.js').is_file():
+            path = supplied.resolve()
+            return Profile(path, path.name, path), 'explicit external profile'
+        raise ValueError('Profile not found or name is ambiguous. Use --profile with its full directory path.')
+    # Installation defaults belonging to another last-used installation are excluded.
+    eligible = [p for p in profiles if p.last_install in (None, install)]
+    ranked = (
+        ('running profile', [p for p in eligible if is_active(p)]),
+        ('installation default', [p for p in eligible if p.path in defaults and p.last_install == install]),
+        ('registered installation default', [p for p in eligible if p.path in defaults]),
+        ('profile default', [p for p in eligible if p.default]),
+        ('only profile for installation', [p for p in eligible if p.last_install == install]),
+        ('only available profile', eligible),
+    )
+    for reason, candidates in ranked:
+        if len(candidates) == 1:
+            return candidates[0], reason
+        if len(candidates) > 1:
+            choices = '\n'.join(str(p.path) for p in candidates)
+            raise ValueError(f'Multiple possible profiles ({reason}); specify --profile:\n{choices}')
+    raise ValueError('No profile found for this installation. Start Zen once, or pass --profile with its full path.')
+
+
+def valid_install(path):
+    return all((path / name).is_file() for name in ('zen.exe', 'omni.ja', 'browser/omni.ja'))
+
+
+def running_installs():
+    if os.name != 'nt':
+        return []
+    result = subprocess.run([
+        'powershell.exe', '-NoProfile', '-Command',
+        '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); '
+        "Get-CimInstance Win32_Process -Filter \"name='zen.exe'\" | "
+        'Select-Object -ExpandProperty ExecutablePath -Unique | ConvertTo-Json -Compress'
+    ], capture_output=True, encoding='utf-8', errors='replace', timeout=15)
+    if result.returncode or not result.stdout.strip():
+        return []
+    values = json.loads(result.stdout)
+    return unique(Path(value).parent for value in (values if isinstance(values, list) else [values]) if value)
+
+
+def registry_installs():
+    if os.name != 'nt':
+        return []
+    import winreg
+    paths = []
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        for view in (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY):
+            try:
+                with winreg.OpenKey(hive, r'Software\Microsoft\Windows\CurrentVersion\App Paths\zen.exe',
+                                    0, winreg.KEY_READ | view) as key:
+                    paths.append(Path(winreg.QueryValueEx(key, '')[0].strip('"')).parent)
+            except OSError:
+                pass
+            try:
+                with winreg.OpenKey(hive, r'Software\Microsoft\Windows\CurrentVersion\Uninstall',
+                                    0, winreg.KEY_READ | view) as root:
+                    for index in range(winreg.QueryInfoKey(root)[0]):
+                        try:
+                            with winreg.OpenKey(root, winreg.EnumKey(root, index)) as key:
+                                name = winreg.QueryValueEx(key, 'DisplayName')[0]
+                                if name.lower().startswith('zen'):
+                                    location = winreg.QueryValueEx(key, 'InstallLocation')[0]
+                                    if location:
+                                        paths.append(Path(location.strip('"')))
+                        except OSError:
+                            pass
+            except OSError:
+                pass
+    return unique(paths)
+
+
+def find_install(profiles, explicit=None):
+    if explicit:
+        path = Path(explicit).resolve()
+        if not valid_install(path):
+            raise ValueError(f'Not a Zen installation: {path}')
+        return path
+    running = [p for p in running_installs() if valid_install(p)]
+    if len(running) == 1:
+        return running[0]
+    if len(running) > 1:
+        raise ValueError('Multiple Zen installations are running; use --install-dir.')
+    candidates = registry_installs() + [p.last_install for p in profiles if p.last_install]
+    for variable, suffix in (('ProgramFiles', 'Zen Browser'), ('ProgramFiles(x86)', 'Zen Browser'),
+                             ('LOCALAPPDATA', 'Programs/Zen Browser'), ('LOCALAPPDATA', 'Zen Browser')):
+        if os.environ.get(variable):
+            candidates.append(Path(os.environ[variable]) / suffix)
+    candidates = [p for p in unique(candidates) if valid_install(p)]
+    if len(candidates) != 1:
+        raise ValueError('Cannot uniquely locate Zen. Use --install-dir. Candidates: ' + ', '.join(map(str, candidates)))
+    return candidates[0]
+
+
+def discover(install=None, profile=None, roaming=None, local=None):
+    if roaming is not None and local is None:
+        local = roaming  # Portable/custom roots do not use the standard user's cache tree.
+    roaming = Path(roaming or Path(os.environ['APPDATA']) / 'zen').resolve()
+    local = Path(local or Path(os.environ['LOCALAPPDATA']) / 'zen').resolve()
+    profiles, defaults = load_profiles(roaming, local)
+    install = find_install(profiles, install)
+    selected, reason = select_profile(install, profiles, defaults, profile)
+    return install, selected, reason
+
+
+def cache_targets(profile):
+    # Validate all paths before deleting anything; never follow a cache junction.
+    targets = []
+    for parent in unique((profile.path, profile.local_path)):
+        cache = parent / 'startupCache'
+        if cache.exists():
+            if cache.is_symlink() or (hasattr(cache, 'is_junction') and cache.is_junction()):
+                raise ValueError(f'Refusing redirected cache: {cache}')
+            resolved = cache.resolve()
+            if resolved.parent != parent or resolved.name != 'startupCache' or not resolved.is_dir():
+                raise ValueError(f'Invalid cache location: {cache}')
+            targets.append(resolved)
+    return targets
+
+
+# ---------------------------------------------------------------------------
+# Build: append the missing zh-CN messages and patch the two display scripts.
+# ---------------------------------------------------------------------------
 
 def digest(path):
     with Path(path).open('rb') as stream:
@@ -29,6 +246,10 @@ def digest(path):
 def write_json(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+
+def read_baseline():
+    return json.loads((ROOT / 'baseline.json').read_text(encoding='utf-8'))
 
 
 def fragments():
@@ -118,7 +339,7 @@ def patch_shortcuts(source):
 
 
 def build(install):
-    baseline = json.loads((ROOT / 'baseline.json').read_text(encoding='utf-8'))
+    baseline = read_baseline()
     for archive in ARCHIVES:
         if digest(install / archive) != baseline['archives'][archive]:
             raise ValueError(f'{archive}: source differs from the verified original build; refusing to patch.')
@@ -171,6 +392,10 @@ def build(install):
     write_json(BUILD / 'manifest.json', manifest)
     print(f'Built {sum(len(v["resources"]) for v in manifest["archives"].values())} resources in {BUILD}')
 
+
+# ---------------------------------------------------------------------------
+# Deploy: back up the originals, replace both archives, clear startup caches.
+# ---------------------------------------------------------------------------
 
 def require_closed():
     result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq zen.exe', '/FO', 'CSV', '/NH'],
@@ -252,53 +477,171 @@ def deploy(install, profile, restore=False):
     print(json.dumps(state, ensure_ascii=False, indent=2))
 
 
+# ---------------------------------------------------------------------------
+# Validate: compare the built patch with the pristine original resources.
+# ---------------------------------------------------------------------------
+
+def fluent_parser():
+    # Imported late so build/install keep working when fluent.syntax is absent.
+    try:
+        from fluent.syntax import FluentParser, ast
+    except ImportError as error:
+        raise SystemExit('validate 需要 fluent.syntax；请先运行：python -m pip install fluent.syntax') from error
+    return FluentParser(), ast
+
+
+def fluent_entries(parser, ast, text):
+    tree = parser.parse(text)
+    errors = [node for node in tree.body if isinstance(node, ast.Junk)]
+    assert not errors, f'Invalid Fluent syntax: {errors}'
+    nodes = [node for node in tree.body if isinstance(node, (ast.Message, ast.Term))]
+    names = [node.id.name for node in nodes]
+    assert len(names) == len(set(names)), 'Duplicate Fluent IDs'
+    return {node.id.name: node for node in nodes}
+
+
+def fluent_references(node):
+    result = set()
+
+    def walk(value):
+        if isinstance(value, dict):
+            kind = value.get('type')
+            if kind in ('VariableReference', 'TermReference', 'MessageReference'):
+                result.add((kind, value['id']['name']))
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    walk(node.to_json())
+    return result
+
+
+def original_dir(explicit):
+    # Default to the pristine backup: comparing against an installed patch would validate itself.
+    if explicit:
+        return Path(explicit).resolve()
+    backup = ROOT / 'backups' / read_baseline()['build_id']
+    if not backup.is_dir():
+        raise SystemExit(f'找不到原版备份 {backup}\n请用 --original-dir 指定原版安装或备份目录，或先运行 build。')
+    return backup
+
+
+def validate(original):
+    parser, ast = fluent_parser()
+    additions = fragments()
+    missing_after = []
+    count = 0
+    files_checked = 0
+    resource_changes = []
+    for archive in ARCHIVES:
+        with zipfile.ZipFile(original / archive) as pristine, zipfile.ZipFile(BUILD / archive) as patched:
+            assert patched.testzip() is None
+            for name in pristine.namelist():
+                if name not in additions[archive] and name not in (SETTINGS, SHORTCUTS):
+                    assert pristine.read(name) == patched.read(name), f'Unrelated resource changed: {name}'
+            for name, addition in additions[archive].items():
+                translated = fluent_entries(parser, ast, addition)
+                combined = fluent_entries(parser, ast, patched.read(name).decode('utf-8'))
+                assert translated.keys() <= combined.keys()
+                if '/zh-CN/' not in name:
+                    continue
+                english_name = name.replace('/zh-CN/', '/en-US/')
+                english = fluent_entries(parser, ast, patched.read(english_name).decode('utf-8'))
+                for key, node in translated.items():
+                    source = english[key]
+                    assert fluent_references(node) == fluent_references(source), f'References differ: {key}'
+                    assert bool(node.value) == bool(source.value), f'Value differs: {key}'
+                    assert {a.id.name for a in node.attributes} == {a.id.name for a in source.attributes}, key
+                    # Named markup is required for DOM localization overlays.
+                    source_text = patched.read(english_name).decode('utf-8')[source.span.start:source.span.end]
+                    target_text = addition[node.span.start:node.span.end]
+                    assert sorted(re.findall(r'data-l10n-name="([^"]+)"', source_text)) == sorted(re.findall(r'data-l10n-name="([^"]+)"', target_text)), key
+                count += len(translated)
+                resource_changes.append({'archive': archive, 'resource': name, 'added_messages': len(translated)})
+            for name in patched.namelist():
+                if not name.startswith('localization/en-US/') or not name.endswith('.ftl'):
+                    continue
+                english = fluent_entries(parser, ast, patched.read(name).decode('utf-8'))
+                chinese_name = name.replace('/en-US/', '/zh-CN/')
+                chinese = fluent_entries(parser, ast, patched.read(chinese_name).decode('utf-8')) if chinese_name in patched.namelist() else {}
+                files_checked += 1
+                for key, node in english.items():
+                    if key not in chinese:
+                        missing_after.append(f'{archive}/{chinese_name}:{key}')
+                    else:
+                        assert {a.id.name for a in node.attributes} <= {a.id.name for a in chinese[key].attributes}, key
+                        if node.value is not None:
+                            assert chinese[key].value is not None, key
+    assert not missing_after, missing_after
+    report = {'fluent_files_compared': files_checked, 'chinese_messages_added': count,
+              'missing_message_ids': missing_after, 'syntax_valid': True,
+              'variables_and_references_preserved': True,
+              'unrelated_resources_unchanged': True, 'changes': resource_changes}
+    (ROOT / 'validation.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps({key: value for key, value in report.items() if key != 'changes'}, ensure_ascii=False, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# Command line
+# ---------------------------------------------------------------------------
+
 def main():
     parser = argparse.ArgumentParser(
         prog='patch_zen.py', add_help=False,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description='Zen Browser 简体中文补全与快捷键显示修正（Windows / Python 3.11+）。',
         epilog=r'''命令说明：
-  help     显示本帮助；不传命令时也显示帮助，不执行安装。
-  detect   只读检查，显示自动识别的 Zen 安装目录、配置与启动缓存路径。
-  install  安装补丁；首次自动构建，先备份原文件，再替换资源并清除启动缓存。
-  verify   校验安装资源是否与本地 build/ 中的补丁一致，需先构建或安装。
-  restore  从 backups/ 还原原版资源，需保留本地 build/ 清单和原版备份。
-  build    仅生成补丁到 build/，不安装；输入必须是匹配基线的原版资源。
+  help      显示本帮助；不传命令时也显示帮助，不执行安装。
+  detect    只读检查，显示自动识别的 Zen 安装目录、配置与启动缓存路径。
+  build     仅生成补丁到 build/，不安装；输入必须是匹配基线的原版资源。
+  validate  校验 build/ 中的补丁：Fluent 语法、缺项、变量引用与命名链接。需 fluent.syntax。
+  install   安装补丁；缺少构建清单时自动先构建，再备份原文件、替换资源并清除启动缓存。
+  verify    校验已安装的资源是否与 build/ 中的补丁一致，需先 build 或 install。
+  restore   从 backups/ 还原原版资源，需保留本地 build/ 清单和原版备份。
 
 推荐步骤（在脚本目录打开终端）：
-  1. python .\patch_zen.py detect
-  2. 保存网页内容并完全退出 Zen（包括后台进程）。
-  3. python .\patch_zen.py install
-  4. python .\patch_zen.py verify
-  5. 重新打开 Zen；需要还原时先退出，再运行 restore。
+  1. python .\patch_zen.py detect      只读检查，Zen 可以开着
+  2. python .\patch_zen.py build       生成补丁，Zen 可以开着
+  3. python .\patch_zen.py validate    校验补丁，Zen 可以开着
+  4. 保存网页内容并完全退出 Zen（包括后台进程）。
+  5. python .\patch_zen.py install     需要安装目录写权限
+  6. python .\patch_zen.py verify
+  7. 重新打开 Zen；需要还原时先退出，再运行 restore。
 
 常用示例：
   python .\patch_zen.py --help
-  python .\patch_zen.py install --install-dir "D:\Apps\Zen Browser"
+  python .\patch_zen.py detect --install-dir "D:\Apps\Zen Browser"
+  python .\patch_zen.py build
+  python .\patch_zen.py build --install-dir ".\backups\20261002114451"
+  python .\patch_zen.py validate --original-dir ".\backups\20261002114451"
   python .\patch_zen.py install --profile "Default (release)"
   python .\patch_zen.py install --profile "D:\BrowserData\ZenProfile"
   python .\patch_zen.py detect --install-dir "D:\Apps\Zen" --profiles-root "D:\ZenData"
   python .\patch_zen.py restore
-  python .\patch_zen.py build --install-dir ".\backups\20260922050124"
 
 权限与配置：
-  help / detect / verify 通常无需管理员权限；build 需要补丁目录可写。
+  help / detect / build / validate / verify 通常无需管理员权限；build 与 validate 需要补丁目录可写。
   install / restore 需要安装目录可写；Program Files 安装版通常需要管理员终端。
   脚本不会自动提权。请使用当前账户，避免切换账户后识别到其他用户的配置。
   自动识别正在使用的已注册配置；Zen 关闭后选择对应默认配置。
   非默认配置可用 --profile 指定；多个候选无法确定时会停止，不猜测。
+  validate 省略 --original-dir 时使用 backups/<Build ID>；不要用已打补丁的安装当参照。
 
 适用范围：
-  仅适配 Zen 1.22.3b / Gecko 156.0.1，Build ID 20260922050124。
+  仅适配 Zen 1.23b / Gecko 157.0，Build ID 20261002114451。
   资源包 SHA-256 必须匹配；浏览器升级后需要重新适配，不能覆盖新版资源。
   不修改书签、密码、标签页、扩展或偏好设置；请保留 backups/ 用于还原。
   完整使用说明见脚本同目录 README.md。''')
     parser.add_argument('-h', '--help', action='help', help='显示中文使用指南并退出')
     parser.add_argument('command', nargs='?', default='help',
-                        choices=('help', 'detect', 'build', 'install', 'restore', 'verify'),
+                        choices=('help', 'detect', 'build', 'validate', 'install', 'restore', 'verify'),
                         help='要执行的命令，默认只显示帮助')
     parser.add_argument('--install-dir', type=Path, metavar='目录',
                         help='Zen 安装目录；省略时自动识别。build 时也可指定原版备份目录')
+    parser.add_argument('--original-dir', type=Path, metavar='目录',
+                        help='validate 的参照原版目录；省略时使用 backups/<Build ID> 备份')
     parser.add_argument('--profile', metavar='名称或路径',
                         help='配置名称、目录名或完整路径；省略时自动识别（build 不使用此参数）')
     parser.add_argument('--profiles-root', type=Path, metavar='目录',
@@ -317,6 +660,10 @@ def main():
             profiles, _ = load_profiles(Path(os.environ['APPDATA']) / 'zen', Path(os.environ['LOCALAPPDATA']) / 'zen')
             install = find_install(profiles)
         build(install)
+        return
+    if args.command == 'validate':
+        # Only needs build/ and the pristine reference, so it must not require a discoverable install.
+        validate(original_dir(args.original_dir))
         return
     install, profile, reason = discover(args.install_dir, args.profile, args.profiles_root, args.local_root)
     detection = {'install': str(install), 'profile': profile.describe(), 'selection': reason,

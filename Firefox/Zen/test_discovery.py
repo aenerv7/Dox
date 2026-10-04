@@ -7,7 +7,6 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import discovery
 import patch_zen
 
 
@@ -30,7 +29,7 @@ class DiscoveryTests(unittest.TestCase):
         path = self.roaming / 'Profiles' / name
         path.mkdir(parents=True)
         (path / 'prefs.js').write_text('// untouched', encoding='utf8')
-        return discovery.Profile(path, name, self.local / 'Profiles' / name,
+        return patch_zen.Profile(path, name, self.local / 'Profiles' / name,
                                  install or self.install, default)
 
     def test_relative_and_absolute_profiles_and_install_default(self):
@@ -44,8 +43,8 @@ class DiscoveryTests(unittest.TestCase):
             f'[Profile1]\nName=External\nIsRelative=0\nPath={external}\n', encoding='utf8')
         (self.roaming / 'installs.ini').write_text(
             f'[123]\nDefault=Profiles/{first.path.name}\n', encoding='utf8')
-        profiles, defaults = discovery.load_profiles(self.roaming, self.local)
-        selected, reason = discovery.select_profile(self.install, profiles, defaults, is_active=lambda p: False)
+        profiles, defaults = patch_zen.load_profiles(self.roaming, self.local)
+        selected, reason = patch_zen.select_profile(self.install, profiles, defaults, is_active=lambda p: False)
         self.assertEqual(selected.path, first.path)
         self.assertEqual(selected.local_path, first.local_path)
         self.assertEqual(reason, 'installation default')
@@ -53,12 +52,12 @@ class DiscoveryTests(unittest.TestCase):
 
     def test_running_profile_overrides_default_and_stale_lock(self):
         first, second = self.profile('default'), self.profile('current')
-        selected, reason = discovery.select_profile(self.install, [first, second], [first.path],
+        selected, reason = patch_zen.select_profile(self.install, [first, second], [first.path],
                                                     is_active=lambda p: p == second)
         self.assertEqual(selected, second)
         self.assertEqual(reason, 'running profile')
         (first.path / 'parent.lock').touch()
-        self.assertFalse(discovery.profile_in_use(first))
+        self.assertFalse(patch_zen.profile_in_use(first))
 
     @unittest.skipUnless(os.name == 'nt', 'Windows sharing semantics')
     def test_real_windows_profile_lock(self):
@@ -73,59 +72,59 @@ class DiscoveryTests(unittest.TestCase):
         handle = kernel.CreateFileW(str(lock), 0x80000000, 0, None, 3, 0, None)
         self.assertNotEqual(handle, ctypes.c_void_p(-1).value)
         try:
-            self.assertTrue(discovery.profile_in_use(profile))
+            self.assertTrue(patch_zen.profile_in_use(profile))
         finally:
             kernel.CloseHandle(handle)
 
     def test_ambiguous_defaults_require_explicit_selection(self):
         first, second = self.profile('one'), self.profile('two')
         with self.assertRaisesRegex(ValueError, 'Multiple possible profiles'):
-            discovery.select_profile(self.install, [first, second], [first.path, second.path], is_active=lambda p: False)
-        selected, _ = discovery.select_profile(self.install, [first, second], [], explicit=str(second.path))
+            patch_zen.select_profile(self.install, [first, second], [first.path, second.path], is_active=lambda p: False)
+        selected, _ = patch_zen.select_profile(self.install, [first, second], [], explicit=str(second.path))
         self.assertEqual(selected, second)
 
     def test_other_install_is_not_selected(self):
         first = self.profile('right')
         second = self.profile('other', install=self.root / 'OtherZen')
-        selected, _ = discovery.select_profile(self.install, [first, second], [first.path, second.path],
+        selected, _ = patch_zen.select_profile(self.install, [first, second], [first.path, second.path],
                                                is_active=lambda p: False)
         self.assertEqual(selected, first)
 
     def test_missing_profile_is_not_guessed(self):
         with self.assertRaisesRegex(ValueError, 'No profile found'):
-            discovery.select_profile(self.install, [], [])
+            patch_zen.select_profile(self.install, [], [])
 
     def test_external_explicit_profile(self):
         external = self.root / 'Portable/Profile'
         external.mkdir(parents=True)
         (external / 'prefs.js').touch()
-        selected, _ = discovery.select_profile(self.install, [], [], str(external))
+        selected, _ = patch_zen.select_profile(self.install, [], [], str(external))
         self.assertEqual(selected.local_path, external)
 
     def test_custom_root_uses_its_own_cache_root(self):
         profile = self.profile('custom')
         (self.roaming / 'profiles.ini').write_text(
             '[Profile0]\nName=custom\nIsRelative=1\nPath=Profiles/custom\n', encoding='utf8')
-        _, selected, _ = discovery.discover(self.install, roaming=self.roaming)
+        _, selected, _ = patch_zen.discover(self.install, roaming=self.roaming)
         self.assertEqual(selected.local_path, profile.path)
 
     def test_cache_targets_are_only_startup_cache_directories(self):
         profile = self.profile('cache')
         for base in (profile.path, profile.local_path):
             (base / 'startupCache').mkdir(parents=True)
-        self.assertEqual(set(discovery.cache_targets(profile)),
+        self.assertEqual(set(patch_zen.cache_targets(profile)),
                          {profile.path / 'startupCache', profile.local_path / 'startupCache'})
         self.assertTrue((profile.path / 'prefs.js').exists())
 
     def test_registry_install_and_ambiguity(self):
-        with patch.object(discovery, 'running_installs', return_value=[]), \
-             patch.object(discovery, 'registry_installs', return_value=[self.install]), \
+        with patch.object(patch_zen, 'running_installs', return_value=[]), \
+             patch.object(patch_zen, 'registry_installs', return_value=[self.install]), \
              patch.dict(os.environ, {}, clear=True):
-            self.assertEqual(discovery.find_install([]), self.install)
-        with patch.object(discovery, 'running_installs', return_value=[self.install, self.install / '..']), \
-             patch.object(discovery, 'valid_install', return_value=True):
+            self.assertEqual(patch_zen.find_install([]), self.install)
+        with patch.object(patch_zen, 'running_installs', return_value=[self.install, self.install / '..']), \
+             patch.object(patch_zen, 'valid_install', return_value=True):
             with self.assertRaisesRegex(ValueError, 'Multiple Zen installations'):
-                discovery.find_install([])
+                patch_zen.find_install([])
 
     def test_deploy_and_restore_with_discovered_profile(self):
         profile = self.profile('deploy')

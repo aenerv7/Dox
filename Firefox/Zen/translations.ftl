@@ -1,4 +1,4 @@
-# Local additions for Zen 1.22.3b / Gecko 156.0.1.
+# Local additions for Zen 1.23b / Gecko 157.0.
 # @file headers identify the archive and resource to append to.
 # Messages already translated upstream are omitted; only real gaps are listed.
 
@@ -9,6 +9,9 @@ find-more-addons-promo =
 find-more-themes-promo =
     .heading = 发现更多新外观
     .message = 选择喜爱的样式，让 { -brand-product-name } 更具个人特色。
+mlmodel-speech-recognition = { -brand-short-name } 使用此模型进行端侧语音识别
+themes-mode =
+    .aria-label = 外观
 
 # @file omni.ja localization/zh-CN/locales-preview/remote-agent.ftl
 remote-agent-connection-prompt-title = 允许远程控制？
@@ -56,6 +59,10 @@ about-sync-log-clear-confirm-message =
        *[other] 这将永久删除 { $count } 个可见的日志文件。
     }
 about-sync-log-clear-confirm-accept = 删除
+about-sync-log-row-success =
+    .heading = 成功 — { DATETIME($date, dateStyle: "medium", timeStyle: "medium") }
+about-sync-log-row-error =
+    .heading = 错误 — { DATETIME($date, dateStyle: "medium", timeStyle: "medium") }
 
 # @file omni.ja localization/zh-CN/toolkit/about/aboutProcesses.ftl
 about-processes-utility-actor-hw-inference = 硬件加速推理
@@ -82,18 +89,36 @@ about-networking-ssl-tokens-overridable-error = 可忽略的错误类别
 about-networking-ssl-tokens-cert-chain = 证书链（{ $count }）
 about-networking-ssl-tokens-handshake-certs = 握手证书（{ $count }）
 
-# @file omni.ja localization/zh-CN/toolkit/about/aboutPDF.ftl
-about-pdf-file-picker-title = 打开 PDF
+# @file omni.ja localization/zh-CN/toolkit/about/aboutSupport.ftl
+pdfjs-open-attachments-inline = 在页面内打开 PDF 附件
 
 # @file omni.ja localization/zh-CN/toolkit/formautofill/formAutofill.ftl
 autofill-card-security-code-label = CVC
+autofill-delete-payment-method-os-prompt-macos = 删除已存储的付款方式信息
+autofill-delete-payment-method-os-prompt-windows = { -brand-short-name } 正在尝试删除已存储的付款方式信息。请在下方确认访问此 Windows 账户。
+autofill-delete-payment-method-os-prompt-other = { -brand-short-name } 正在尝试删除已存储的付款方式信息。
 
 # @file omni.ja localization/zh-CN/toolkit/global/processTypes.ftl
 process-type-utility-actor-hw-inference = 实用工具“硬件加速推理”
 
+# @file omni.ja localization/zh-CN/toolkit/global/theme-picker.ftl
+theme-picker-mode =
+    .aria-label = 外观
+
+# @file omni.ja localization/zh-CN/toolkit/main-window/autocomplete.ftl
+autocomplete-more-actions2 = { $entry } 的更多操作
+autocomplete-delete-form-history-entry2 = 从表单历史记录中删除 { $entry }
+autocomplete-remove-password-title = 要移除密码吗？
+autocomplete-remove-address-title = 要移除地址吗？
+autocomplete-remove-payment-method-title = 要移除付款方式吗？
+autocomplete-remove-record-message = 此操作无法撤销。
+autocomplete-remove-record-button = 移除
+autocomplete-remove-password-os-auth-dialog-message-win = 要删除密码，请输入您的 Windows 登录凭据。这有助于保护您账户的安全。
+autocomplete-remove-password-os-auth-dialog-message-macosx = 删除已保存的密码
+autocomplete-remove-password-os-auth-dialog-caption = { -brand-full-name }
+
 # @file omni.ja localization/zh-CN/toolkit/neterror/netError.ftl
 neterror-search-cta-title = 无法访问此网站
-neterror-search-cta-intro = 无法连接到 { $domain } 的服务器。
 neterror-search-cta-things-to-try = 请尝试以下步骤：
 neterror-search-cta-hint-check-address = 仔细检查网站地址
 neterror-search-cta-hint-search = 在网上搜索以找到该站点
@@ -105,7 +130,6 @@ neterror-search-cta-search-button =
 neterror-search-cta-reload-button =
     .label = 重新载入
     .accesskey = R
-neterror-search-cta-loading = 正在载入
 neterror-search-cta-offline = 您似乎处于离线状态。请重新连接后再试。
 neterror-search-cta-error-code = 错误代码：{ $error }
 neterror-search-cta-learn-more = 详细了解
@@ -139,11 +163,49 @@ taskbar-tabs-chat-callout-title-v3 = 从任务栏随时保持联系
 # @file browser/omni.ja localization/zh-CN/browser/ipProtection.ftl
 ipprotection-summer-promo-offramp-generic-description = 使用您的 { $maxUsage } GB 流量和 6 个连接位置获得额外隐私保护，让您的浏览活动更难被追溯。
 ipprotection-summer-promo-offramp-generic-description-default-browser-users-no-upgrade = 使用您的 { $maxUsage } GB 流量和超过 20 个连接位置获得额外隐私保护，让您的浏览活动更难被追溯。
+unauthenticated-site-rules-message = 控制哪些网站使用 VPN、哪些不使用。
+site-rules-manage-rules-link-text = 管理 VPN 规则
+site-rules-status-heading = 您的规则
+site-rules-description-exclusion = 此网站的 VPN 已关闭
+site-rules-description-inclusion = 此网站的 VPN 已开启
+ip-protection-site-rules-header =
+    .heading = 管理网站规则
+ip-protection-site-rules-button =
+    .label = 管理网站规则
+    .description = 为需要额外隐私保护或关闭 VPN 的网站设置规则。
 
 # @file browser/omni.ja localization/zh-CN/browser/newtab/newtab.ftl
 newtab-privacy-message-milestone-week = 本周已拦截 { $count } 个跟踪器。看看 { -brand-short-name } 为您挡住了什么。
 newtab-privacy-message-milestone-total = 已拦截 { $count } 个跟踪器。您在掌控个人隐私的道路上又迈进了一大步。
 newtab-privacy-etp-off-faster-browsing = 浏览更快速。跟踪器更少。
+newtab-wallpaper-firefox-side-kit-dark = 深色背景上位于左侧的狐狸
+newtab-wallpaper-firefox-side-kit-light = 浅色背景上位于左侧的狐狸
+newtab-wallpaper-firefox-peak-dark = 深色背景上位于左边缘的狐狸脸
+newtab-wallpaper-firefox-peak-light = 浅色背景上位于左边缘的狐狸脸
+newtab-recent-searches-trending-attribution = 来自 { $engine }
+
+# @file browser/omni.ja localization/zh-CN/browser/newtab/onboarding.ftl
+onboarding-refresh-splash-screen-title = { -brand-product-name } 从现在开始为您护航
+onboarding-refresh-hero-text = 为保护您而生，而非跟踪您。
+onboarding-refresh-tou-default = 使用 { -brand-short-name } 打开所有链接
+onboarding-refresh-tou-pin =
+    { PLATFORM() ->
+        [macos] 将 { -brand-short-name } 保留在 Dock 中
+       *[other] 将 { -brand-short-name } 添加到任务栏
+    }
+onboarding-refresh-tou-default-unchecked = 每次浏览都保持内置保护
+onboarding-refresh-tou-pin-unchecked = 让唯一主流独立浏览器触手可及
+onboarding-refresh-terms-of-use-with-links = 继续即表示您同意 <a data-l10n-name="terms_of_use">{ -brand-product-name } 使用条款</a>和我们的<a data-l10n-name="privacy_notice">隐私声明</a>。为帮助改进浏览器，{ -brand-product-name } 会向 { -vendor-short-name } 发送诊断和交互数据。
+onboarding-refresh-fro-theme-header = 随心定制您的外观
+onboarding-refresh-tab-layout-minimal = 极简
+onboarding-minimal-tabs-tooltip =
+    .title = 浏览器窗口将标签页显示为屏幕侧边的小图标，位于最小化的侧边栏中。
+onboarding-minimal-tabs-description =
+    .aria-description = 浏览器窗口将标签页显示为屏幕侧边的小图标，位于最小化的侧边栏中。
+
+# @file browser/omni.ja localization/zh-CN/browser/sync.ftl
+fxa-menu-signed-out-title = 登录以同步
+fxa-menu-signed-out-description = 您已退出登录
 
 # @file browser/omni.ja localization/zh-CN/browser/preferences/preferences.ftl
 containers-sites-card-header =
@@ -169,6 +231,117 @@ zen-action-reopen-closed-tab = 重新打开已关闭的标签页
 zen-action-duplicate-tab = 复制当前标签页
 zen-action-reset-pinned-tab = 重置固定标签页
 zen-action-open = 打开
+zen-action-collapse-all-folders = 折叠所有文件夹
+zen-action-expand-all-folders = 展开所有文件夹
+
+# @file browser/omni.ja localization/zh-CN/browser/zen-general.ftl
+zen-sidebar-drag-collapsed-toast = 侧边栏已隐藏！使用 <span>{ $shortcut }</span> 恢复侧边栏。
+
+# @file browser/omni.ja localization/zh-CN/browser/zen-library.ftl
+zen-library-button =
+    .label = 资料库
+    .tooltiptext = 资料库
+library-footer-close-button =
+    .tooltiptext = 关闭资料库
+library-footer-donate-button =
+    .tooltiptext = 捐赠给 Zen
+library-history-section-title = 历史记录
+library-downloads-section-title = 下载
+library-boosts-section-title = Boost
+library-media-section-title = 媒体
+library-spaces-section-title = 工作区
+library-filter-button = 筛选
+library-filter-done = 完成
+library-history-filter-title = 筛选历史记录…
+library-history-filter-when = 访问时间？
+library-filter-today = 今天
+library-filter-week = 本周
+library-filter-month = 本月
+library-history-filter-sort = 排序方式
+library-history-sort-date = 按日期
+library-history-sort-site = 按网站
+library-history-sort-most-visited = 按访问频率
+library-history-sort-last-visited = 按最近访问
+library-history-site-other = 其他
+library-history-search-placeholder =
+    .placeholder = 搜索历史记录…
+library-history-empty = 未找到历史记录
+library-media-empty = 未找到媒体
+library-media-search-placeholder =
+    .placeholder = 搜索媒体…
+library-media-loading = 正在查找媒体…
+library-media-opt-in-title = 资料库中的媒体
+library-media-opt-in-body = 在 Zen 资料库中显示截图、图片和视频，方便快速取用。
+library-media-opt-in-button = 显示媒体
+library-media-opt-in-note = 媒体不会离开您的计算机，除您之外任何人都无法查看。
+library-media-filter-title = 筛选媒体…
+library-media-filter-folders = 查找位置
+library-media-open-in = 在 { $app } 中打开
+library-media-close =
+    .title = 关闭
+library-media-previous =
+    .title = 上一个
+library-media-next =
+    .title = 下一个
+library-media-more =
+    .title = 更多选项
+library-media-menu-open =
+    .label = 打开
+library-media-menu-copy =
+    .label = 复制
+library-history-opened-in-background = 已在新标签页中打开
+library-history-forget-button =
+    .title = 从历史记录中移除
+library-history-reopen-button =
+    .title = 重新打开页面
+library-downloads-empty = 未找到下载
+library-downloads-more-button =
+    .title = 更多选项
+library-downloads-menu-open =
+    .label = 打开 { $name }
+library-downloads-menu-copy =
+    .label = 复制 { $name }
+library-downloads-menu-hide =
+    .label = 从 Zen 中隐藏
+library-downloads-menu-trash =
+    .label = 移到回收站
+library-downloads-opening-in =
+    { PLATFORM() ->
+        [macos] 正在访达中打开…
+        [windows] 正在文件资源管理器中打开…
+       *[other] 正在文件管理器中打开…
+    }
+library-downloads-open-when-done = 完成后打开
+library-downloads-cancel-button =
+    .title = 取消下载
+library-downloads-filter-title = 筛选下载…
+library-downloads-filter-type = 文件类型
+library-downloads-filter-when = 下载时间？
+library-downloads-type-images = 图片
+library-downloads-type-video = 视频
+library-downloads-type-audio = 音频
+library-downloads-type-documents = 文档
+library-downloads-type-archives = 压缩文件
+library-downloads-type-apps = 应用
+library-downloads-retry-button =
+    .title = 重试下载
+library-spaces-theme-button =
+    .title = 更改主题
+library-spaces-move-button =
+    .title = 拖动以重新排序
+library-spaces-actions-button =
+    .tooltiptext = 更多选项
+library-spaces-icon-button =
+    .title = 更改图标
+library-spaces-name-button =
+    .title = 重命名工作区
+library-boosts-search-placeholder =
+    .placeholder = 搜索 Boost…
+library-boosts-empty = 尚无 Boost
+library-boosts-toggle =
+    .aria-label = 启用 Boost
+library-boosts-menu-edit =
+    .label = 编辑 Boost
 
 # @file browser/omni.ja localization/zh-CN/browser/zen-live-folders.ftl
 zen-live-folder-options =
@@ -298,6 +471,10 @@ inspector-emulation-panel-reduced-motion-no-preference = 无偏好
     .aria-label = 启用对减少动态效果无偏好的模拟
 inspector-emulation-panel-reduced-motion-none = 不模拟
     .aria-label = 禁用减少动态效果的模拟
+inspector-split-orientation-button-title = 面板布局
+inspector-split-orientation-auto = 自动
+inspector-split-orientation-side-by-side = 并排
+inspector-split-orientation-stacked = 堆叠
 
 # @file browser/omni.ja localization/zh-CN/devtools/client/toolbox-options.ftl
 options-netmonitor-body-limit-label = 请求和响应正文的最大大小（设为 0 表示不限制）：
