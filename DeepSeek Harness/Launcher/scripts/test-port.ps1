@@ -43,8 +43,23 @@ DshBin=
 '@ | Set-Content -Path $ini -Encoding ascii
 }
 
+# 只结束本脚本启动的 Launcher 实例（DEV 规范：严禁按进程名杀 Launcher，
+# 否则会连带掉用户正在使用的 DSH 会话）。
+$script:testLaunchers = @()
+function Start-TestLauncher {
+    $p = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
+    $script:testLaunchers += $p
+    return $p
+}
+function Stop-TestLauncher {
+    foreach ($p in $script:testLaunchers) {
+        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+    }
+    $script:testLaunchers = @()
+}
+
 function Cleanup-All {
-    Get-Process Launcher -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher
     Remove-Item $log -ErrorAction SilentlyContinue
     Restore-DefaultIni
 }
@@ -67,21 +82,21 @@ try {
     Write-TestIni '16555'
     Remove-Item $log -ErrorAction SilentlyContinue
     Write-Host '== 1) 有效端口 16555：应保持不变 =='
-    Start-Process -FilePath $exe -WorkingDirectory $bin | Out-Null
+    Start-TestLauncher | Out-Null
     Start-Sleep -Seconds 2
     $port1 = Get-IniPort
     if ($port1 -ne 16555) { throw "失败：有效端口被改动（ini=$port1）" }
     $log1 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log1 -like '*端口无效*') { throw '失败：有效端口不应触发修正' }
     Write-Host '   OK：ini 中端口保持 16555，未触发修正'
-    Get-Process Launcher -ErrorAction SilentlyContinue | Stop-Process -Force
+    Stop-TestLauncher
     Start-Sleep -Milliseconds 800
 
     # ============ 场景 2：越界端口 → 随机可用端口 ============
     Write-TestIni '99999'
     Remove-Item $log -ErrorAction SilentlyContinue
     Write-Host '== 2) 越界端口 99999：应改为随机可用端口 =='
-    Start-Process -FilePath $exe -WorkingDirectory $bin | Out-Null
+    Start-TestLauncher | Out-Null
     Start-Sleep -Seconds 2
     $port2 = Get-IniPort
     if ($port2 -lt 1024 -or $port2 -gt 65535) { throw "失败：修正后的端口越界（ini=$port2）" }
@@ -90,14 +105,14 @@ try {
     $log2 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log2 -notlike '*端口无效，已改为随机可用端口*') { throw '失败：日志未记录端口修正' }
     Write-Host "   OK：端口 99999 → $port2（可用），日志已记录修正"
-    Get-Process Launcher -ErrorAction SilentlyContinue | Stop-Process -Force
+    Stop-TestLauncher
     Start-Sleep -Milliseconds 800
 
     # ============ 场景 3：非数字端口 → 随机可用端口 ============
     Write-TestIni 'abc'
     Remove-Item $log -ErrorAction SilentlyContinue
     Write-Host '== 3) 非数字端口 abc：应改为随机可用端口 =='
-    Start-Process -FilePath $exe -WorkingDirectory $bin | Out-Null
+    Start-TestLauncher | Out-Null
     Start-Sleep -Seconds 2
     $port3 = Get-IniPort
     if ($port3 -lt 1024 -or $port3 -gt 65535) { throw "失败：修正后的端口越界（ini=$port3）" }
@@ -105,7 +120,7 @@ try {
     $log3 = Get-Content $log -Raw -Encoding Unicode -ErrorAction SilentlyContinue
     if ($log3 -notlike '*端口无效，已改为随机可用端口*') { throw '失败：日志未记录端口修正' }
     Write-Host "   OK：端口 abc → $port3（可用），日志已记录修正"
-    Get-Process Launcher -ErrorAction SilentlyContinue | Stop-Process -Force
+    Stop-TestLauncher
     Start-Sleep -Milliseconds 800
 
     Write-Host ''

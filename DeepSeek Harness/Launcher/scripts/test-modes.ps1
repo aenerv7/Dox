@@ -71,13 +71,28 @@ DshBin=
 '@ | Set-Content -Path $ini -Encoding ascii
 }
 
+# 只结束本脚本启动的 Launcher 实例（DEV 规范：严禁按进程名杀 Launcher，
+# 否则会连带掉用户正在使用的 DSH 会话）。
+$script:testLaunchers = @()
+function Start-TestLauncher {
+    $p = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
+    $script:testLaunchers += $p
+    return $p
+}
+function Stop-TestLauncher {
+    foreach ($p in $script:testLaunchers) {
+        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+    }
+    $script:testLaunchers = @()
+}
+
 function Cleanup-All {
-    Get-Process Launcher -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher
     Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -like '*test-server.js*' } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     Remove-Item $testServer, $log -ErrorAction SilentlyContinue
-    Remove-Item (Join-Path $bin 'fakebin') -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $bin 'fakebin'), (Join-Path $bin 'fakebin2') -Recurse -Force -ErrorAction SilentlyContinue
     Restore-DefaultIni
 }
 
@@ -119,7 +134,7 @@ DshBin=
 
     $env:PATH = "$fake1;$nodeDir;$sys32"   # 不含 %APPDATA%\npm，避免真实 dsh.cmd 干扰
     Write-Host '== 1) dsh 模式：PATH 上有 dsh.cmd → 以 dsh 命令启动 =='
-    $proc = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
+    $proc = Start-TestLauncher
     Start-Sleep -Seconds 2
     Send-Cmd $kMsgStart | Out-Null
     if (-not (Wait-PortState $port $true)) { throw '失败：dsh 模式启动后端口未打开' }
@@ -132,7 +147,7 @@ DshBin=
     Write-Host '   OK：以 dsh.cmd 启动，日志确认 启动方式=dsh 与 --no-open/--host/--port 参数'
     Send-Cmd $kMsgStop | Out-Null
     if (-not (Wait-PortState $port $false)) { throw '失败：dsh 模式停止后端口未关闭' }
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher
     Start-Sleep -Milliseconds 800
 
     # ============ 场景 2：npx 模式（PATH 无 dsh.cmd，只有 npx.cmd） ============
@@ -143,7 +158,7 @@ DshBin=
     Remove-Item $log -ErrorAction SilentlyContinue
     $env:PATH = "$fake2;$nodeDir;$sys32"   # 无 dsh.cmd → 判定 npx
     Write-Host '== 2) npx 模式：PATH 无 dsh.cmd → 以 npx 启动 =='
-    $proc = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
+    $proc = Start-TestLauncher
     Start-Sleep -Seconds 2
     Send-Cmd $kMsgStart | Out-Null
     if (-not (Wait-PortState $port $true)) { throw '失败：npx 模式启动后端口未打开' }
@@ -156,7 +171,7 @@ DshBin=
     Write-Host '   OK：以 npx -y @deepseek-ai/dsh 启动，日志确认 启动方式=npx 与 --no-open/--host/--port 参数'
     Send-Cmd $kMsgStop | Out-Null
     if (-not (Wait-PortState $port $false)) { throw '失败：npx 模式停止后端口未关闭' }
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher
     Start-Sleep -Milliseconds 800
 
     Write-Host ''

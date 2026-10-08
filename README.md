@@ -25,7 +25,7 @@
 | [`Firefox/Zen`](./Firefox/Zen/README.md) | Zen 简体中文补全与快捷键显示修正，自动识别安装和配置目录，支持备份还原；另含默认应用重复项清理 |
 | [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
 | [`Scripts`](./Scripts) | Windows 批处理工具、Edge 关联清理辅助脚本和 FFmpeg 安装脚本 |
-| [`DeepSeek Harness/Launcher`](./DeepSeek%20Harness/Launcher/README.md) | Windows 托盘监督器，负责启动、停止和更新本地 DeepSeek Harness |
+| [`DeepSeek Harness/Launcher`](./DeepSeek%20Harness/Launcher/README.md) | Windows 托盘监督器，负责启动、停止和重启本地 DeepSeek Harness |
 | [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
 | [`CSS`](./CSS) | 中文字体映射和 VS Code 外观自定义 CSS |
 | [`Userscript`](./Userscript) | Tampermonkey/Greasemonkey 用户脚本 |

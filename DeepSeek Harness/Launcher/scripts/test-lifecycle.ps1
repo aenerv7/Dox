@@ -77,8 +77,23 @@ DshBin=
 '@ | Set-Content -Path $ini -Encoding ascii
 }
 
+# 只结束本脚本启动的 Launcher 实例（DEV 规范：严禁按进程名杀 Launcher，
+# 否则会连带掉用户正在使用的 DSH 会话；测试前由人工先退出正在运行的 Launcher）。
+$script:testLaunchers = @()
+function Start-TestLauncher {
+    $p = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
+    $script:testLaunchers += $p
+    return $p
+}
+function Stop-TestLauncher {
+    foreach ($p in $script:testLaunchers) {
+        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+    }
+    $script:testLaunchers = @()
+}
+
 function Test-Cleanup {
-    Get-Process Launcher -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Stop-TestLauncher
     Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -like '*test-server.js*' } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
@@ -113,7 +128,7 @@ Remove-Item $log -ErrorAction SilentlyContinue
 
 try {
     Write-Host '== 1) 启动 Launcher（AutoStart=1，应自动启动测试服务器） =='
-    $proc = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
+    $proc = Start-TestLauncher
     if (-not (Wait-PortState $port $true 15)) { throw '失败：AutoStart 后端口未打开' }
     Write-Host '   OK：随托盘自启动生效，端口已打开'
     Start-Sleep -Milliseconds 500
@@ -160,7 +175,8 @@ try {
     Write-Host "   OK：重启成功（PID $pidBefore -> $pidAfter）"
 
     Write-Host '== 6) 退出托盘即停止 Harness（直接强杀托盘进程，验证 KILL_ON_JOB_CLOSE 兜底） =='
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    # 直接按 PID 强杀托盘进程（等价于任务管理器结束），验证 KILL_ON_JOB_CLOSE 兜底
+    Stop-TestLauncher
     if (-not (Wait-PortState $port $false 10)) { throw '失败：托盘退出后端口未关闭' }
     Start-Sleep -Milliseconds 800
     $stray = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like '*test-server.js*' }
