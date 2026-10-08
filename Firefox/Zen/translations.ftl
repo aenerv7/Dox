@@ -1,4 +1,4 @@
-# Local additions for Zen 1.23b / Gecko 157.0.
+# Local additions for Zen 1.23.1b / Gecko 157.0.1.
 # @file headers identify the archive and resource to append to.
 # Messages already translated upstream are omitted; only real gaps are listed.
 
@@ -219,6 +219,7 @@ zen-settings-workspaces-sync =
 zen-settings-normal-tabs-sync =
     .label = 包含未固定的标签页
     .description = 同时同步各工作区中的普通标签页，而不只是固定标签页和文件夹。
+zen-library-shortcut-toggle = 切换资料库
 zen-local-shortcut-not-set = 未设置
 
 # @file browser/omni.ja localization/en-US/browser/preferences/zen-preferences.ftl
@@ -294,6 +295,30 @@ library-history-forget-button =
     .title = 从历史记录中移除
 library-history-reopen-button =
     .title = 重新打开页面
+library-history-clear =
+    .label = 清除历史记录
+library-history-clear-last-hour =
+    .label = 最近一小时
+library-history-clear-last-12-hours =
+    .label = 最近 12 小时
+library-history-clear-today =
+    .label = 今天
+library-history-clear-last-week =
+    .label = 最近一周
+library-history-clear-last-month =
+    .label = 最近一个月
+library-history-clear-all =
+    .label = 全部
+library-history-clear-prompt-title = 清除历史记录？
+library-history-clear-prompt-message = 此时间范围内访问过的页面将被遗忘。此操作无法撤销。
+library-history-clear-prompt-accept = 清除历史记录
+library-history-filter-source = 查看范围
+library-history-source-history = 历史记录
+library-history-source-closed = 已关闭的标签页
+library-history-closed-empty = 没有已关闭的标签页
+library-open-legacy =
+    .label = 打开旧版资料库窗口
+library-archive-section-title = 归档
 library-downloads-empty = 未找到下载
 library-downloads-more-button =
     .title = 更多选项
@@ -303,8 +328,8 @@ library-downloads-menu-copy =
     .label = 复制 { $name }
 library-downloads-menu-hide =
     .label = 从 Zen 中隐藏
-library-downloads-menu-trash =
-    .label = 移到回收站
+library-downloads-menu-delete =
+    .label = 删除文件
 library-downloads-opening-in =
     { PLATFORM() ->
         [macos] 正在访达中打开…
@@ -325,6 +350,8 @@ library-downloads-type-archives = 压缩文件
 library-downloads-type-apps = 应用
 library-downloads-retry-button =
     .title = 重试下载
+library-downloads-clear-all =
+    .label = 清除所有下载
 library-spaces-theme-button =
     .title = 更改主题
 library-spaces-move-button =

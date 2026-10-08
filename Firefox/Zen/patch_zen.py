@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import os
+import sys
 from pathlib import Path
 import re
 import shutil
@@ -24,6 +25,11 @@ BUILD = ROOT / 'build'
 ARCHIVES = ('omni.ja', 'browser/omni.ja')
 SETTINGS = 'chrome/browser/content/browser/preferences/zen-settings.js'
 SHORTCUTS = 'chrome/browser/content/browser/zen-components/ZenKeyboardShortcuts.mjs'
+APP_INI = 'application.ini'
+SUPPLEMENT = '# Local zh-CN supplement (Firefox/Zen).'
+# The one region rewritten without inspecting what upstream had there.
+SHORTCUT_START = '  static keyToDisplayString(key, keycode) {'
+SHORTCUT_END = '\n  toDisplayString() {'
 
 
 # ---------------------------------------------------------------------------
@@ -219,6 +225,15 @@ def discover(install=None, profile=None, roaming=None, local=None):
     return install, selected, reason
 
 
+def discovered_install(roaming=None, local=None):
+    # Minimal discovery for build, which only needs the install directory.
+    if roaming is not None and local is None:
+        local = roaming
+    profiles, _ = load_profiles(Path(roaming or Path(os.environ['APPDATA']) / 'zen'),
+                                Path(local or Path(os.environ['LOCALAPPDATA']) / 'zen'))
+    return find_install(profiles)
+
+
 def cache_targets(profile):
     # Validate all paths before deleting anything; never follow a cache junction.
     targets = []
@@ -248,8 +263,54 @@ def write_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
-def read_baseline():
-    return json.loads((ROOT / 'baseline.json').read_text(encoding='utf-8'))
+def read_manifest():
+    # Records the pristine resources a build came from, so no separate baseline
+    # file has to be stored and updated by hand.
+    path = BUILD / 'manifest.json'
+    if not path.exists():
+        raise SystemExit(f'找不到 {path}；请先运行 build（或直接 install）生成构建清单。')
+    return json.loads(path.read_text(encoding='utf-8'))
+
+
+def application_ini_path(install):
+    # Firefox keeps the authoritative copy under browser/; the root file exists too.
+    for relative in (f'browser/{APP_INI}', APP_INI):
+        path = install / relative
+        if path.is_file():
+            return path
+    return None
+
+
+def read_application_ini(install):
+    path = application_ini_path(install)
+    if path is None:
+        raise ValueError(f'找不到 {APP_INI}：{install}')
+    config = read_ini(path)
+    fields = {'version': ('App', 'Version'), 'build_id': ('App', 'BuildID'),
+              'source_revision': ('App', 'SourceStamp'), 'gecko_version': ('Gecko', 'MinVersion')}
+    metadata = {}
+    for key, (section, option) in fields.items():
+        if not config.has_option(section, option):
+            raise ValueError(f'{path} 缺少 [{section}] {option}')
+        metadata[key] = config.get(section, option)
+    return metadata
+
+
+def scan_archive(path):
+    # Local supplements are stored uncompressed, so the marker bytes appear literally.
+    # Hashing and the patched check share one pass.
+    marker = SUPPLEMENT.encode('utf-8')
+    hasher = hashlib.sha256()
+    tail = b''
+    patched = False
+    with Path(path).open('rb') as stream:
+        while chunk := stream.read(1 << 20):
+            hasher.update(chunk)
+            if not patched:
+                window = tail + chunk
+                patched = marker in window
+                tail = window[-(len(marker) - 1):]
+    return hasher.hexdigest(), patched
 
 
 def fragments():
@@ -313,8 +374,8 @@ def patch_shortcuts(source):
         if source.count(before) != 1:
             raise ValueError(f'Shortcut display implementation changed: {before}')
         source = source.replace(before, after, 1)
-    start = source.index('  static keyToDisplayString(key, keycode) {')
-    end = source.index('\n  toDisplayString() {', start)
+    start = source.index(SHORTCUT_START)
+    end = source.index(SHORTCUT_END, start)
     source = source[:start] + '''  static keyToDisplayString(key, keycode) {
     const raw = key || Object.entries(KEYCODE_MAP).find(([, value]) => value == keycode)?.[0]
       || keycode?.replace(/^VK_/, "") || "";
@@ -338,25 +399,42 @@ def patch_shortcuts(source):
     return source
 
 
-def build(install):
-    baseline = read_baseline()
+def shortcut_body(source):
+    # Pristine implementation of the region patch_shortcuts overwrites wholesale.
+    # Every other edit is guarded by an exact-match assertion, so this is the only
+    # spot where an upstream change could be dropped silently: keep it for review.
+    start = source.index(SHORTCUT_START)
+    return source[start:source.index(SHORTCUT_END, start)]
+
+
+def build(install, metadata=None):
+    # Every version-sensitive edit raises when upstream moves things, so the
+    # pristine hashes can simply be re-derived from the given source. That keeps
+    # the patch usable across Zen upgrades without a stored baseline hash.
+    install = Path(install).resolve()
+    metadata = Path(metadata).resolve() if metadata else install
+    metadata_info = read_application_ini(metadata)
+    originals = {}
     for archive in ARCHIVES:
-        if digest(install / archive) != baseline['archives'][archive]:
-            raise ValueError(f'{archive}: source differs from the verified original build; refusing to patch.')
+        sha256, patched = scan_archive(install / archive)
+        if patched:
+            raise ValueError(f'{install / archive} 已经打过补丁，不能当作原版；'
+                             '请用 --install-dir 指向原版安装目录，或 backups/<Build ID>。')
+        originals[archive] = sha256
     additions = fragments()
-    previous = {}
-    previous_path = BUILD / 'manifest.json'
-    if previous_path.exists():
-        previous = json.loads(previous_path.read_text(encoding='utf-8'))['archives']
-        for archive, record in previous.items():
-            if digest(BUILD / archive) != record['patched_sha256']:
-                raise ValueError(f'Previous build changed: {archive}')
-            saved = ROOT / 'backups' / baseline['build_id'] / 'revisions' / (record['patched_sha256'] + '.ja')
-            saved.parent.mkdir(parents=True, exist_ok=True)
-            if not saved.exists():
-                shutil.copy2(BUILD / archive, saved)
-    manifest = {'version': baseline['version'], 'build_id': baseline['build_id'],
-                'translations_sha256': digest(ROOT / 'translations.ftl'), 'archives': {}}
+    prior = read_manifest() if (BUILD / 'manifest.json').exists() else {}
+    for archive, record in prior.get('archives', {}).items():
+        if digest(BUILD / archive) != record['patched_sha256']:
+            raise ValueError(f'Previous build changed: {archive}')
+        saved = ROOT / 'backups' / metadata_info['build_id'] / 'revisions' / (record['patched_sha256'] + '.ja')
+        saved.parent.mkdir(parents=True, exist_ok=True)
+        if not saved.exists():
+            shutil.copy2(BUILD / archive, saved)
+    manifest = {'version': metadata_info['version'], 'gecko_version': metadata_info['gecko_version'],
+                'build_id': metadata_info['build_id'], 'source_revision': metadata_info['source_revision'],
+                'source': str(install), 'translations_sha256': digest(ROOT / 'translations.ftl'),
+                'archives': {}}
+    replaced = BUILD / 'replaced' / (Path(SHORTCUTS).stem + '.keyToDisplayString.mjs')
     for archive in ARCHIVES:
         destination = BUILD / archive
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -364,17 +442,25 @@ def build(install):
         with zipfile.ZipFile(install / archive) as source:
             for name, addition in additions[archive].items():
                 original = source.read(name) if name in source.namelist() else b''
-                separator = b'\n\n# Local zh-CN supplement (Firefox/Zen).\n'
+                separator = f'\n\n{SUPPLEMENT}\n'.encode('utf-8')
                 changes[name] = original + separator + addition.encode('utf-8')
             if archive == 'browser/omni.ja':
                 changes[SETTINGS] = patch_settings(source.read(SETTINGS).decode('utf-8')).encode('utf-8')
-                changes[SHORTCUTS] = patch_shortcuts(source.read(SHORTCUTS).decode('utf-8')).encode('utf-8')
+                original_shortcuts = source.read(SHORTCUTS).decode('utf-8')
+                changes[SHORTCUTS] = patch_shortcuts(original_shortcuts).encode('utf-8')
+                body = shortcut_body(original_shortcuts)
+                replaced.parent.mkdir(parents=True, exist_ok=True)
+                replaced.write_bytes(body.encode('utf-8'))
+                manifest['shortcut_display_sha256'] = hashlib.sha256(body.encode('utf-8')).hexdigest()
             with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_STORED) as target:
                 target.comment = source.comment
-                for info in source.infolist():
-                    target.writestr(info, changes.get(info.filename, source.read(info)))
+                for entry in source.infolist():
+                    target.writestr(entry, changes.get(entry.filename, source.read(entry)))
+                # Generated entries reuse the source stamp; a wall-clock ZIP
+                # timestamp would change the archive hash on every rebuild.
+                stamp = source.infolist()[0].date_time
                 for name in changes.keys() - set(source.namelist()):
-                    target.writestr(name, changes[name])
+                    target.writestr(zipfile.ZipInfo(name, stamp), changes[name])
         with zipfile.ZipFile(destination) as target:
             if target.testzip() is not None:
                 raise ValueError(f'Invalid generated archive: {destination}')
@@ -384,13 +470,32 @@ def build(install):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
         manifest['archives'][archive] = {
-            'original_sha256': baseline['archives'][archive],
+            'original_sha256': originals[archive],
             'patched_sha256': digest(destination),
-            'previous_sha256': previous.get(archive, {}).get('patched_sha256'),
+            'previous_sha256': prior.get('archives', {}).get(archive, {}).get('patched_sha256'),
             'resources': sorted(changes),
         }
     write_json(BUILD / 'manifest.json', manifest)
     print(f'Built {sum(len(v["resources"]) for v in manifest["archives"].values())} resources in {BUILD}')
+    print(f'keyToDisplayString 的原实现已存至 {replaced}，供与上游比对。')
+    if prior.get('shortcut_display_sha256') not in (None, manifest['shortcut_display_sha256']):
+        print('注意：这次的 keyToDisplayString 与上次构建不同，上游可能改动过该函数；'
+              '它会被整体替换，请比对上面保存的原实现，确认没有丢掉上游修复。')
+    return manifest
+
+
+def needs_build(install):
+    # An upgrade replaces both archives with hashes no build has seen yet; that
+    # alone is the signal to rebuild instead of refusing to overwrite them.
+    path = BUILD / 'manifest.json'
+    if not path.exists():
+        return True
+    manifest = read_manifest()
+    for archive, record in manifest['archives'].items():
+        known = {record['original_sha256'], record['patched_sha256'], record.get('previous_sha256')}
+        if digest(Path(install) / archive) not in known:
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -419,7 +524,7 @@ def replace_file(source, destination):
 
 
 def deploy(install, profile, restore=False):
-    manifest = json.loads((BUILD / 'manifest.json').read_text(encoding='utf-8'))
+    manifest = read_manifest()
     require_closed()
     caches = cache_targets(profile)
     backups = ROOT / 'backups' / manifest['build_id']
@@ -519,13 +624,21 @@ def fluent_references(node):
 
 
 def original_dir(explicit):
-    # Default to the pristine backup: comparing against an installed patch would validate itself.
+    # Default to the pristine resources the current build came from: comparing
+    # against an installed patch would validate itself.
     if explicit:
         return Path(explicit).resolve()
-    backup = ROOT / 'backups' / read_baseline()['build_id']
-    if not backup.is_dir():
-        raise SystemExit(f'找不到原版备份 {backup}\n请用 --original-dir 指定原版安装或备份目录，或先运行 build。')
-    return backup
+    manifest = read_manifest()
+    candidates = [Path(manifest['source'])] if manifest.get('source') else []
+    candidates.append(ROOT / 'backups' / manifest['build_id'])
+    for candidate in candidates:
+        if not candidate.is_dir():
+            continue
+        if all((candidate / archive).is_file() and digest(candidate / archive) == record['original_sha256']
+               for archive, record in manifest['archives'].items()):
+            return candidate
+    raise SystemExit(f'找不到 {manifest["build_id"]} 的原版资源，'
+                     '请用 --original-dir 指定原版安装或备份目录，或重新运行 build。')
 
 
 def validate(original):
@@ -595,7 +708,7 @@ def main():
         epilog=r'''命令说明：
   help      显示本帮助；不传命令时也显示帮助，不执行安装。
   detect    只读检查，显示自动识别的 Zen 安装目录、配置与启动缓存路径。
-  build     仅生成补丁到 build/，不安装；输入必须是匹配基线的原版资源。
+  build     仅生成补丁到 build/，不安装；输入须是未打过补丁的原版资源。
   validate  校验 build/ 中的补丁：Fluent 语法、缺项、变量引用与命名链接。需 fluent.syntax。
   install   安装补丁；缺少构建清单时自动先构建，再备份原文件、替换资源并清除启动缓存。
   verify    校验已安装的资源是否与 build/ 中的补丁一致，需先 build 或 install。
@@ -614,8 +727,9 @@ def main():
   python .\patch_zen.py --help
   python .\patch_zen.py detect --install-dir "D:\Apps\Zen Browser"
   python .\patch_zen.py build
-  python .\patch_zen.py build --install-dir ".\backups\20261002114451"
-  python .\patch_zen.py validate --original-dir ".\backups\20261002114451"
+  python .\patch_zen.py build --install-dir "D:\ZenNew"
+  python .\patch_zen.py build --install-dir ".\backups\20261006042626"
+  python .\patch_zen.py validate --original-dir ".\backups\20261006042626"
   python .\patch_zen.py install --profile "Default (release)"
   python .\patch_zen.py install --profile "D:\BrowserData\ZenProfile"
   python .\patch_zen.py detect --install-dir "D:\Apps\Zen" --profiles-root "D:\ZenData"
@@ -627,11 +741,13 @@ def main():
   脚本不会自动提权。请使用当前账户，避免切换账户后识别到其他用户的配置。
   自动识别正在使用的已注册配置；Zen 关闭后选择对应默认配置。
   非默认配置可用 --profile 指定；多个候选无法确定时会停止，不猜测。
-  validate 省略 --original-dir 时使用 backups/<Build ID>；不要用已打补丁的安装当参照。
+  validate 省略 --original-dir 时用本次构建的来源目录（其次 backups/<Build ID>）；不要用已打补丁的安装当参照。
 
 适用范围：
-  仅适配 Zen 1.23b / Gecko 157.0，Build ID 20261002114451。
-  资源包 SHA-256 必须匹配；浏览器升级后需要重新适配，不能覆盖新版资源。
+  当前补丁按 Zen 1.23.1b / Gecko 157.0.1 编写；版本信息在每次构建时从输入目录的
+  application.ini 读取，并随构建清单记录该次的原版资源与产物哈希，不保存固定基线。
+  上游升级后直接运行 install：检测到未知资源就按新版原包自动重建补丁。
+  资源已被打过补丁、或补丁目标结构变化时会明确报错，不会静默改错。
   不修改书签、密码、标签页、扩展或偏好设置；请保留 backups/ 用于还原。
   完整使用说明见脚本同目录 README.md。''')
     parser.add_argument('-h', '--help', action='help', help='显示中文使用指南并退出')
@@ -639,7 +755,7 @@ def main():
                         choices=('help', 'detect', 'build', 'validate', 'install', 'restore', 'verify'),
                         help='要执行的命令，默认只显示帮助')
     parser.add_argument('--install-dir', type=Path, metavar='目录',
-                        help='Zen 安装目录；省略时自动识别。build 时也可指定原版备份目录')
+                        help='Zen 安装目录；省略时自动识别。build 时也可指定原版安装或备份目录')
     parser.add_argument('--original-dir', type=Path, metavar='目录',
                         help='validate 的参照原版目录；省略时使用 backups/<Build ID> 备份')
     parser.add_argument('--profile', metavar='名称或路径',
@@ -657,9 +773,11 @@ def main():
         if args.install_dir:
             install = args.install_dir.resolve()
         else:
-            profiles, _ = load_profiles(Path(os.environ['APPDATA']) / 'zen', Path(os.environ['LOCALAPPDATA']) / 'zen')
-            install = find_install(profiles)
-        build(install)
+            install = discovered_install(args.profiles_root, args.local_root)
+        metadata = install if application_ini_path(install) else discovered_install(args.profiles_root, args.local_root)
+        if metadata != install:
+            print(f'{install} 中没有 {APP_INI}，改用已安装目录 {metadata} 读取版本信息。', file=sys.stderr)
+        build(install, metadata)
         return
     if args.command == 'validate':
         # Only needs build/ and the pristine reference, so it must not require a discoverable install.
@@ -672,13 +790,13 @@ def main():
     if args.command == 'detect':
         return
     if args.command == 'verify':
-        manifest = json.loads((BUILD / 'manifest.json').read_text(encoding='utf-8'))
+        manifest = read_manifest()
         for archive, record in manifest['archives'].items():
             if digest(install / archive) != record['patched_sha256']:
                 raise ValueError(f'{archive}: patch not installed or file changed')
         print('Both installed archives match the verified patch.')
     else:
-        if args.command == 'install' and not (BUILD / 'manifest.json').exists():
+        if args.command == 'install' and needs_build(install):
             require_closed()
             build(install)
         deploy(install, profile, restore=args.command == 'restore')

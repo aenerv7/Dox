@@ -65,7 +65,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
 | `Dox Reader/` | 活跃 | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
 | `Firefox/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
-| `Firefox/Zen/` | 活跃 | Zen 1.23b 中文本地补全、可还原的资源包补丁与默认应用重复项清理 |
+| `Firefox/Zen/` | 活跃 | Zen 1.23.1b 中文本地补全、可还原的资源包补丁与默认应用重复项清理 |
 | `PortableBridge/` | 活跃 | Firefox / Chrome 会话级 HTTP(S) 回退，最新启动者接管 |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `CSS/` | 活跃 | 中文字体映射 CSS 和 VS Code 自定义 CSS |
@@ -108,7 +108,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
 - `PortableBridge/PortableBridge.cs`、`build.ps1`
 - `HeliumLanguagePatcher/helium_language_patcher.py`、`test_helium_language_patcher.py`、`zh-CN-overrides.json`
-- `Firefox/Zen/patch_zen.py`、`fix_zen_duplicate.py`、`translations.ftl`、`baseline.json`、`test_discovery.py`、`test_duplicate.py`
+- `Firefox/Zen/patch_zen.py`、`fix_zen_duplicate.py`、`translations.ftl`、`test_discovery.py`、`test_duplicate.py`
 - `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`
 - `Stash/external-ip-address-tile.js`
 - `Scripts/Install-FFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`
@@ -1298,17 +1298,17 @@ python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
 
 #### 范围与源码边界
 
-`Firefox/Zen/` 为 Windows 版 Zen 1.23b / Gecko 157.0、Build ID `20261002114451` 提供离线本地补丁，并附带清理「设置 > 默认应用」重复项的注册表脚本。原始资源来自 `zen-browser/desktop` 提交 `c6acdfeef8e60fe8856f2cb2007299c7241aab98` 对应的安装包；`baseline.json` 固定原版两个资源包的 SHA-256，不能仅因版本号相同就放宽校验。
+`Firefox/Zen/` 为 Windows 版 Zen 1.23.1b / Gecko 157.0.1、Build ID `20261006042626` 提供离线本地补丁，并附带清理「设置 > 默认应用」重复项的注册表脚本。原始资源来自 `zen-browser/desktop` 提交 `f6a167d80b62a50c0ef5b9eedfb3bb777e0372f4` 对应的安装包。补丁不保存固定的原版哈希基线：每次构建都从输入目录的 `application.ini` 读取版本信息、现算两个资源包的 SHA-256，写进 `build/manifest.json`；版本兼容性由各修改点的精确匹配断言保证，目标结构变化时直接报错。
 
 | 文件 | 职责 |
 |---|---|
-| `translations.ftl` | `# @file` 指定资源包与资源路径；追加 308 个缺失中文消息和 1 个新增“未设置”中文消息，并提供该新增消息的英文回退 |
-| `patch_zen.py` | 补全入口，子命令 `help/detect/build/validate/install/verify/restore`；安装与配置定位、生成资源包、修改快捷键显示、Fluent 校验、备份与替换 |
+| `translations.ftl` | `# @file` 指定资源包与资源路径；追加 326 个缺失中文消息和 1 个新增“未设置”中文消息，并提供该新增消息的英文回退 |
+| `patch_zen.py` | 补全入口，子命令 `help/detect/build/validate/install/verify/restore`；安装与配置定位、从任一新版原包生成资源包、修改快捷键显示、Fluent 校验、备份与替换 |
 | `fix_zen_duplicate.py` | 注册表入口，子命令 `help/detect/fix`；按可执行文件和 hive 优先序判定重复的 `RegisteredApplications` 记录，删除注册表值及对应客户端键 |
-| `test_discovery.py` | 标准库 unittest；临时配置、真实 Windows 锁、部署与还原测试 |
+| `test_discovery.py` | 标准库 unittest；临时配置、真实 Windows 锁、可复现构建、部署与还原测试 |
 | `test_duplicate.py` | 标准库 unittest；可执行文件解析、卷在线判定与保留/删除分类，不访问注册表 |
 
-原有中文消息保持不变，沿用“工作区”“活动文件夹”等术语。翻译追加到 `omni.ja` 与 `browser/omni.ja` 内的指定资源，保留其他资源的内容、ZIP 条目元数据与包注释。`build/resources/` 提供合并后的可读文件；资源包、清单、部署日志、备份、分发 ZIP 和生成的验证报告均为 ignored 本地产物。
+原有中文消息保持不变，沿用“工作区”“活动文件夹”等术语。翻译追加到 `omni.ja` 与 `browser/omni.ja` 内的指定资源，保留其他资源的内容、ZIP 条目元数据与包注释；新建的翻译文件沿用原包条目时间戳，同一输入重复构建必须得到相同的资源包哈希。`build/resources/` 提供合并后的可读文件；资源包、清单、部署日志、备份、分发 ZIP 和生成的验证报告均为 ignored 本地产物。
 
 CLI 使用中文帮助，支持 `-h`、`--help`、`help` 和不传命令；这些入口必须在自动发现和写入前返回，不依赖本机安装或 AppData 环境。帮助须说明命令用途、安装/还原的权限与退出要求、默认配置选择和版本限制；修改参数时同步维护示例。
 
@@ -1322,9 +1322,9 @@ CLI 使用中文帮助，支持 `-h`、`--help`、`help` 和不传命令；这�
 
 普通配置将相对路径映射到 `%LOCALAPPDATA%\zen`；绝对路径配置使用自身目录。自定义 `--profiles-root` 默认兼作本地缓存根，可用 `--local-root` 覆盖。仅允许删除所选配置中的确切 `startupCache` 目录，先验证全部候选，再在删除前复查，拒绝缓存符号链接或 junction。不得更改 prefs.js、user.js、firefox.cfg、扩展、登录状态、书签或标签页数据。
 
-安装与还原要求所有 Zen 进程退出。首次安装缺少构建清单时从目标电脑的原包生成补丁，再校验全部输入、备份原件、在目标目录暂存文件并逐个原子替换。这不是跨两个资源包的文件系统事务；异常时用本次修改前的精确副本回滚已替换文件。资源替换完成后的缓存清理若失败，命令仍报错，资源包可能已生效，应检查 `verify` 并处理缓存权限后重试。既有补丁可幂等安装；构建清单记录上一次生成的补丁哈希用于连续更新，不接受未知安装包覆盖。
+安装与还原要求所有 Zen 进程退出。首次安装缺少构建清单时从目标电脑的原包生成补丁，再校验全部输入、备份原件、在目标目录暂存文件并逐个原子替换。这不是跨两个资源包的文件系统事务；异常时用本次修改前的精确副本回滚已替换文件。资源替换完成后的缓存清理若失败，命令仍报错，资源包可能已生效，应检查 `verify` 并处理缓存权限后重试。既有补丁可幂等安装；安装前按清单记录的哈希判断目标资源是否属于已知构建，未知（如刚升级完的未修改原包）就先重建清单，不拒绝新版资源。
 
-只拷贝源码即可在另一台匹配构建的电脑生成补丁，不依赖本机用户名或配置文件名。所有写入权限由 Windows 决定；用当前用户的管理员终端操作，避免切换账户后识别错用户配置。更新 Zen 后重新提取原包、比对翻译及 JavaScript 修改点，再更新基线并验证；旧资源不能覆盖新版安装。
+只拷贝源码即可在另一台电脑生成补丁，不依赖本机用户名或配置文件名。所有写入权限由 Windows 决定；用当前用户的管理员终端操作，避免切换账户后识别错用户配置。升级 Zen 后无需任何手工准备：直接运行 `install`，检测到未知资源就按新版原包重建补丁，再用新原版覆盖备份并重新比对翻译及 JavaScript 修改点。构建输入目录已带本补丁标记时拒绝构建（应指向未修改的安装目录或 `backups/<Build ID>/`）；`backups/` 不保留 `application.ini` 时版本信息改用已识别安装目录。`keyToDisplayString` 是唯一整体改写、不校验原文的函数，每次构建将其原实现另存到 `build/replaced/ZenKeyboardShortcuts.keyToDisplayString.mjs`，与上次构建不同时输出提示，以便人工确认没有丢掉上游修复。
 
 #### 默认应用重复项
 
@@ -1343,19 +1343,19 @@ python -B -m unittest discover -s Firefox/Zen -p test_*.py -v
 python -B Firefox/Zen/patch_zen.py detect
 python -B Firefox/Zen/fix_zen_duplicate.py detect
 python -B Firefox/Zen/patch_zen.py verify
-# 已安装补丁时从原版备份重新构建；首次构建也可指定原版安装目录
-python -B Firefox/Zen/patch_zen.py build --install-dir Firefox/Zen/backups/20261002114451
+# 从原版备份重新构建；升级后也可直接指向新版原版安装目录
+python -B Firefox/Zen/patch_zen.py build --install-dir Firefox/Zen/backups/20261006042626
 python -m pip install fluent.syntax
-python -B Firefox/Zen/patch_zen.py validate --original-dir Firefox/Zen/backups/20261002114451
+python -B Firefox/Zen/patch_zen.py validate --original-dir Firefox/Zen/backups/20261006042626
 node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/preferences/zen-settings.js
 node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/zen-components/ZenKeyboardShortcuts.mjs
 ```
 
-验证资源时必须使用原版安装或备份作参照，不能把已打补丁的安装当原包。`validate` 省略 `--original-dir` 时自动使用 `backups/<Build ID>`，避免误把已打补丁的安装当参照。Fluent 校验检查语法、重复 ID、中文消息/值/属性缺项、变量及引用、命名链接占位符，并比较非目标资源内容。unittest 覆盖相对/绝对配置、默认项、活动配置优先、残留锁与真实锁、多候选拒绝、其他安装排除、自定义缓存路径、首次自动构建，以及安装/还原不改动配置数据；`test_duplicate.py` 另覆盖可执行文件解析、卷在线判定与重复项分类，不访问注册表。
+验证资源时必须使用原版安装或备份作参照，不能把已打补丁的安装当原包。`validate` 省略 `--original-dir` 时按清单记录的来源目录取原版资源，其哈希与清单不符时退到 `backups/<Build ID>`，避免误把已打补丁的安装当参照。Fluent 校验检查语法、重复 ID、中文消息/值/属性缺项、变量及引用、命名链接占位符，并比较非目标资源内容。unittest 覆盖相对/绝对配置、默认项、活动配置优先、残留锁与真实锁、多候选拒绝、其他安装排除、自定义缓存路径、首次自动构建、构建产物一致且可复现、清单记录来源元数据与哈希、缺少与回退版本信息、拒绝已打补丁的来源、保存被替换的原函数体并提示上游变化、升级后判定需要重建与安装时自动重建、原版参照的选择与报错，以及安装/还原不改动配置数据；`test_duplicate.py` 另覆盖可执行文件解析、卷在线判定与重复项分类，不访问注册表。
 
-本机验证结果：`validate` 比较 252 个英文 Fluent 文件、新增中文消息 309 个、缺失消息与冗余条目均为 0，Fluent 语法、变量引用和 `data-l10n-name` 占位符一致；两份构建后的 JavaScript 通过 `node --check`；`test_discovery.py` 12 项与 `test_duplicate.py` 15 项 unittest 通过；`patch_zen.py detect` 正常识别本机安装与配置。**真实启动验证尚未进行**：须用独立测试配置启动 Zen，确认资料库（历史记录、下载、Boost、媒体、工作区）、同步、分享、欢迎页、活动文件夹与工作区提示由 Fluent 正确加载，快捷键设置显示 `F5`、`Ctrl+F5`、`Shift+F5`、`Alt+Home`、`Delete`，命名键预览正确显示 Home、End、PageUp 等。
+本机验证结果：`validate` 比较 252 个英文 Fluent 文件、新增中文消息 327 个、缺失消息与冗余条目均为 0，Fluent 语法、变量引用和 `data-l10n-name` 占位符一致；两份构建后的 JavaScript 通过 `node --check`；`test_discovery.py` 24 项与 `test_duplicate.py` 15 项 unittest 通过；`patch_zen.py detect` 正常识别本机安装与配置。**真实启动验证尚未进行**：须用独立测试配置启动 Zen，确认资料库（历史记录、下载、Boost、媒体、工作区）、同步、分享、欢迎页、活动文件夹与工作区提示由 Fluent 正确加载，快捷键设置显示 `F5`、`Ctrl+F5`、`Shift+F5`、`Alt+Home`、`Delete`，命名键预览正确显示 Home、End、PageUp 等。
 
-后续改动界面资源仍需使用独立测试配置做真实启动验证。静态消息覆盖不代表审查了所有硬编码英文，也不涉及第三方扩展或网页翻译；不要宣称所有界面已完整汉化。打包时只包含源码、翻译数据、基线和用户说明，排除本机配置、备份、日志及测试浏览器副本。
+后续改动界面资源仍需使用独立测试配置做真实启动验证。静态消息覆盖不代表审查了所有硬编码英文，也不涉及第三方扩展或网页翻译；不要宣称所有界面已完整汉化。打包时只包含源码、翻译数据和用户说明，排除本机配置、备份、日志及测试浏览器副本。
 
 ### 3.17 Sub-Store（Cloudflare Workers）
 
