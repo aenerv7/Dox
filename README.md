@@ -295,6 +295,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 - [`中文字体优化.user.js`](./Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — 全站中文字体优化，与 `CSS/font-face.css` 共用映射规则
 - [`EmuParadise Download Workaround.user.js`](./Userscript/EmuParadise%20Download%20Workaround.user.js) — 在 EmuParadise 页面补充可用下载链接，依赖脚本元数据中的 jQuery
 - [`Re-add Download Button Vimm's Lair.user.js`](./Userscript/Re-add%20Download%20Button%20Vimm's%20Lair.user.js) — 在 Vimm's Lair 下载按钮被移除时恢复提交按钮
+- [`VGMdb Tracklist Copy Button.user.js`](./Userscript/VGMdb%20Tracklist%20Copy%20Button.user.js) — 在 VGMdb 专辑页曲目列表的序号与标题之间插入复制按钮，点击复制该曲名；多语言 tracklist 的每个语言块都有按钮
 
 ## Stash
 

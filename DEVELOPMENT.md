@@ -109,7 +109,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `PortableBridge/PortableBridge.cs`、`build.ps1`
 - `HeliumLanguagePatcher/helium_language_patcher.py`、`test_helium_language_patcher.py`、`zh-CN-overrides.json`
 - `Firefox/Zen/patch_zen.py`、`fix_zen_duplicate.py`、`translations.ftl`、`test_discovery.py`、`test_duplicate.py`
-- `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`
+- `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
 - `Stash/external-ip-address-tile.js`
 - `Scripts/Install-FFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
@@ -764,10 +764,11 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 ### 3.8 Userscript 小脚本
 
-涉及 `Userscript/` 下三个脚本。中文字体优化脚本的小节见 [3.1](#31-中文字体优化cjk-字体映射)。
+涉及 `Userscript/` 下四个脚本。中文字体优化脚本的小节见 [3.1](#31-中文字体优化cjk-字体映射)。
 
 - `EmuParadise Download Workaround.user.js`：从 URL 第 6 段取 `gid`，在 `.download-link` 前插入下载链接，依赖 `@require` jQuery。
 - `Re-add Download Button Vimm's Lair.user.js`：查找 `#dl_form`，无目标 submit 按钮则追加按钮。
+- `VGMdb Tracklist Copy Button.user.js`：遍历 `#tracklist tr.rolebit`，在第 1 格（`span.label` 序号）与第 2 格（标题）之间插入复制按钮，点击复制该格标题文本；一个专辑页里每个语言块（`#tlnav` 标签页对应的多个 `span.tl`）都要注入，因此多语言 tracklist 各自带按钮。
 
 维护规则：改行为时递增 `@version`；`@match` 尽量窄；DOM 操作必须能承受目标元素不存在；`@downloadURL`/`@updateURL` 指向仓库 raw 地址；GitHub raw URL 中的空格和特殊字符要编码（`Vimm's Lair` 文件名里的单引号当前保留在 URL 中，改 URL 要实测 Tampermonkey 能更新）；外部依赖谨慎（当前仅 EmuParadise 用 jQuery）。
 
