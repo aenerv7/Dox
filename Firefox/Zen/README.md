@@ -1,6 +1,6 @@
 # Firefox/Zen
 
-Windows 版 Zen Browser 的两个本机脚本。适用版本：**Zen 1.23.1b / Gecko 157.0.1**，Build ID `20261006042626`。
+Windows 版 Zen Browser 的两个本机脚本。适用版本：**Zen 1.23.2b / Gecko 157.0.1**，Build ID `20261009073723`。
 安装目录和用户配置目录均自动识别，不需要修改脚本中的用户名或随机配置文件名。
 
 | 脚本 | 用途 |
@@ -17,7 +17,7 @@ Windows 版 Zen Browser 的两个本机脚本。适用版本：**Zen 1.23.1b / G
 
 ### 补全内容
 
-- 新增 327 个简体中文条目：326 个原来缺失的条目，以及新增的快捷键“未设置”提示。
+- 新增 329 个简体中文条目：328 个原来缺失的条目，以及新增的快捷键“未设置”提示。
 - 补齐资料库（Library）：历史记录、下载、Boost、媒体、工作区五个分区及其筛选、排序、清除历史记录和右键菜单文案。
 - 补齐侧边栏跨设备同步及“包含未固定的标签页”的标签和说明。
 - 补齐活动文件夹、RSS / GitHub 筛选、分享、欢迎页和同步删除工作区提示。
@@ -43,7 +43,7 @@ python .\patch_zen.py help
 
 直接运行 `python .\patch_zen.py` 也只显示帮助，不执行安装；`install --help` 等写法同样显示指南。帮助无需管理员权限，也不查找浏览器或写入文件。
 
-在另一台电脑上使用时，复制本目录的源文件；如果已有本地打包的 `dist/Zen-zh-CN-1.23.1b.zip`，也可解压使用。仓库不包含生成的 ZIP。
+在另一台电脑上使用时，复制本目录的源文件；如果已有本地打包的 `dist/Zen-zh-CN-1.23.2b.zip`，也可解压使用。仓库不包含生成的 ZIP。
 不需要复制 `build/`、`backups/` 或本机的浏览器配置。目标电脑需要 Python 3.11+，并安装相同版本、相同构建的 Zen；如果版本或资源包不匹配，脚本会停止并说明原因。
 
 先在补丁目录运行只读检测，可以在 Zen 正在运行时执行：
@@ -146,13 +146,13 @@ python .\fix_zen_duplicate.py fix
 
 ## 文件与备份
 
-`patch_zen.py` 安装后，`build/` 保存生成的补丁和安装记录，`backups/20261006042626/` 保存原版资源包。请保留备份以便还原；这些文件仅在本地生成，不随仓库提交。安装到另一台电脑时会生成该电脑自己的补丁和备份。
+`patch_zen.py` 安装后，`build/` 保存生成的补丁和安装记录，`backups/20261009073723/` 保存原版资源包。请保留备份以便还原；这些文件仅在本地生成，不随仓库提交。安装到另一台电脑时会生成该电脑自己的补丁和备份。
 
 补丁不保存固定的原版哈希基线：每次 `build` 都从输入目录的 `application.ini` 读取版本信息，现算两个资源包的 SHA-256 并写进 `build/manifest.json`。要针对新版本重建补丁，直接指向新的原版目录即可：
 
 ```powershell
 python .\patch_zen.py build --install-dir 'D:\Apps\Zen Browser'
-python .\patch_zen.py build --install-dir '.\backups\20261006042626'
+python .\patch_zen.py build --install-dir '.\backups\20261009073723'
 ```
 
 `backups/` 不保留 `application.ini` 时，会改用已识别安装目录的信息。输入目录已包含本补丁时会拒绝构建。`keyToDisplayString` 是补丁中唯一整体改写、不检查原文的函数，每次构建都会把原实现另存到 `build/replaced/`，上游改动时输出会提示比对。
@@ -165,5 +165,5 @@ Zen 更新可能覆盖这些本地资源。补丁不依赖固定的原版哈希�
 
 ## 来源与许可
 
-原始资源来自本机 Zen 安装包，对应 `zen-browser/desktop` 提交 `f6a167d80b62a50c0ef5b9eedfb3bb777e0372f4`，以及其基于的 Mozilla 资源。
+原始资源来自本机 Zen 安装包，对应 `zen-browser/desktop` 提交 `185e856f68a451dc71988e988bc080c56452ea66`，以及其基于的 Mozilla 资源。
 对原有源文件的修改遵循其 Mozilla Public License 2.0；生成的 JavaScript 保留原许可证头。原文与本地翻译之间的消息 ID 对应关系可在 `translations.ftl`、生成资源和校验清单中核对。

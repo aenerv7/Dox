@@ -1,4 +1,4 @@
-# Local additions for Zen 1.23.1b / Gecko 157.0.1.
+# Local additions for Zen 1.23.2b / Gecko 157.0.1.
 # @file headers identify the archive and resource to append to.
 # Messages already translated upstream are omitted; only real gaps are listed.
 
@@ -232,6 +232,7 @@ zen-action-reopen-closed-tab = 重新打开已关闭的标签页
 zen-action-duplicate-tab = 复制当前标签页
 zen-action-reset-pinned-tab = 重置固定标签页
 zen-action-open = 打开
+zen-action-open-library = 打开资料库
 zen-action-collapse-all-folders = 折叠所有文件夹
 zen-action-expand-all-folders = 展开所有文件夹
 
@@ -268,6 +269,8 @@ library-history-search-placeholder =
     .placeholder = 搜索历史记录…
 library-history-empty = 未找到历史记录
 library-media-empty = 未找到媒体
+library-media-turn-off =
+    .label = 关闭媒体
 library-media-search-placeholder =
     .placeholder = 搜索媒体…
 library-media-loading = 正在查找媒体…

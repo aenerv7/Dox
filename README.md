@@ -225,7 +225,7 @@ cd PortableBridge
 
 ## Zen（中文补全与默认应用重复项）
 
-[`Firefox/Zen`](./Firefox/Zen/README.md) 为 Windows 版 Zen **1.23.1b / Gecko 157.0.1**（Build ID `20261006042626`）补齐 327 个简体中文条目，并将快捷键统一显示为 `F5`、`Shift+F5`、`Home`、`End` 等文本形式。同目录的 `fix_zen_duplicate.py` 删除让「设置 > 默认应用」重复显示 Zen 的注册表项。
+[`Firefox/Zen`](./Firefox/Zen/README.md) 为 Windows 版 Zen **1.23.2b / Gecko 157.0.1**（Build ID `20261009073723`）补齐 329 个简体中文条目，并将快捷键统一显示为 `F5`、`Shift+F5`、`Home`、`End` 等文本形式。同目录的 `fix_zen_duplicate.py` 删除让「设置 > 默认应用」重复显示 Zen 的注册表项。
 
 需要 Python 3.11+，安装目录和用户配置自动识别。在仓库根目录运行：
 

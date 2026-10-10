@@ -768,9 +768,31 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 - `EmuParadise Download Workaround.user.js`：从 URL 第 6 段取 `gid`，在 `.download-link` 前插入下载链接，依赖 `@require` jQuery。
 - `Re-add Download Button Vimm's Lair.user.js`：查找 `#dl_form`，无目标 submit 按钮则追加按钮。
-- `VGMdb Tracklist Copy Button.user.js`：遍历 `#tracklist tr.rolebit`，在第 1 格（`span.label` 序号）与第 2 格（标题）之间插入复制按钮，点击复制该格标题文本；一个专辑页里每个语言块（`#tlnav` 标签页对应的多个 `span.tl`）都要注入，因此多语言 tracklist 各自带按钮。
+- `VGMdb Tracklist Copy Button.user.js`：在 VGMdb 专辑页曲目行的「序号与曲名之间」插入复制按钮，点击复制该语言版本的曲名，详见[下方小节](#vgmdb-tracklist-copy-button)。
 
 维护规则：改行为时递增 `@version`；`@match` 尽量窄；DOM 操作必须能承受目标元素不存在；`@downloadURL`/`@updateURL` 指向仓库 raw 地址；GitHub raw URL 中的空格和特殊字符要编码（`Vimm's Lair` 文件名里的单引号当前保留在 URL 中，改 URL 要实测 Tampermonkey 能更新）；外部依赖谨慎（当前仅 EmuParadise 用 jQuery）。
+
+#### VGMdb Tracklist Copy Button
+
+在 `https://vgmdb.net/album/*` 的曲目列表每行插入一个复制按钮，位置在**序号与曲名之间**；点击复制该行曲名。多语言专辑的每个语言块各自独立：英文块复制英文标题，日文/罗马音块复制对应语言的标题。
+
+**目标页面的 DOM 事实**（VGMdb 全站过 Cloudflare，`curl` 直接抓会被拦；改版排查时用浏览器 DevTools 或 Wayback Machine 存档页）：
+
+- 曲目行统一为 `#tracklist tr.rolebit`，固定 3 个 `<td>`：序号（内含 `span.label`，如 `01`）/ 标题（当前为纯文本）/ 时长（内含 `span.time`）。
+- 多语言不是同一格堆两行，而是 `#tlnav` 的每个 `<li>` 对应 `#tracklist` 下一个 `<span class="tl" id="tl…">` 块，每块是一整张完整表格，非当前语言的那块带 `style="display:none"`。所以注入必须遍历**所有**块，只处理可见块会导致切换语言后按钮消失。
+
+**实现要点**：
+
+- 序号格不写死 `cells[0]`，而是反查含 `span.label` 的格再取 `nextElementSibling` 作标题格。
+- 按钮作为标题格的 `firstChild` 插入，因此天然落在序号与曲名之间。
+- 复制内容由标题格克隆而来，先剔除按钮自身再把连续空白压成单个空格（标题格源码里带换行缩进，且按钮文案不能被复制进去）。
+- `navigator.clipboard.writeText` 优先，非安全上下文/未授权时回退到临时 `textarea` + `document.execCommand('copy')`。
+- 成功后图标换成 ✓ 并转绿，1.2s 后复原。
+- `MutationObserver`（`requestAnimationFrame` 去抖）负责补注入；已有按钮的格子直接跳过，因此重入不会产生重复按钮；页面没有 `#tracklist` 时静默返回。
+
+**验证方式**：仓库 `Dox Reader/Cloudflare Workers/node_modules` 里已有 happy-dom，可用它在 Node 里加载 Wayback 存档的专辑页做无浏览器断言（行数=按钮数、每个 `span.tl` 块内行数=按钮数、逐条点击后复制内容与干净 DOM 的标题文本比对、MutationObserver 重入不重复注入、无 tracklist 页面不抛错）。**不要为此新增依赖**。
+
+**维护约束**：站点为深色主题，按钮颜色用 `currentColor` 继承，只有成功态写死绿色；无 `@require`、`@grant none`；若改版导致失效，优先怀疑 `tr.rolebit`、`span.label`、`span.tl` 三个选择器。
 
 ### 3.9 Stash
 
