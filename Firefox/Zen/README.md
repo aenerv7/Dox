@@ -59,6 +59,10 @@ python .\patch_zen.py build
 python .\patch_zen.py validate
 ```
 
+如果新版 Zen 新增了英文消息而 `translations.ftl` 还没有对应的中文，`build` 会先用本机 Codex 配置（与 `HeliumLanguagePatcher` 共用同一套配置读取逻辑，默认 `%CODEX_HOME%\config.toml` 或 `~/.codex/config.toml`，密钥只从环境变量或请求头读取）自动翻译，逐条校验结构后写回 `translations.ftl`，然后以退出码 1 结束并提示复核；本次不生成资源包，也不改动安装目录。复核后重新运行 `build` 才会产出补丁，因此补丁哈希仍只由已复核的翻译决定。
+
+无法联网或没有 API 配置时加 `--no-translate`：只列出缺少的条目并停止，不联网也不写文件；手工补全后重建。也可用 `--codex-config`、`--codex-profile` 指定其他配置文件和 profile。自动校验只比较消息 ID、值/属性结构、变量、term 和 `data-l10n-name` 是否与英文一致，不评判译文质量，也不能替代人工审阅。
+
 `validate` 需要 `fluent.syntax`（`python -m pip install fluent.syntax`），省略 `--original-dir` 时自动以 `backups/` 中的原版备份为参照。它只写 `build/` 和 `validation.json`，不碰安装目录。
 
 确认输出的安装和配置目录后，关闭所有 Zen 窗口及后台进程，在有安装目录写入权限的终端中运行（安装在 Program Files 时通常需要管理员终端）：
@@ -157,11 +161,13 @@ python .\patch_zen.py build --install-dir '.\backups\20261009073723'
 
 `backups/` 不保留 `application.ini` 时，会改用已识别安装目录的信息。输入目录已包含本补丁时会拒绝构建。`keyToDisplayString` 是补丁中唯一整体改写、不检查原文的函数，每次构建都会把原实现另存到 `build/replaced/`，上游改动时输出会提示比对。
 
+新版新增英文条目时，`build` 会先自动翻译、写回并停止（见上文），确认后才产出资源包；`--no-translate` 只列缺项。
+
 `fix_zen_duplicate.py` 不写文件，只删除注册表项；删除前可用 `detect` 查看将删除的内容，HKCU 部分可用 `reg export` 自行备份。
 
 ## 浏览器更新
 
-Zen 更新可能覆盖这些本地资源。补丁不依赖固定的原版哈希，所以更新后不需要任何手工准备：直接运行 `install` 即可，检测到未知资源会按新版原包重新构建补丁，再用新原版覆盖备份。万一新版的补丁目标结构变了，构建会明确报错而不是静默改错。
+Zen 更新可能覆盖这些本地资源。补丁不依赖固定的原版哈希，所以更新后不需要任何手工准备：直接运行 `install` 即可，检测到未知资源会按新版原包重新构建补丁，再用新原版覆盖备份。新版若新增英文消息，`build` 会先自动翻译、写回 `translations.ftl` 并停止，复核后重跑 `install`（或 `build`）才会生效；没有 API 配置时用 `--no-translate` 列缺项后手工补全。万一新版的补丁目标结构变了，构建会明确报错而不是静默改错。
 
 ## 来源与许可
 

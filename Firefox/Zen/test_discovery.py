@@ -313,7 +313,7 @@ class DiscoveryTests(unittest.TestCase):
              patch('sys.argv', ['patch_zen.py', 'install']):
             patch_zen.main()
         needs.assert_called_once_with(self.install)
-        build.assert_called_once_with(self.install)
+        build.assert_called_once_with(self.install, translate=True, codex_config=None, codex_profile=None)
         deploy.assert_called_once_with(self.install, profile, restore=False)
 
     def test_original_dir_defaults_to_the_build_source(self):
@@ -340,7 +340,7 @@ class DiscoveryTests(unittest.TestCase):
              patch.object(patch_zen, 'deploy') as deploy, patch('builtins.print'), \
              patch('sys.argv', ['patch_zen.py', 'install']):
             patch_zen.main()
-            build.assert_called_once_with(self.install)
+            build.assert_called_once_with(self.install, translate=True, codex_config=None, codex_profile=None)
             deploy.assert_called_once_with(self.install, profile, restore=False)
 
 

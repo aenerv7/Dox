@@ -236,7 +236,7 @@ python .\Firefox\Zen\patch_zen.py install
 python .\Firefox\Zen\fix_zen_duplicate.py detect
 ```
 
-首次安装会自动生成补丁并备份原文件；`restore` 可还原，`--profile` 可指定非默认配置。源文件可复制到其他 Windows 电脑使用，不需要携带本机配置或浏览器资源包。补丁严格校验版本与资源包哈希，Zen 升级后需要重新适配。
+首次安装会自动生成补丁并备份原文件；`restore` 可还原，`--profile` 可指定非默认配置。源文件可复制到其他 Windows 电脑使用，不需要携带本机配置或浏览器资源包。补丁严格校验版本与资源包哈希，Zen 升级后需要重新适配。新版新增英文消息时，`build` 会按本机 Codex 配置自动翻译、写回 `translations.ftl` 并停止等待复核后重跑；无法联网时用 `--no-translate` 只列缺项。
 
 完整参数与使用限制见模块 [README](./Firefox/Zen/README.md)，维护说明见 [DEVELOPMENT.md](./DEVELOPMENT.md#316-zen中文补全与默认应用重复项)。
 
