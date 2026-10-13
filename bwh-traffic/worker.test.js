@@ -49,15 +49,14 @@ async function call(env, { token = env.ACCESS_TOKEN, query = {}, upstream } = {}
   }
 }
 
-test("成功时把流量写进 subscription-userinfo", async () => {
+test("成功时正文与 subscription-userinfo 同值", async () => {
   const { calls, response } = await call(ENV);
+  const value = "upload=0; download=569810827; total=322122547200; expire=1430193600";
 
   assert.equal(response.status, 200);
-  assert.equal(await response.text(), "OK");
-  assert.equal(
-    response.headers.get("subscription-userinfo"),
-    "upload=0; download=569810827; total=322122547200; expire=1430193600",
-  );
+  // Sub-Store 读「流量信息 URL」时先解析正文，正文必须也是合法 userinfo
+  assert.equal(await response.text(), value);
+  assert.equal(response.headers.get("subscription-userinfo"), value);
   assert.equal(response.headers.get("profile-update-interval"), "1");
   assert.equal(response.headers.get("access-control-allow-origin"), "*");
   assert.match(response.headers.get("access-control-expose-headers"), /subscription-userinfo/);

@@ -2,7 +2,7 @@
 
 把 BandwagonHost（搬瓦工）KiwiVM 的流量用量转成 Sub-Store 能读的订阅响应头。
 
-Sub-Store 从远程订阅的响应头里读 `subscription-userinfo`（`upload` / `download` / `total` / `expire`），本 Worker 就只提供这个头，正文是 `OK`，不含任何节点。
+Sub-Store 从远程订阅的响应头里读 `subscription-userinfo`（`upload` / `download` / `total` / `expire`）。本 Worker 提供这个头，正文是同一串 userinfo（Sub-Store 先解析正文、失败才看响应头，两边同值就不用赌它走哪条路），不含任何节点。
 
 ```text
 Sub-Store ──▶ bwh-traffic Worker ──▶ 中转 ──▶ api.64clouds.com/v1/getServiceInfo
@@ -100,7 +100,23 @@ location = /kiwivm/v1/getServiceInfo {
 
 ## 在 Sub-Store 里用
 
-把 `https://<worker 域名>/?token=<ACCESS_TOKEN>` 当作远程订阅地址添加。Sub-Store 会读响应头里的 `subscription-userinfo` 显示流量；正文没有节点，节点请照常由其他订阅提供。
+填到**单条订阅编辑弹窗里的「订阅流量信息」字段**（英文界面是 `Subscription-Userinfo`，占位符写着「值/链接」，问号弹窗标题是「手动设置订阅流量信息」）：
+
+```text
+https://bwh-traffic.aenerv7.workers.dev/?token=<ACCESS_TOKEN>
+```
+
+不要填到订阅自己的「订阅链接」里：那个字段的内容会被当节点订阅解析，本 Worker 没有节点。组合订阅也有同名「订阅流量信息」字段，填法一样。
+
+行为取自上游 `backend/src/utils/flow.js` 的 `getFlowHeaders`：GET 这个 URL → 先 `parseFlowHeaders(正文)`，正文里 `upload` / `download` / `total` 齐全就用正文，否则退回响应头 `subscription-userinfo` / `profile-web-page-url` / `plan-name`。本 Worker 两条路都是同一串值。
+
+想每次都拿最新用量（Sub-Store 对流量信息有缓存）就在地址后加片段参数：
+
+```text
+https://bwh-traffic.aenerv7.workers.dev/?token=<ACCESS_TOKEN>#noCache
+```
+
+`#headersCacheTtl=60` 也可以，单位秒。
 
 ## 排查
 
@@ -117,6 +133,7 @@ node --test bwh-traffic/worker.test.js
 ## 维护约束
 
 - 成功响应近几个月是平铺字段（`error`、`plan_monthly_data`、`data_counter`、`monthly_data_multiplier`、`data_next_reset`）；代码兼容网关加 `data` 信封的情况。
+- 正文与 `subscription-userinfo` 必须同值：Sub-Store 的流量信息 URL 先读正文，正文非法才回退响应头。
 - 用量一律按字节、口径为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量统一写进 `download`。
 - `expire` 用 `data_next_reset`（下次流量重置时间），不是套餐到期时间。这是 Sub-Store 流量条能拿到的最接近的值。
 - `redirect: "manual"` + 3xx 判失败：Workers 不支持 `redirect: "error"`，所以手动拒绝重定向，避免 API Key 被转发到第二个主机。

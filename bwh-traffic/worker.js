@@ -2,7 +2,9 @@
 //
 // Sub-Store 从远程订阅的响应头里读 `subscription-userinfo`
 // （upload/download/total/expire）。本 Worker 把 KiwiVM 的 getServiceInfo
-// 变成这个头，正文不含节点。
+// 变成这个头，正文重复同一串 userinfo：Sub-Store 读「流量信息 URL」时先解析
+// 正文、失败才看响应头（backend/src/utils/flow.js 的 getFlowHeaders），
+// 两边同值就不用赌它走哪条路。正文不含节点。
 //
 // 为什么 KIWIVM_BASE 可配置
 // -------------------------
@@ -223,6 +225,8 @@ export default {
       );
     }
 
-    return new Response("OK", { status: HTTP_OK, headers: userinfoHeaders(userinfo(info)) });
+    const value = userinfo(info);
+
+    return new Response(value, { status: HTTP_OK, headers: userinfoHeaders(value) });
   },
 };

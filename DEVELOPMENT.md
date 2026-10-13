@@ -1522,7 +1522,7 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`、`KIWIVM_BASE`、`K
 
 #### 不变量
 
-1. `subscription-userinfo` 格式固定 `upload=0; download=<已用>; total=<配额>[; expire=<下次重置>]`，字节数均为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量全部计入 `download`。
+1. `subscription-userinfo` 格式固定 `upload=0; download=<已用>; total=<配额>[; expire=<下次重置>]`，字节数均为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量全部计入 `download`。正文必须与这个头同值——Sub-Store 的「流量信息 URL」（单条/组合订阅的 `subUserinfo`）在 `utils/flow.js` 的 `getFlowHeaders` 里先 `parseFlowHeaders(正文)`，正文三项齐全就用正文，否则才回退响应头。
 2. `expire` 取 `data_next_reset`（流量重置时间），不是套餐到期时间；缺失或非正数时不输出该段。
 3. `redirect: "manual"` 且 3xx 判失败（Workers 不支持 `redirect: "error"`）：API Key 不得被转发到第二个主机。
 4. 成功响应按平铺字段解析，同时兼容网关加 `data` 信封；两者都不满足时报 502 并列出实际字段名。
@@ -1537,7 +1537,7 @@ node --test bwh-traffic/worker.test.js
 cd bwh-traffic; npx wrangler deploy --dry-run
 ```
 
-覆盖：成功头拼装与查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与共享口令、`debug=1`。
+覆盖：成功正文与响应头同值、查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与共享口令、`debug=1`。
 
 线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<重置时间>`；若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <口令>" "https://bwh-traffic.ddtwstudio.com/kiwivm/v1/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与模块 `README.md`。
 
