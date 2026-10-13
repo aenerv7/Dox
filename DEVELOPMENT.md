@@ -111,7 +111,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/Zen/patch_zen.py`、`fix_zen_duplicate.py`、`translations.ftl`、`test_discovery.py`、`test_duplicate.py`、`test_translate.py`
 - `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
 - `Stash/external-ip-address-tile.js`
-- `Scripts/Install-FFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`
+- `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
 - `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
@@ -907,11 +907,13 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 不要在日常开发机上为语法验证直接跑完整脚本。
 
-#### FFmpeg 安装（Install-FFmpeg.ps1）
+#### FFmpeg 安装（InstallFFmpeg.ps1）
 
-`Scripts/Install-FFmpeg.ps1` 安装 FFmpeg 的 Windows full 构建，需要 PowerShell 7。**本脚本刻意单文件、无测试脚本**：它的逻辑是下载与复制，验证方式是真实运行，见下方清单。
+`Scripts/InstallFFmpeg.ps1` 安装 FFmpeg 的 Windows full 构建，需要 PowerShell 7。**本脚本刻意单文件、无测试脚本**：它的逻辑是下载与复制，验证方式是真实运行，见下方清单。
 
 `$Binaries` 是安装契约：`ffmpeg.exe`、`ffplay.exe`、`ffprobe.exe`。`$PayloadExtensions` 决定从解压结果中取出哪些文件（`.exe`、`.dll`），其余是 32 个 HTML 手册、`LICENSE.txt`，共享库构建里还有头文件和导入库。
+
+`$ProbeBinary`（即 `$Binaries[0]`，`ffmpeg.exe`）决定安装位置：脚本不自己挑目录，而是从环境变量 `PATH` 里找到系统实际在用的那份 FFmpeg，安装到它所在目录，因此升级永远不会在系统上留下第二份 FFmpeg。查找顺序为当前进程 `$env:PATH` → 注册表机器级 `Path` → 用户级 `Path`（后两者是变量定义处，能覆盖“改过 `PATH` 但当前会话未刷新”的情况）；按 `;` 拆分、大小写不敏感去重、展开 `%VAR%`，在已存在的目录里找 `ffmpeg.exe`，取第一个命中。找不到就不安装：不下载、不创建目录，打印 `No ffmpeg.exe on PATH; nothing to install.` 并以 1 退出。显式传位置参数或 `-Directory` 时跳过整个查找。
 
 安装时**只落盘 `.exe` 和 `.dll`，不安装 `.ffpreset`**：这些构建在 `/presets` 目录下查找预设文件，而归档并不提供该目录，`-vpre libvpx-720p` 在有无 `.ffpreset` 时都报 `File for preset 'libvpx-720p' not found`。libvpx 的 `-deadline`、`-cpu-used` 等参数是内置选项，不依赖这些文件。
 
@@ -937,7 +939,7 @@ ffmpeg-<分支>-latest-win64-gpl[-shared][-<版本>].zip
 
 ##### 安装语义
 
-- 目标目录：位置参数或 `-Directory`；省略时为 `%LOCALAPPDATA%\Programs\FFmpeg`。
+- 目标目录：显式位置参数或 `-Directory`；否则为 PATH 中 `ffmpeg.exe` 所在目录。该目录必须已存在（能找到 `ffmpeg.exe` 就意味着存在），且需要可写：`PATH` 里的目录不可写时复制会直接失败，不会回退到其他目录。
 - 目录不存在则创建；存在则**无条件覆盖同名文件**，这是“重复运行即升级”的全部实现。切换 `-Shared` 只覆盖可执行文件，另一变体留下的 DLL 或旧文件不会被删除，需要干净目录时先手动清空。
 - 临时解压目录在 `finally` 中删除，下载失败、校验失败或解压失败都不留残留。
 - 结束时对三个可执行文件跑 `-version` 打印版本；`-Silent` 跳过。这一步同时验证了共享库构建的 DLL 确实可用。
@@ -949,13 +951,15 @@ ffmpeg-<分支>-latest-win64-gpl[-shared][-<版本>].zip
 ##### 验证清单
 
 ```powershell
-pwsh -NoProfile -File .\Scripts\Install-FFmpeg.ps1 -Directory $env:TEMP\ff-check
+pwsh -NoProfile -File .\Scripts\InstallFFmpeg.ps1 -Directory $env:TEMP\ff-check
 ```
 
 | 场景 | 预期结果 |
 |---|---|
-| 默认运行 | 安装到 `%LOCALAPPDATA%\Programs\FFmpeg`，输出三个可执行文件的版本横幅 |
-| 传目录 | 安装到指定目录，不动默认目录 |
+| 默认运行 | 安装到 PATH 中 `ffmpeg.exe` 所在目录（不是新建的默认目录），输出三个可执行文件的版本横幅 |
+| 传目录 | 安装到指定目录，不动 PATH 中的安装 |
+| 旧目录仍留在 PATH 里 / 多个安装 | 跳过不存在的条目，取 PATH 顺序第一个命中的目录 |
+| PATH 中无 `ffmpeg.exe` | 打印 `No ffmpeg.exe on PATH; nothing to install.`，以 1 退出，不下载、不创建目录 |
 | 重复运行 | 覆盖同名文件后仍能正常输出 `-version` |
 | `-Shared` | 安装三个可执行文件和 7 个 DLL，`ffmpeg.exe` 可运行（下载体积明显小于静态版） |
 | `-Git` | 下载 `master` 分支资源，版本横幅为 `N-<hash>-<date>` |
@@ -1505,7 +1509,7 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 | Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
 | Scripts（Edge 清理） | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
-| Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\Install-FFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
+| Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\InstallFFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
 | Android ApkRename | PowerShell，apktool/Java 等工具 | `.\rename-apk.ps1 [-SetupTools]` |
 
 ---

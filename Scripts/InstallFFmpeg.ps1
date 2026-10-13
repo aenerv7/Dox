@@ -22,8 +22,16 @@
   as well: these builds look for preset files under a /presets directory that the
   archive does not ship, so -vpre libvpx-720p fails with or without them.
 
+  The install directory is not picked here: FFmpeg is upgraded in place, at the
+  directory PATH already finds ffmpeg.exe in. Only that one directory is written,
+  so an update never leaves a second copy on the system. When no ffmpeg.exe is on
+  PATH the script installs nothing; -Directory is the explicit way to name a
+  target anyway.
+
 .PARAMETER Directory
-  Install directory. Defaults to %LOCALAPPDATA%\Programs\FFmpeg.
+  Install directory. Without it the script installs into the directory that
+  provides ffmpeg.exe on PATH. An explicit directory overrides that lookup and is
+  the only way to install FFmpeg where PATH does not already point.
 
 .PARAMETER Shared
   Install the shared build (smaller download, more files) instead of the static
@@ -37,10 +45,10 @@
   Skip the summary at the end.
 
 .EXAMPLE
-  .\Install-FFmpeg.ps1
+  .\InstallFFmpeg.ps1
 
 .EXAMPLE
-  .\Install-FFmpeg.ps1 -Git -Directory 'D:\Tools\FFmpeg'
+  .\InstallFFmpeg.ps1 -Git -Directory 'D:\Tools\FFmpeg'
 #>
 
 [CmdletBinding()]
@@ -60,6 +68,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest progress bars slow downloads
 
 $Binaries = @('ffmpeg.exe', 'ffplay.exe', 'ffprobe.exe')
+$ProbeBinary = $Binaries[0]   # PATH is probed for this one; its directory is the install target
 
 # Only these are installed. The archive also carries 32 HTML manuals, a
 # LICENSE.txt, and for shared builds the headers and import libraries used to
@@ -84,9 +93,59 @@ function Get-Platform {
     throw 'Unsupported platform. This script installs FFmpeg on Windows and macOS only.'
 }
 
+function Get-EnvironmentPathValues {
+    # The process PATH is the effective value; the registry values are where the
+    # variable is defined, and cover a shell that started before a PATH change.
+    # Machine entries come first, the order Windows composes the effective PATH in.
+    $values = @()
+    if ($env:PATH) { $values += $env:PATH }
+
+    foreach ($key in @(
+            'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+            'HKCU:\Environment')) {
+        try {
+            $value = (Get-ItemProperty -LiteralPath $key -Name 'Path' -ErrorAction Stop).Path
+        }
+        catch {
+            continue   # the key, or its Path value, does not exist
+        }
+        if ($value) { $values += $value }
+    }
+    return $values
+}
+
+function Get-PathDirectories {
+    $seen = @{}
+    $directories = @()
+
+    foreach ($value in (Get-EnvironmentPathValues)) {
+        # Registry PATH values keep %SystemRoot% and the like unexpanded.
+        foreach ($entry in ($value -split ';')) {
+            $directory = [Environment]::ExpandEnvironmentVariables($entry.Trim().Trim('"'))
+            if (-not $directory) { continue }
+
+            $key = $directory.ToLowerInvariant()
+            if ($seen.ContainsKey($key)) { continue }
+            $seen[$key] = $true
+            $directories += $directory
+        }
+    }
+    return $directories
+}
+
+function Find-InstallDirectory {
+    # First match wins, so the copy PATH resolves to is the one that is replaced.
+    foreach ($directory in (Get-PathDirectories)) {
+        if (Test-Path -LiteralPath (Join-Path $directory $ProbeBinary) -PathType Leaf) {
+            return $directory
+        }
+    }
+    return $null
+}
+
 function Get-InstallDirectory([string]$Requested) {
     if ($Requested) { return $Requested }
-    return (Join-Path $env:LOCALAPPDATA 'Programs\FFmpeg')
+    return (Find-InstallDirectory)
 }
 
 function Get-ReleaseAssets {
@@ -211,6 +270,14 @@ function Main {
     }
 
     $target = Get-InstallDirectory $Directory
+    if (-not $target) {
+        # With no install on PATH there is no directory to upgrade, and picking one
+        # would silently add a second FFmpeg to the system.
+        Write-Host "No $ProbeBinary on PATH; nothing to install."
+        Write-Host 'Put its directory on PATH first, or pass -Directory to install somewhere new.'
+        exit 1
+    }
+
     New-Item -ItemType Directory -Path $target -Force | Out-Null
     Write-Host "Installing into $target"
 

@@ -7,7 +7,7 @@
 - 想直接使用某个工具：先看对应目录的 `README.md`；没有目录说明时看本页对应小节。
 - 想构建、测试或修改实现：看 [`DEVELOPMENT.md`](./DEVELOPMENT.md)，其中记录唯一的维护者文档、模块边界和验证命令。
 - 想处理 Edge 默认关联残留：先运行 `Scripts/RemoveMSEdge.bat -audit-associations`，确认后再使用 `-repair-associations`；这两个入口只检查/修复关联，不会卸载 Edge。
-- 想安装或升级 FFmpeg：运行 `Scripts/Install-FFmpeg.ps1`，默认安装到 `%LOCALAPPDATA%\Programs\FFmpeg`，重复运行即替换为新版本。
+- 想安装或升级 FFmpeg：运行 `Scripts/InstallFFmpeg.ps1`，它升级 `PATH` 中 `ffmpeg.exe` 所在的那份安装，重复运行即替换为新版本；`PATH` 里没有 `ffmpeg.exe` 时脚本不安装任何东西。
 - 想修改 Helium 翻译：先阅读下方“Helium 语言补丁”，完整实现和测试约束见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#315-heliumlanguagepatcher)。
 
 ## 功能一览
@@ -35,7 +35,7 @@
 | [`Scripts/Flatten.bat`](./Scripts/Flatten.bat) | Windows 目录展平工具 |
 | [`Scripts/RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
 | [`Scripts/RemoveMSEdgeAll.bat`](./Scripts/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
-| [`Scripts/Install-FFmpeg.ps1`](./Scripts/Install-FFmpeg.ps1) | 下载并安装最新 FFmpeg full 构建，重复运行即替换为新版本 |
+| [`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) | 下载最新 FFmpeg full 构建并就地升级 `PATH` 中已有的那份安装 |
 
 ## Helium 语言补丁
 
@@ -330,15 +330,16 @@ Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/Shad
 
 ### FFmpeg
 
-[`Scripts/Install-FFmpeg.ps1`](./Scripts/Install-FFmpeg.ps1) 从 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds) 下载 FFmpeg 的最新 full 构建并安装其中的可执行文件。该来源是 [ffmpeg.org Windows 下载页](https://ffmpeg.org/download.html#build-windows) 列出的镜像之一，其 win64 GPL 构建与 gyan.dev 的 full release 同属一个变体（essentials 之外另含 libx264、libx265）。
+[`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) 从 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds) 下载 FFmpeg 的最新 full 构建并安装其中的可执行文件。该来源是 [ffmpeg.org Windows 下载页](https://ffmpeg.org/download.html#build-windows) 列出的镜像之一，其 win64 GPL 构建与 gyan.dev 的 full release 同属一个变体（essentials 之外另含 libx264、libx265）。
 
 ```powershell
-pwsh -File .\Scripts\Install-FFmpeg.ps1
+pwsh -File .\Scripts\InstallFFmpeg.ps1
 ```
 
 - 需要 PowerShell 7；解压使用内置的 `Expand-Archive`，不依赖 7-Zip
 - 下载前先取发布页公布的 SHA-256 并校验，校验不通过不会解压
-- 默认安装到 `%LOCALAPPDATA%\Programs\FFmpeg`，可传目录作为位置参数或 `-Directory` 指定其他位置
+- 安装位置来自环境变量：脚本在 `PATH`（当前会话，加上注册表里的机器级和用户级 `Path`）中找 `ffmpeg.exe`，装到它所在目录；`PATH` 里没有 `ffmpeg.exe` 时不安装，只打印提示并以 1 退出
+- 想装到 `PATH` 之外的位置，可传目录作为位置参数或 `-Directory`，此时跳过上述查找
 - 重复运行即替换目录内的版本，无需先卸载
 - 只安装 ffmpeg、ffplay、ffprobe 三个可执行文件，归档里的手册、头文件和导入库都不落盘
 - `-Shared` 换成共享库构建（下载小，但必须额外安装 7 个 DLL，脚本会自动一并装上），`-Git` 换成每日 master 构建，`-Silent` 跳过结束时的版本输出
