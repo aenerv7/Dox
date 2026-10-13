@@ -21,6 +21,7 @@
 | [`Dox Reader`](./Dox%20Reader) | Local-first RSS 阅读器，含 Cloudflare Workers 网页版和可选个人后端 |
 | [`sub-store`](./sub-store) | Sub-Store 后端的 Cloudflare Workers 部署（D1 持久化、路径口令鉴权、每日自动更新） |
 | [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
+| [`bwh-traffic`](./bwh-traffic) | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`Firefox/Zen`](./Firefox/Zen/README.md) | Zen 简体中文补全与快捷键显示修正，自动识别安装和配置目录，支持备份还原；另含默认应用重复项清理 |
 | [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
@@ -380,3 +381,9 @@ https://sub-store.<你的子域>.workers.dev/<口令>
 Cloudflare Workers 运行时禁止 `eval` / `new Function`，脚本功能改由内置的 QuickJS（Wasm）解释器执行，「脚本过滤」「脚本操作」「修改响应」照常可用。不支持的是本地文件路径订阅、GeoIP/MMDB、UDP/TLS 直连 DNS、请求代理和 Node 专属的定时同步。免费版 CPU 为 10 ms/请求，节点特别多或脚本较重时可能超时。
 
 完整说明见 [`sub-store/README.md`](./sub-store/README.md)，维护规范见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#317-sub-storecloudflare-workers)。
+
+## bwh-traffic（BandwagonHost 流量）
+
+[`bwh-traffic`](./bwh-traffic) 是一个 Cloudflare Worker：调用 KiwiVM 的 `getServiceInfo`，把流量用量写进响应头 `subscription-userinfo`，供 Sub-Store 作为远程订阅读取。正文不含节点。
+
+`api.64clouds.com` 会对 Cloudflare 出口（也就是 Worker 自己）返回 `{ "success": true, "token": … }` 而不是服务信息，所以上游请求必须经过一个不在 Cloudflare 上的中转，地址写在 `KIWIVM_BASE`。原因、证据和 nginx 中转示例见 [`bwh-traffic/README.md`](./bwh-traffic/README.md)，维护规范见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#318-bwh-trafficbandwagonhost-流量订阅头)。

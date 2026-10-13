@@ -26,6 +26,7 @@
    - 3.15 [HeliumLanguagePatcher](#315-heliumlanguagepatcher)
    - 3.16 [Zen（中文补全与默认应用重复项）](#316-zen中文补全与默认应用重复项)
    - 3.17 [Sub-Store（Cloudflare Workers）](#317-sub-storecloudflare-workers)
+   - 3.18 [bwh-traffic（BandwagonHost 流量订阅头）](#318-bwh-trafficbandwagonhost-流量订阅头)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -49,7 +50,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | Python 3.11+ / 标准库、PowerShell | `Firefox/Zen/` | Zen Fluent 中文补全、快捷键显示修正、安装与配置自动识别、默认应用重复项清理 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
-| JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码） |
+| JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
 | JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射和 VS Code 外观自定义 |
 | 批处理 / PowerShell | `Scripts/*.bat`、`Scripts/*.ps1` | Edge 清理脚本和 FFmpeg 安装脚本 |
@@ -76,6 +77,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `HeliumLanguagePatcher/` | 活跃 | Helium 语言包扫描、翻译缓存与 DataPack v5 补丁 |
 | `sub-store/` | 活跃 | Sub-Store 后端在 Cloudflare Workers 上的适配（D1 持久化、路径口令鉴权） |
 | `sub-store-front-end/` | 活跃 | Sub-Store-Front-End 静态资源 Worker |
+| `bwh-traffic/` | 活跃 | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
 | `.github/workflows/` | 活跃 | Sub-Store 前后端的定时与手动部署 |
 | `magi.txt` | 已移除 | 历史 AdGuard 规则，当前检出不提供；保留第 3.10 节历史维护约定 |
 | `README.md` | 用户文档 | 仓库主说明 |
@@ -115,6 +117,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
 - `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
+- `bwh-traffic/worker.js`、`bwh-traffic/wrangler.jsonc`
 - `.github/workflows/deploy-sub-store.yml`
 
 ### 1.5 资源文件（图标）
@@ -1490,6 +1493,48 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 
 用户说明在 `sub-store/README.md` 与 `sub-store-front-end/README.md`。改动补丁清单、鉴权方式、存储结构、部署顺序或免费额度取舍时，同一提交更新本节。
 
+### 3.18 bwh-traffic（BandwagonHost 流量订阅头）
+
+`bwh-traffic/worker.js` 是一个单文件 Cloudflare Worker：请求 KiwiVM 的 `getServiceInfo`，把流量写进响应头 `subscription-userinfo`，正文固定 `OK`、不含节点。用户说明见 [`bwh-traffic/README.md`](./bwh-traffic/README.md)。
+
+#### 边界与文件
+
+| 文件 | 角色 |
+|---|---|
+| `bwh-traffic/worker.js` | 唯一实现：鉴权、上游调用、字段解析、响应头拼装、debug 回显 |
+| `bwh-traffic/worker.test.js` | `node --test` 单元测试，桩掉 `fetch`，不访问网络 |
+| `bwh-traffic/wrangler.jsonc` | Worker 名 `bwh-traffic`，入口 `worker.js` |
+
+Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`、`KIWIVM_BASE`、`KIWIVM_RELAY_TOKEN`。**不含 KV / D1 / R2 / Durable Objects / Cron**，纯请求-响应。
+
+#### 上游事实（2026-10 实测）
+
+1. `api.64clouds.com` 在 Cloudflare 后面；成功响应是平铺 JSON：
+   `error`、`plan_monthly_data`、`data_counter`、`monthly_data_multiplier`、`data_next_reset`；`error != 0` 时看 `message`。
+2. **来自 Cloudflare 出口的 `/v1/*` 请求被拒**：返回 `HTTP 200` + `{ "success": true, "token": <n> }`（`content-type: text/html`），永远拿不到服务信息。已排除的因素：GET/POST、查询串或表单传参、有无 User-Agent、完整浏览器头、`CF-Worker` / `CDN-Loop` / `X-Forwarded-For` 头、`/v1/` 之外的路径、`kiwivm.64clouds.com` 上的 `/v1` `/api/v1`、明文 HTTP、把 token 回填（查询串 / 头 / Cookie）。同一 URL 从非 Cloudflare 出口（本机 curl、r.jina.ai）能拿到正常响应，含 700005 认证失败。→ 结论是**出口维度**的拦截，不是凭据、请求头或路径问题，Worker 内没有任何代码改动能绕过。
+3. 因此上游必须经 `KIWIVM_BASE` 指向的非 Cloudflare 中转访问；默认值仍为 `https://api.64clouds.com/v1`，直连失败时返回明确的 `BLOCKED_HINT`，不再报成"缺流量字段"。
+
+#### 不变量
+
+1. `subscription-userinfo` 格式固定 `upload=0; download=<已用>; total=<配额>[; expire=<下次重置>]`，字节数均为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量全部计入 `download`。
+2. `expire` 取 `data_next_reset`（流量重置时间），不是套餐到期时间；缺失或非正数时不输出该段。
+3. `redirect: "manual"` 且 3xx 判失败（Workers 不支持 `redirect: "error"`）：API Key 不得被转发到第二个主机。
+4. 成功响应按平铺字段解析，同时兼容网关加 `data` 信封；两者都不满足时报 502 并列出实际字段名。
+5. `ACCESS_TOKEN` 为空时不校验口令；配置后不匹配必须在请求上游之前返回 403。
+6. `?debug=1` 回显上游状态、字段名、截断正文和算出的 userinfo，是排查线上问题的唯一入口，不得删。
+7. `BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN` 只用 `wrangler secret put` 配置：secret 跨 `wrangler deploy` 保留，明文 `vars` 会被覆盖清空（历史版本用明文 var 存过前两者，一次部署就丢了）。
+
+#### 验证
+
+```powershell
+node --test bwh-traffic/worker.test.js
+cd bwh-traffic; npx wrangler deploy --dry-run
+```
+
+覆盖：成功头拼装与查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与共享口令、`debug=1`。
+
+线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`；若为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。改上游字段、响应头语义或中转约定时，同一提交更新本节与模块 `README.md`。
+
 ## 4. 开发环境与构建命令速查
 
 | 模块 | 需要的环境 | 主要命令 |
@@ -1505,6 +1550,7 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
 | HeliumLanguagePatcher | Windows；Python 3.11+；自动翻译需要本机 API 配置 | `python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py`；使用命令见 [README](./README.md#helium-语言补丁) |
 | Sub-Store（Cloudflare Workers） | Node.js 24+；Cloudflare 账号与 API Token | `cd sub-store; npm ci; npm run check`；`cd sub-store-front-end; npm ci; npm run build` |
+| bwh-traffic | Node.js 24+；Cloudflare 账号；非 Cloudflare 中转 | `node --test bwh-traffic/worker.test.js`；`cd bwh-traffic; npx wrangler deploy` |
 | Userscript | Tampermonkey / Greasemonkey | 浏览器安装脚本 |
 | Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
