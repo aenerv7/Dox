@@ -2,7 +2,9 @@
 
 > **本文档是 Dox 仓库唯一的开发文档。** 项目定位、全局规则、以及所有模块的架构、维护约束、构建与验证清单都集中在这里。以后任何新增或修改的开发文档，一律写入本文档对应的模块小节，不再在模块目录或 `.codex`、`.kiro` 等位置增建独立的开发文档。
 >
-> 只读类的对外说明文件不在此约定范围内，保持原位：各模块的 `README.md`（用户使用说明）、各 `PRIVACY.md`（隐私说明）。本文档只负责维护者视角的开发、架构与维护规范。
+> **全仓库只有两份文档：根 `README.md`（用户使用）和本文件（维护规范）。** 不存在模块级 README，也不存在第二份开发文档；同一事实只写一处，不复制到两处。新增模块在根 `README.md` 加一个小节、在本文件加一个小节即可。
+>
+> 随包分发或合规用途的文件不属于此约定，保持原位：各 `PRIVACY.md`（隐私说明）、`Firefox/AutoSortBookmarks/THIRD_PARTY_NOTICES.md`（第三方许可）。
 
 ## 目录
 
@@ -143,6 +145,8 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - 根目录没有统一构建命令，按模块开发和验证。
 - 不要把 `.gitignore` 中列出的本地产物当作源码修改目标。
 - 修改用户可见行为时同步更新 `README.md`；修改维护方式、架构或模块结构时同步更新本文档。
+- 文档只有两份：根 `README.md` 只写用户怎么用，本文只写怎么维护、怎么验证。不要新建模块 README、`docs/` 或第三份说明，也不要把同一条事实在根 README 和本文里各写一遍。
+- 模块内的相对链接在并入根 `README.md` 后必须仍能解析：图片、脚本和 `PRIVACY.md` 用仓库根相对路径，跨小结引用用页内锚点。
 - 除非有特殊要求，项目规则倾向于直接维护 `main` 分支。
 
 ### 2.2 资源与图标
@@ -457,7 +461,7 @@ SizerSwift.app/
 
 ### 3.5 CapsLockOSD
 
-Windows 原生 Caps Lock 状态屏幕提示，C++ + Win32 API + 系统 GDI+，不依赖第三方库或运行时。**本节是维护规范，用户使用配置见 `CapsLockOSD/README.md`。**
+Windows 原生 Caps Lock 状态屏幕提示，C++ + Win32 API + 系统 GDI+，不依赖第三方库或运行时。**本节是维护规范，用户使用见根 [README.md 的 CapsLockOSD 小节](./README.md#capslockosd)。**
 
 #### 产品摘要
 
@@ -606,7 +610,7 @@ cd CapsLockOSD
 
 ### 3.6 Dox Reader（Cloudflare Workers + Backend）
 
-local-first RSS/Atom 阅读器，仅维护 Cloudflare Workers 网页版（`Dox Reader/Cloudflare Workers/`）和可选个人后端（`Dox Reader/Backend/`）。**本节是唯一开发规范；各模块 README 只写安装/使用/发布入口。**
+local-first RSS/Atom 阅读器，仅维护 Cloudflare Workers 网页版（`Dox Reader/Cloudflare Workers/`）和可选个人后端（`Dox Reader/Backend/`）。**本节是唯一开发规范；安装、发布入口和两种数据模式的使用说明在根 [README.md 的 Dox Reader 小节](./README.md#dox-reader)。**
 
 #### 产品摘要与边界
 
@@ -664,7 +668,7 @@ schema v1 合并规则：每设备随机 `actor`，Lamport 版本 `[counter, act
 - 同步与已读操作显示加载状态并阻止重复写入；单订阅批量已读按订阅源保留进行中的状态，切换订阅源后仍可见。
 - 顶栏“同步”按钮仅在本地模式显示，用于 WebDAV；后端模式隐藏该入口，保留自动读取后端状态和手动刷新订阅。
 - 数据模式切换铺满可用宽度、两个等宽选项显示“本地 / Dox Reader Backend”；后端地址标签为“地址”，访问令牌使用与 WebDAV 密码相同的显示/隐藏按钮；不在后端连接区底部显示说明段落。
-- 数据模式选项“Dox Reader Backend”文字右侧提供独立的问号图标按钮（悬停提示“Cloudflare 部署说明”），点击说明不切换数据模式，在新标签页打开 GitHub 上 `Dox Reader/Backend/README.md` 的部署章节，未填写地址或令牌时仍可使用。
+- 数据模式选项“Dox Reader Backend”文字右侧提供独立的问号图标按钮（悬停提示“Cloudflare 部署说明”），点击说明不切换数据模式，在新标签页打开 GitHub 上根 `README.md` 的 [`#dox-reader-backend`](https://github.com/aenerv7/Dox/blob/main/README.md#dox-reader-backend) 部署章节，未填写地址或令牌时仍可使用。
 - 后端模式打开设置时自动读取配置；地址/令牌变化后防抖重连，过期响应不得覆盖新连接。抓取间隔和保留篇数字段始终显示，读取前/失败时禁用，成功后使用远端真实值，不用客户端默认值覆盖后端。
 - 本地模式打开设置或修改 WebDAV 地址/用户名/密码后自动测试连接；无地址不请求，防抖且忽略旧响应，保留手动重试。自动测试沿用原有目录检查/创建行为，不触发阅读状态同步。
 - 外观/阅读偏好实时预览；取消恢复已保存值。
@@ -746,7 +750,7 @@ Manifest V3 后台扩展（event page），递归整理 Bookmarks Menu（`menu__
 
 Firefox API 限制：标准 `windows` 只枚举 `navigator:browser`，无法观测 Library 窗口生命周期，只能避开**当前获焦**的 Library，无法区分“已关闭”与“退到普通窗口之后”。
 
-维护约束：排序算法集中在 `sorter.js`，只依赖传入的 `bookmarksApi`（`getChildren`/`move`），不得引用全局 `browser`；`bookmarks.move` 顺序 `await`，不要并发；目标根目录与闹钟名不可改名；行为变更同步 `sorter.test.js`、`README.md`、本文档；用户可见名/描述/行为改 `manifest.json` 版本，`_locales` 两语言 key 成对，`default_locale` 保持 `en`；图标以 `icons/icon.svg` 为源，运行 `icons/generate-icons.ps1` 生成 32/48/64/96/128 PNG，第三方许可随 `THIRD_PARTY_NOTICES.md` 入包；已上架 AMO 的扩展必须同时在 Developer Hub 上传 128px 图标，因为 Firefox 扩展管理器从 AMO API 读取已列出扩展的图标元数据；`web-ext-artifacts/` 不提交。
+维护约束：排序算法集中在 `sorter.js`，只依赖传入的 `bookmarksApi`（`getChildren`/`move`），不得引用全局 `browser`；`bookmarks.move` 顺序 `await`，不要并发；目标根目录与闹钟名不可改名；行为变更同步 `sorter.test.js`、根 `README.md` 的 Auto Sort Bookmarks 小节、本文档；用户可见名/描述/行为改 `manifest.json` 版本，`_locales` 两语言 key 成对，`default_locale` 保持 `en`；图标以 `icons/icon.svg` 为源，运行 `icons/generate-icons.ps1` 生成 32/48/64/96/128 PNG，第三方许可随 `THIRD_PARTY_NOTICES.md` 入包；已上架 AMO 的扩展必须同时在 Developer Hub 上传 128px 图标，因为 Firefox 扩展管理器从 AMO API 读取已列出扩展的图标元数据；`web-ext-artifacts/` 不提交。
 
 图标发布是双通道流程，不能只更新 XPI：
 
@@ -844,7 +848,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 - `RemoveMSEdgeAll.bat`：无守卫模式，依次处理机器级 Edge、当前用户级 Edge、机器级/用户级 Evergreen WebView2、Edge AppX 及所有用户和共享更新设施残留。
 - 两脚本都支持 `-auto`（仅内置 Administrator 已启用时跳过身份确认，不等同于 `-guard`）。
 - 两脚本都支持 `-help`、`-h`、`/?` 显示参数说明；帮助在架构切换前退出，不触发 UAC、联网、下载或卸载。
-- 两脚本共用同目录 `EdgeAssociations.ps1`；缺失时必须在提权、下载、卸载前退出。新增 `-audit-associations` / `-repair-associations` 只检查或修复当前用户关联，在日志初始化前分流，不卸载、不联网、不请求 UAC，以便读取旧日志。使用及残留处理见 [EdgeAssociations.README.md](./Scripts/EdgeAssociations.README.md)。
+- 两脚本共用同目录 `EdgeAssociations.ps1`；缺失时必须在提权、下载、卸载前退出。新增 `-audit-associations` / `-repair-associations` 只检查或修复当前用户关联，在日志初始化前分流，不卸载、不联网、不请求 UAC，以便读取旧日志。使用及残留处理见根 [README.md 的「Edge 关联清理与旧权限残留」](./README.md#edge-关联清理与旧权限残留)。
 
 #### 计划任务约定
 
@@ -974,7 +978,7 @@ pwsh -NoProfile -File .\Scripts\InstallFFmpeg.ps1 -Directory $env:TEMP\ff-check
 
 ### 3.12 DeepSeek Harness Launcher
 
-`DeepSeek Harness/Launcher/` 是 DeepSeek Harness（`dsh web`）的本地托盘监督器，负责受管启动/停止/重启 `dsh web` 并通过系统托盘提供最小控制面。**本节是维护规范，用户使用见 `Launcher/README.md`。**
+`DeepSeek Harness/Launcher/` 是 DeepSeek Harness（`dsh web`）的本地托盘监督器，负责受管启动/停止/重启 `dsh web` 并通过系统托盘提供最小控制面。**本节是维护规范，用户使用见根 [README.md 的 DeepSeek Harness Launcher 小节](./README.md#deepseek-harness-launcher)。**
 
 #### 定位与边界
 
@@ -1015,7 +1019,6 @@ Launcher/
 │   ├── test-modes.ps1      # dsh / npx 启动方式
 │   └── test-port.ps1       # 端口收束
 ├── Launcher.ini.example    # 配置模板（UTF-16LE，含注释）
-└── README.md               # 用户文档
 ```
 
 #### 架构与模块
@@ -1112,7 +1115,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 - 更新逻辑已移除且不打算再加回（见「更新策略」）；如需新增菜单项，走上面的 `Resource.h` → `ShowTrayMenu` → `HandleCommand` 路径。
 - `bin\` 整体忽略，产物不入库；源码、脚本、文档、图标、`Launcher.ini.example` 入库；提交信息前缀 `launcher: ...`。
 
-交接清单：先改行为源（`Launcher.cpp`，配置默认同步 `Launcher.ini.example`）→ 图标先更 SVG 再 `make-icon.ps1` 生成 ICO → 编译并跑到生命周期/启动方式/端口测试 → 检查无残留 exe/测试 node/日志/临时 shim，`git diff --check` 通过 → README 写使用，本文记录实现约束。
+交接清单：先改行为源（`Launcher.cpp`，配置默认同步 `Launcher.ini.example`）→ 图标先更 SVG 再 `make-icon.ps1` 生成 ICO → 编译并跑到生命周期/启动方式/端口测试 → 检查无残留 exe/测试 node/日志/临时 shim，`git diff --check` 通过 → 根 `README.md` 写使用，本文记录实现约束。
 
 ### 3.13 Android ApkRename
 
@@ -1138,9 +1141,9 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 | `announce.ps1` | 仅通过当前用户命名管道上报的 v3 客户端，不定位或启动 Bridge EXE |
 | `build.ps1` / `app.manifest` | x64 winexe、警告即错误、asInvoker 清单及 PE GUI 子系统校验 |
 | `test.ps1` / `tests/BridgeTests.cs` | 无系统关联修改的参数、状态、调度优先级与真实 WMI 验证 |
-| `README.md` / `.gitignore` | 用户使用与迁移说明；忽略独立模块的构建产物 |
+| `.gitignore` | 忽略独立模块的构建产物；用户使用与迁移说明在根 `README.md` 的 PortableBridge 小节 |
 
-开发规范集中于本节，不新增模块开发文档。用户说明可以保留在模块 README。
+开发规范集中于本节，不新增模块开发文档；用户说明写进根 `README.md` 的 PortableBridge 小节。
 
 #### 多浏览器运行与会话状态
 
@@ -1180,7 +1183,7 @@ tests/ChromeMaintenanceTests.cs 在随机 HKCU\Software\PortableBridge.Tests 子
 
 保留 `FirefoxPortableBridge-Control-<identity>` 和 `announce-v2` 的原三字段契约，隐式映射到 Firefox；两个端点共用同一协调器。新旧版本共用历史 `Local\FirefoxPortableBridge-Monitor-<identity>` 与 State 互斥体，防止并发 Monitor。历史所有权值名 `FirefoxPortableSessionId` 保留，仅作为兼容标识。
 
-73 表示会话资源冲突或容量上限；75 表示同一会话已退出或资源还在收尾。相同 pending/存活会话重复上报为 0。客户端同步握手后才启动浏览器，75 每 500 ms 重试，最多约 60 秒；不可成功握手时中止启动。具体客户端示例维护在模块 README。旧 watch/cleanup/EXE announce/单 URL/gh-open 入口不恢复。
+73 表示会话资源冲突或容量上限；75 表示同一会话已退出或资源还在收尾。相同 pending/存活会话重复上报为 0。客户端同步握手后才启动浏览器，75 每 500 ms 重试，最多约 60 秒；不可成功握手时中止启动。具体客户端示例维护在根 `README.md` 的 PortableBridge 小节。旧 watch/cleanup/EXE announce/单 URL/gh-open 入口不恢复。
 
 升级必须先用旧 Bridge 让 Firefox 正常退出并清理 runtime-session.json，再停止旧 Monitor、更新 EXE 和登录任务。schema 1 活动文件不自动转换，读取失败时保留原文件；改名/搬迁时也必须先结束会话。新路径不能证明旧路径协议命令所有权，不得宽松删除。构建脚本不部署、不修改计划任务，旧启动器只需继续连接原 v2 管道。
 
@@ -1358,7 +1361,7 @@ node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/
 
 ### 3.17 Sub-Store（Cloudflare Workers）
 
-把上游 [Sub-Store](https://github.com/sub-store-org/Sub-Store) 后端与 [Sub-Store-Front-End](https://github.com/sub-store-org/Sub-Store-Front-End) 部署到两个 Cloudflare Worker（`sub-store`、`sub-store-front-end`）。上游源码不入库，构建期按 release tag 拉取；`.github/workflows/deploy-sub-store.yml` 每天北京时间 05:00 自动重部署，也可手动触发。**本节是维护规范，用户使用见两个模块的 `README.md`。**
+把上游 [Sub-Store](https://github.com/sub-store-org/Sub-Store) 后端与 [Sub-Store-Front-End](https://github.com/sub-store-org/Sub-Store-Front-End) 部署到两个 Cloudflare Worker（`sub-store`、`sub-store-front-end`）。上游源码不入库，构建期按 release tag 拉取；`.github/workflows/deploy-sub-store.yml` 每天北京时间 05:00 自动重部署，也可手动触发。**本节是维护规范，用户使用见根 [README.md 的 Sub-Store 小节](./README.md#sub-store)。**
 
 #### 模块边界
 
@@ -1491,11 +1494,11 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 
 #### 文档维护
 
-用户说明在 `sub-store/README.md` 与 `sub-store-front-end/README.md`。改动补丁清单、鉴权方式、存储结构、部署顺序或免费额度取舍时，同一提交更新本节。
+用户说明在根 `README.md` 的 Sub-Store 小节（含 `sub-store 后端` 与 `sub-store-front-end 前端` 两个子小节）。改动补丁清单、鉴权方式、存储结构、部署顺序或免费额度取舍时，同一提交更新本节。
 
 ### 3.18 bwh-traffic（BandwagonHost 流量订阅头）
 
-`bwh-traffic/worker.js` 是一个单文件 Cloudflare Worker：请求 KiwiVM 的 `getServiceInfo`，把流量写进响应头 `subscription-userinfo`，正文固定 `OK`、不含节点。用户说明见 [`bwh-traffic/README.md`](./bwh-traffic/README.md)。
+`bwh-traffic/worker.js` 是一个单文件 Cloudflare Worker：请求 KiwiVM 的 `getServiceInfo`，把流量同时写进响应头 `subscription-userinfo` 和响应正文，不含节点。用户说明见根 [README.md 的 bwh-traffic 小节](./README.md#bwh-trafficbandwagonhost-流量)。
 
 #### 边界与文件
 
@@ -1539,7 +1542,7 @@ cd bwh-traffic; npx wrangler deploy --dry-run
 
 覆盖：成功正文与响应头同值、查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与共享口令、`debug=1`。
 
-线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<重置时间>`；若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <口令>" "https://bwh-traffic.ddtwstudio.com/kiwivm/v1/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与模块 `README.md`。
+线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<重置时间>`；若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <口令>" "https://bwh-traffic.ddtwstudio.com/kiwivm/v1/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
 
 ## 4. 开发环境与构建命令速查
 
@@ -1551,7 +1554,7 @@ cd bwh-traffic; npx wrangler deploy --dry-run
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
 | Dox Reader | Node.js 24+ | 网页端和后端各自目录 `npm ci` + `npm run check` |
 | Firefox AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/AutoSortBookmarks/tests/sorter.test.js` |
-| Zen（中文补全与默认应用重复项） | Windows；Python 3.11+；Fluent 验证另需 fluent.syntax，JS 校验需 Node.js；新版自动翻译需要本机 Codex/API 配置 | `python -B -m unittest discover -s Firefox/Zen -p test_*.py -v`；`python -B Firefox/Zen/fix_zen_duplicate.py detect`；使用见 [README](./Firefox/Zen/README.md) |
+| Zen（中文补全与默认应用重复项） | Windows；Python 3.11+；Fluent 验证另需 fluent.syntax，JS 校验需 Node.js；新版自动翻译需要本机 Codex/API 配置 | `python -B -m unittest discover -s Firefox/Zen -p test_*.py -v`；`python -B Firefox/Zen/fix_zen_duplicate.py detect`；使用见 [README](./README.md#zen中文补全与默认应用重复项) |
 | PortableBridge | Windows；.NET Framework 4.x | `cd PortableBridge; .\build.ps1; .\test.ps1` |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
 | HeliumLanguagePatcher | Windows；Python 3.11+；自动翻译需要本机 API 配置 | `python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py`；使用命令见 [README](./README.md#helium-语言补丁) |

@@ -36,7 +36,7 @@ const DEBUG_BODY_LIMIT = 400;
 const BLOCKED_HINT =
   "KiwiVM 拒绝了来自 Cloudflare 的请求：api.64clouds.com 对 Cloudflare 出口" +
   "返回 {success, token} 而非服务信息。请把 KIWIVM_BASE 指向非 Cloudflare " +
-  "中转，见 README.md。";
+  "中转，见仓库根 README.md。";
 
 function plain(status, message) {
   return new Response(message, {

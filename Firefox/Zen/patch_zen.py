@@ -1058,7 +1058,7 @@ def main():
   上游升级后直接运行 install：检测到未知资源就按新版原包自动重建补丁。
   资源已被打过补丁、或补丁目标结构变化时会明确报错，不会静默改错。
   不修改书签、密码、标签页、扩展或偏好设置；请保留 backups/ 用于还原。
-  完整使用说明见脚本同目录 README.md。''')
+  完整使用说明见仓库根 README.md 的 Zen 小节。''')
     parser.add_argument('-h', '--help', action='help', help='显示中文使用指南并退出')
     parser.add_argument('command', nargs='?', default='help',
                         choices=('help', 'detect', 'build', 'validate', 'install', 'restore', 'verify'),
