@@ -6,6 +6,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {"bindings": [{"name": "LIBRARY", "class_name": "ReaderLibrary"}]},
   "migrations": [{"tag": "v1", "new_sqlite_classes": ["ReaderLibrary"]}],
+  // 额度档位：free（默认）或 paid。付费档需自行升级账号的 Workers Paid，应用不会自动升级套餐。
+  "vars": {"PLAN": "free"},
   "triggers": {"crons": ["0 * * * *"]},
   "observability": {"enabled": true, "head_sampling_rate": 0.01}
 }

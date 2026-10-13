@@ -5,10 +5,22 @@ export interface BackendConfig {
   intervalMinutes: number;
   maxArticles: number;
 }
+export interface BackendLimits {
+  intervalMinutes: { min: number; max: number };
+  maxArticles: { min: number; max: number };
+  maxFeeds: number;
+  maxFeedBytes: number;
+  maxContentBytes: number;
+  maxLibraryBytes: number;
+  dailyFetchAttempts: number;
+  dailyWriteUnits: number;
+}
 export interface BackendStatus {
   product: "Dox Reader Backend";
   apiVersion: 1;
+  plan?: "free" | "paid";
   config: BackendConfig;
+  limits?: BackendLimits;
   revision: number;
   nextFetchAt: number | null;
   storageBytes: number;
@@ -26,6 +38,20 @@ export interface SnapshotPage {
   feeds: FeedRecord[];
   items: ItemRecord[];
   next: { time: number; id: string } | null;
+}
+// 旧版本后端不上报 limits；回退到免费档范围，客户端不会接受后端必然拒绝的取值。
+export const FALLBACK_LIMITS: BackendLimits = {
+  intervalMinutes: { min: 30, max: 10080 },
+  maxArticles: { min: 100, max: 10000 },
+  maxFeeds: 100,
+  maxFeedBytes: 5 * 1024 * 1024,
+  maxContentBytes: 48 * 1024,
+  maxLibraryBytes: 600 * 1024 * 1024,
+  dailyFetchAttempts: 4800,
+  dailyWriteUnits: 10000,
+};
+export function backendLimits(status?: BackendStatus | null): BackendLimits {
+  return status?.limits ?? FALLBACK_LIMITS;
 }
 class BackendCache extends Dexie {
   feeds!: EntityTable<FeedRecord, "id">;
@@ -128,6 +154,7 @@ async function pull(): Promise<BackendStatus> {
   const db = backendCache();
   try {
     const status = await testBackend(connection!);
+    const itemLimit = backendLimits(status).maxArticles.max;
     if ((await db.meta.get("revision"))?.value === status.revision) {
       offline = false;
       return status;
@@ -152,7 +179,7 @@ async function pull(): Promise<BackendStatus> {
           }
           items.push(...page.items);
           cursor = page.next;
-          if (items.length > 10000) throw new Error("后端分页响应无效");
+          if (items.length > itemLimit) throw new Error("后端分页响应无效");
         } while (cursor !== null);
         const old = await db.items.bulkGet(items.map((item) => item.id));
         await db.transaction("rw", db.feeds, db.items, db.meta, async () => {

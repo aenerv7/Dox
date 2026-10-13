@@ -709,13 +709,13 @@ npx wrangler deploy --dry-run
 
 独立 npm 工程 Dox Reader/Backend。SQLite Durable Object 每账号个人库使用固定 personal-library 名称；不是跨用户共享服务。Worker 只接受带 Bearer token 的 POST /api/v1 命令，CORS 不带 Cookie；BACKEND_TOKEN 至少 32 字符，默认无令牌拒绝请求。API 返回订阅、分页文章元数据、单篇正文、状态、配置和抓取进度。客户端在独立 Dexie 缓存中读列表，按需缓存正文；连接失败只读缓存，写操作失败不得乐观修改已读/收藏。本地库 dox-rss-reader 保持不变。外观在后端模式保留本机。后端参数先读取再修改，不因客户端默认值覆盖远端配置。
 
-默认 intervalMinutes=60、maxArticles=10000；允许 30–10080 分钟、100–10000 篇。上限是全库按 publishedAt DESC,id DESC 保留最新 N 篇，包含收藏和未读，不是每源 N 篇。调低上限立即在事务内清理，不能后台偷偷豁免收藏。最多 100 个源，正文上限约 48 KiB，RSS/Atom 最大 5 MiB，元数据字段限长，正文与元数据总预算 600 MiB。每日 UTC 最多 4800 次抓取、10000 保守写入单位（新文章 4、状态 1）；达到预算顺延次日，未完全归档的响应不保存条件请求验证头。额度共享风险必须在部署说明中披露，应用不能自动升级付费套餐。
+默认 intervalMinutes=60、maxArticles=10000；允许 30–10080 分钟、100–10000 篇。额度档由 wrangler.jsonc 的 vars.PLAN（"free" 默认 / "paid"）在部署时选定，src/policy.ts 的 FREE_LIMITS/PAID_LIMITS 是唯一事实来源，status 命令把 plan 与生效 limits 下发给前端，前端不得写死区间。付费档（账号自购 Workers Paid，$5/月起步）为默认 60/50000，允许 5–10080 分钟、100–100000 篇，最多 300 个源，正文上限 256 KiB，RSS/Atom 最大 10 MiB，正文与元数据总预算 4 GiB，每日 UTC 最多 48000 次抓取、100000 写入单位；SQLite 存储含 5 GB-month，超出 $0.20/GB-month，单 DO 存储上限 10 GB。免费档为最多 100 个源，正文上限约 48 KiB，RSS/Atom 最大 5 MiB，总预算 600 MiB，每日 UTC 最多 4800 次抓取、10000 写入单位。上限是全库按 publishedAt DESC,id DESC 保留最新 N 篇，包含收藏和未读，不是每源 N 篇。调低上限立即在事务内清理，不能后台偷偷豁免收藏。降级回 free 时 configure 取值按档位 clamp，prune 在下次唤醒按免费档预算裁剪。达到预算顺延次日，未完全归档的响应不保存条件请求验证头。额度共享风险必须在部署说明中披露，应用不能自动升级付费套餐。
 
 抓取由持久 Alarm 驱动，一次处理一个到期源，90 秒总超时，最多 5 跳重定向且每跳检查公开 HTTP(S) 地址，拒绝私有/保留 IP、凭据、非常规端口和 XML DTD/ENTITY。RSS 请求使用固定、非个人化的 Dox Reader `User-Agent` 并兼容常见 XML MIME。先保存恢复 Alarm 再做网络 I/O；恢复租约比抓取超时多 30 秒，finally 重新调度。每小时 Cron 只修复缺失 Alarm。失败指数退避。客户端全量/单源刷新创建持久队列，已有手动任务时合并请求，最短 1 分钟；轮询最多 2 分钟，关闭客户端不取消任务。删除排队/抓取中的源必须清理任务并防止复活。
 
 SQL 使用绑定参数，插入去重并保留已有 read/starred；快照以 revision 验证一致性，按发布时间/ID 游标分页避免 OFFSET 扫描开销。缓存快照完整收齐后原子替换，不得部分失败覆盖已缓存数据。后端列表按 200 篇渐进展示。每分钟仅在可见客户端查询状态，revision 不变不重传全库。
 
-后端 npm run check 使用本地 Workers runtime 集成测试，验证鉴权、Alarm、条件抓取、全库裁剪、竞态删除、预算顺延和手动抓取。部署前 npx wrangler deploy --dry-run；默认创建 dox-reader-backend，令牌经 wrangler secret bulk/put 配置。生产验证添加临时测试源、确认无人在线抓取与手动刷新、清理测试源，不能遗留测试用户数据。前端新增模式时同步修改网页端和后端的隐私说明。
+后端 npm run check 使用本地 Workers runtime 集成测试，验证鉴权、Alarm、条件抓取、全库裁剪、竞态删除、预算顺延和手动抓取；免费档用例在 test/backend.test.ts，付费档在 test/paid.test.ts，由 vitest.config.ts 的两个 project 分别用 PLAN 绑定运行。部署前 npx wrangler deploy --dry-run；默认创建 dox-reader-backend，令牌经 wrangler secret bulk/put 配置。生产验证添加临时测试源、确认无人在线抓取与手动刷新、清理测试源，不能遗留测试用户数据。前端新增模式时同步修改网页端和后端的隐私说明。
 
 #### 文档维护
 

@@ -3,17 +3,17 @@ import { timingSafeEqual } from "node:crypto";
 import { parseFeedXml } from "./shared/feed-parser";
 import type { FeedRecord, ItemRecord } from "./shared/model";
 import {
-  DEFAULT_CONFIG,
-  MAX_FEEDS,
-  MAX_FEED_BYTES,
-  MAX_LIBRARY_BYTES,
+  type Limits,
   boundedContent,
+  clampConfig,
   feedUrl,
   limitedText,
+  planName,
+  resolveLimits,
   validateConfig,
 } from "./policy";
 
-type Bindings = Env & { BACKEND_TOKEN?: string };
+type Bindings = Env & { BACKEND_TOKEN?: string; PLAN?: string };
 const FEED_FETCH_TIMEOUT_MS = 90_000;
 const FETCH_LEASE_MS = FEED_FETCH_TIMEOUT_MS + 30_000;
 const FEED_USER_AGENT = "Dox-Reader/1.1 (+https://github.com/aenerv7/Dox)";
@@ -44,8 +44,11 @@ const emptyJob = (): Job => ({
 });
 
 export class ReaderLibrary extends DurableObject<Bindings> {
+  // 档位在部署时由 wrangler.jsonc 的 PLAN 变量声明；后端不会自动升级套餐。
+  private readonly limits: Limits;
   constructor(ctx: DurableObjectState, env: Bindings) {
     super(ctx, env);
+    this.limits = resolveLimits(env.PLAN);
     ctx.storage.sql.exec(`
       CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS feeds (id TEXT PRIMARY KEY, url TEXT UNIQUE NOT NULL, data TEXT NOT NULL,
@@ -78,7 +81,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     this.put("revision", this.get("revision", 0) + 1);
   }
   private config() {
-    return this.get("config", DEFAULT_CONFIG);
+    return clampConfig(this.get("config", this.limits.defaultConfig), this.limits);
   }
   private prune() {
     const count = this.ctx.storage.sql
@@ -94,7 +97,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     while (
       this.ctx.storage.sql
         .exec<{ bytes: number }>("SELECT bytes FROM totals WHERE id=1")
-        .one().bytes > MAX_LIBRARY_BYTES
+        .one().bytes > this.limits.maxLibraryBytes
     ) {
       this.ctx.storage.sql.exec(
         "DELETE FROM articles WHERE id IN (SELECT id FROM articles ORDER BY publishedAt,id LIMIT 100)",
@@ -110,7 +113,18 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     return {
       product: "Dox Reader Backend",
       apiVersion: 1,
+      plan: this.limits.plan,
       config: this.config(),
+      limits: {
+        intervalMinutes: this.limits.intervalMinutes,
+        maxArticles: this.limits.maxArticles,
+        maxFeeds: this.limits.maxFeeds,
+        maxFeedBytes: this.limits.maxFeedBytes,
+        maxContentBytes: this.limits.maxContentBytes,
+        maxLibraryBytes: this.limits.maxLibraryBytes,
+        dailyFetchAttempts: this.limits.dailyFetchAttempts,
+        dailyWriteUnits: this.limits.dailyWriteUnits,
+      },
       revision: this.get("revision", 0),
       job: this.get("job", emptyJob()),
       nextFetchAt: this.ctx.storage.sql
@@ -135,7 +149,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
   async command(action: string, p: Record<string, unknown>): Promise<unknown> {
     if (action === "status") return this.status();
     if (action === "configure") {
-      const config = validateConfig(p.config);
+      const config = validateConfig(p.config, this.limits);
       this.ctx.storage.transactionSync(() => {
         this.put("config", config);
         this.prune();
@@ -212,9 +226,11 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       if (
         this.ctx.storage.sql
           .exec<{ n: number }>("SELECT COUNT(*) AS n FROM feeds")
-          .one().n >= MAX_FEEDS
+          .one().n >= this.limits.maxFeeds
       )
-        throw new Error("免费模式最多支持 100 个订阅源");
+        throw new Error(
+          `当前 ${planName(this.limits)}档最多支持 ${this.limits.maxFeeds} 个订阅源`,
+        );
       const now = Date.now();
       const id = crypto.randomUUID();
       const feed: FeedRecord = {
@@ -294,7 +310,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     }
     if (action === "state" || action === "markRead") {
       const usage = this.usage();
-      if (usage.writes >= 10000)
+      if (usage.writes >= this.limits.dailyWriteUnits)
         throw new Error("今日写入预算已用完，明日自动恢复");
       let changed = 0;
       if (action === "state") {
@@ -322,7 +338,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
             n: number;
           }>(`SELECT COUNT(*) AS n FROM articles WHERE read=0${where}`, ...args)
           .one().n;
-        if (usage.writes + n > 10000)
+        if (usage.writes + n > this.limits.dailyWriteUnits)
           throw new Error("操作超过今日写入预算，请分批或明日重试");
         changed = this.ctx.storage.sql.exec(
           `UPDATE articles SET read=1 WHERE read=0${where}`,
@@ -339,7 +355,10 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       if (Date.now() - this.get("lastManual", 0) < 60000)
         throw new Error("手动抓取间隔至少 1 分钟");
       const usage = this.usage();
-      if (usage.attempts >= 4800 || usage.writes >= 10000)
+      if (
+        usage.attempts >= this.limits.dailyFetchAttempts ||
+        usage.writes >= this.limits.dailyWriteUnits
+      )
         throw new Error("今日抓取预算已用完，明日自动恢复");
       const ids = Array.isArray(p.ids)
         ? p.ids.filter((x): x is string => typeof x === "string").slice(0, 100)
@@ -390,7 +409,10 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     // Recovery wakeup is persisted before external I/O. Cron also repairs missing alarms.
     await this.ctx.storage.setAlarm(now + FETCH_LEASE_MS + 1000);
     const usage = this.usage();
-    if (usage.attempts >= 4800 || usage.writes >= 10000) {
+    if (
+      usage.attempts >= this.limits.dailyFetchAttempts ||
+      usage.writes >= this.limits.dailyWriteUnits
+    ) {
       const tomorrow =
         Date.parse(new Date(now).toISOString().slice(0, 10)) + 86400000 + 1000;
       this.ctx.storage.sql.exec("UPDATE feeds SET due=MAX(due,?)", tomorrow);
@@ -445,7 +467,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
             await response.body?.cancel();
             throw new Error(`订阅 HTTP ${response.status}`);
           }
-          const xml = await limitedText(response, MAX_FEED_BYTES);
+          const xml = await limitedText(response, this.limits.maxFeedBytes);
           if (/<!DOCTYPE|<!ENTITY/i.test(xml))
             throw new Error("订阅包含不支持的 XML 实体声明");
           const parsed = await parseFeedXml(xml, feed.id, url.href);
@@ -462,7 +484,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
           this.ctx.storage.transactionSync(() => {
             const budget = this.usage();
             for (const item of candidates) {
-              if (budget.writes + 4 > 10000) {
+              if (budget.writes + 4 > this.limits.dailyWriteUnits) {
                 incomplete = true;
                 break;
               }
@@ -492,7 +514,10 @@ export class ReaderLibrary extends DurableObject<Bindings> {
                     item.id <= oldest.id))
               )
                 continue;
-              const content = boundedContent(item.content);
+              const content = boundedContent(
+                item.content,
+                this.limits.maxContentBytes,
+              );
               const metadata: ItemRecord = {
                 ...item,
                 title: item.title.slice(0, 500),

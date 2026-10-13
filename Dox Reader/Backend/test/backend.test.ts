@@ -6,12 +6,15 @@ import {
 } from "cloudflare:test";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
-  feedUrl,
-  validateConfig,
+  FREE_LIMITS,
+  PAID_LIMITS,
   boundedContent,
-  MAX_CONTENT_BYTES,
-  MAX_FEED_BYTES,
+  clampConfig,
+  feedUrl,
   limitedText,
+  planName,
+  resolveLimits,
+  validateConfig,
 } from "../src/policy";
 import { parseFeedXml } from "../src/shared/feed-parser";
 const make = () => env.LIBRARY.getByName(crypto.randomUUID());
@@ -126,7 +129,7 @@ describe("personal backend", () => {
     expect(page.feeds[0].error).toBeUndefined();
     expect(page.items).toHaveLength(10);
     const article = await stub.command("article", { id: page.items[0].id }) as { content: string };
-    expect(new TextEncoder().encode(article.content).length).toBeLessThanOrEqual(MAX_CONTENT_BYTES);
+    expect(new TextEncoder().encode(article.content).length).toBeLessThanOrEqual(FREE_LIMITS.maxContentBytes);
   });
   it("cancels a stream exceeding 5 MiB even without Content-Length", async () => {
     const cancel = vi.fn();
@@ -134,7 +137,7 @@ describe("personal backend", () => {
       pull(controller) { controller.enqueue(new Uint8Array(1024 * 1024)); },
       cancel,
     });
-    await expect(limitedText(new Response(stream), MAX_FEED_BYTES)).rejects.toThrow("内容超过大小限制");
+    await expect(limitedText(new Response(stream), FREE_LIMITS.maxFeedBytes)).rejects.toThrow("内容超过大小限制");
     expect(cancel).toHaveBeenCalledOnce();
   });
   it("requires authentication and allows browser preflight without credentials", async () => {
@@ -160,8 +163,63 @@ describe("personal backend", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({
       product: "Dox Reader Backend",
+      plan: "free",
       config: { intervalMinutes: 60, maxArticles: 10000 },
+      limits: {
+        maxFeeds: FREE_LIMITS.maxFeeds,
+        dailyFetchAttempts: FREE_LIMITS.dailyFetchAttempts,
+        dailyWriteUnits: FREE_LIMITS.dailyWriteUnits,
+      },
     });
+  });
+  it("keeps the paid profile behind its own plan and clamps on downgrade", () => {
+    expect(resolveLimits(undefined)).toBe(FREE_LIMITS);
+    expect(resolveLimits("free")).toBe(FREE_LIMITS);
+    expect(resolveLimits("unknown")).toBe(FREE_LIMITS);
+    expect(resolveLimits(" paid ")).toBe(PAID_LIMITS);
+    expect(resolveLimits("PAID")).toBe(PAID_LIMITS);
+    expect(planName(FREE_LIMITS)).toBe("免费");
+    expect(planName(PAID_LIMITS)).toBe("付费");
+
+    // 免费档不接受付费档的范围，付费档接受双方的合法值。
+    expect(() =>
+      validateConfig({ intervalMinutes: 5, maxArticles: 50000 }, FREE_LIMITS),
+    ).toThrow();
+    expect(
+      validateConfig(
+        { intervalMinutes: 5, maxArticles: 100000 },
+        PAID_LIMITS,
+      ),
+    ).toEqual({ intervalMinutes: 5, maxArticles: 100000 });
+    expect(
+      validateConfig({ intervalMinutes: 60, maxArticles: 10000 }, PAID_LIMITS),
+    ).toEqual({ intervalMinutes: 60, maxArticles: 10000 });
+    expect(() =>
+      validateConfig({ intervalMinutes: 4, maxArticles: 1000 }, PAID_LIMITS),
+    ).toThrow();
+    expect(() =>
+      validateConfig({ intervalMinutes: 5, maxArticles: 100001 }, PAID_LIMITS),
+    ).toThrow();
+
+    // 降级到免费档后，已存的付费档配置必须立即收敛回免费档上限。
+    expect(
+      clampConfig({ intervalMinutes: 5, maxArticles: 50000 }, FREE_LIMITS),
+    ).toEqual({ intervalMinutes: 30, maxArticles: 10000 });
+    expect(
+      clampConfig({ intervalMinutes: 5, maxArticles: 50000 }, PAID_LIMITS),
+    ).toEqual({ intervalMinutes: 5, maxArticles: 50000 });
+    expect(clampConfig(null, PAID_LIMITS)).toEqual(PAID_LIMITS.defaultConfig);
+
+    // 正文上限随档位增大，免费档仍按 48 KiB 截断。
+    const long = "文".repeat(30000);
+    expect(
+      new TextEncoder().encode(
+        boundedContent(long, FREE_LIMITS.maxContentBytes),
+      ).length,
+    ).toBeLessThanOrEqual(FREE_LIMITS.maxContentBytes);
+    expect(boundedContent(long, PAID_LIMITS.maxContentBytes)).toBe(long);
+    expect(PAID_LIMITS.maxFeeds).toBeGreaterThan(FREE_LIMITS.maxFeeds);
+    expect(PAID_LIMITS.maxLibraryBytes).toBeGreaterThan(FREE_LIMITS.maxLibraryBytes);
   });
   it("rejects unsafe feed URLs and oversized policies", () => {
     for (const url of [
@@ -176,14 +234,16 @@ describe("personal backend", () => {
     ])
       expect(() => feedUrl(url)).toThrow();
     expect(() =>
-      validateConfig({ intervalMinutes: 1, maxArticles: 10000 }),
+      validateConfig({ intervalMinutes: 1, maxArticles: 10000 }, FREE_LIMITS),
     ).toThrow();
     expect(() =>
-      validateConfig({ intervalMinutes: 60, maxArticles: 10001 }),
+      validateConfig({ intervalMinutes: 60, maxArticles: 10001 }, FREE_LIMITS),
     ).toThrow();
     expect(
-      new TextEncoder().encode(boundedContent("文".repeat(50000))).length,
-    ).toBeLessThanOrEqual(MAX_CONTENT_BYTES);
+      new TextEncoder().encode(
+        boundedContent("文".repeat(50000), FREE_LIMITS.maxContentBytes),
+      ).length,
+    ).toBeLessThanOrEqual(FREE_LIMITS.maxContentBytes);
   });
   it("persists a scheduled alarm, fetches without a client, deduplicates and preserves state", async () => {
     const stub = make();

@@ -54,7 +54,7 @@ import {
   updateSyncedPreferences,
   getItem,
 } from "./repository";
-import { backendEnabled, backendOffline, backendCall, connectBackend, pullBackend, requestBackendRefresh, testBackend, type BackendConfig, type BackendStatus } from "./backend";
+import { backendEnabled, backendOffline, backendCall, backendLimits, connectBackend, pullBackend, requestBackendRefresh, testBackend, type BackendConfig, type BackendStatus } from "./backend";
 import { refreshFeed, refreshFeeds } from "./feed-service";
 import type { FeedRefreshProgress } from "./feed-service";
 import { needsInitialArticleRefresh } from "./initial-sync";
@@ -1146,6 +1146,8 @@ function SettingsDialog(props: {
   const backendDisplayStatus = editingSavedBackend
     ? props.backendStatus ?? backendTestStatus
     : backendTestStatus;
+  // 额度范围以连接成功时读到的后端 limits 为准，旧版本后端回退到免费档范围。
+  const limits = backendLimits(backendTestStatus);
   useEffect(() => {
     let cancelled = false;
     setBackendConfig(null);
@@ -1162,7 +1164,7 @@ function SettingsDialog(props: {
         if (cancelled) return;
         setBackendConfig(status.config);
         setBackendTestStatus(status);
-        setBackendInfo('连接成功 · 已用 ' + (status.storageBytes / 1024 / 1024).toFixed(1) + ' MB');
+        setBackendInfo('连接成功 · ' + (status.plan === 'paid' ? '付费档 · ' : status.plan === 'free' ? '免费档 · ' : '') + '已用 ' + (status.storageBytes / 1024 / 1024).toFixed(1) + ' MB');
       }).catch(error => {
         if (!cancelled) setBackendInfo(error instanceof Error ? error.message : String(error));
       }).finally(() => {
@@ -1252,8 +1254,8 @@ function SettingsDialog(props: {
               {backendInfo && <div class="connection-result">{backendInfo}</div>}
               {(backendDisplayNotice || backendDisplayStatus) && <div class="backend-fetch-status" role="status">{backendDisplayNotice || formatBackendStatus(backendDisplayStatus)}</div>}
                 <div class="field-row">
-                  <label class="field"><span>抓取间隔（分钟）</span><input type="number" min="30" max="10080" step="1" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.intervalMinutes ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)});}}/></label>
-                  <label class="field"><span>全库最新文章上限</span><input type="number" min="100" max="10000" step="100" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.maxArticles ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)});}}/></label>
+                  <label class="field"><span>抓取间隔（分钟）</span><input type="number" min={limits.intervalMinutes.min} max={limits.intervalMinutes.max} step="1" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.intervalMinutes ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)});}}/></label>
+                  <label class="field"><span>全库最新文章上限</span><input type="number" min={limits.maxArticles.min} max={limits.maxArticles.max} step="100" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.maxArticles ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)});}}/></label>
                 </div>
             </>}
           </section>

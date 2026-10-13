@@ -19,9 +19,15 @@ vi.mock("./settings", () => ({
   loadSettings: vi.fn(() => ({ ...DEFAULT_SETTINGS, webdavUrl: "https://dav.example/" })),
   saveSettings: vi.fn(), applyAppearance: vi.fn(),
 }));
-vi.mock("./backend", () => ({
-  backendEnabled: () => false, backendOffline: () => false, connectBackend: vi.fn(),
-}));
+vi.mock("./backend", async () => {
+  const actual = await vi.importActual<typeof import("./backend")>("./backend");
+  return {
+    ...actual,
+    backendEnabled: () => false,
+    backendOffline: () => false,
+    connectBackend: vi.fn(),
+  };
+});
 vi.mock("./webdav", () => ({ syncWithWebDav: vi.fn(), testWebDav: vi.fn(() => "连接成功") }));
 
 const feeds = ["A", "B"].map(id => ({

@@ -8,6 +8,7 @@ import {
   pullBackend,
   backendCache,
   backendArticle,
+  FALLBACK_LIMITS,
 } from "./backend";
 import * as local from "./database";
 import * as repo from "./repository";
@@ -129,6 +130,38 @@ describe("backend mode isolation", () => {
     await expect(pullBackend()).rejects.toThrow("offline");
     expect((await repo.listItems("all"))[0].content).toBe("Cached");
     expect((await backendArticle(item.id))?.content).toBe("Cached");
+  });
+  it("follows the limits reported by the backend when guarding snapshot pages", async () => {
+    await connectBackend(settings);
+    await backendCache().meta.clear();
+    const snapshot = (count: number) => ({
+      revision: 1,
+      feeds: [feed],
+      items: Array.from({ length: count }, (_value, index) => ({
+        ...item,
+        id: `item-${index}`,
+      })),
+      next: null,
+    });
+    const stub = (max: number, count: number) =>
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url, init) => {
+          const request = JSON.parse(init.body);
+          if (request.action === "status")
+            return Response.json({
+              ...status,
+              plan: "paid",
+              limits: { ...FALLBACK_LIMITS, maxArticles: { min: 100, max } },
+            });
+          return Response.json(snapshot(count));
+        }),
+      );
+    stub(100, 150);
+    await expect(pullBackend()).rejects.toThrow("后端分页响应无效");
+    stub(10000, 150);
+    await pullBackend();
+    expect(await backendCache().items.count()).toBe(150);
   });
   it("does not change local read state when the remote write fails", async () => {
     await connectBackend(settings);
