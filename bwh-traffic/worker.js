@@ -106,9 +106,9 @@ function isRedirect(status) {
 async function callKiwiVM(base, env) {
   const headers = { accept: "application/json" };
 
-  // 可选共享口令，避免中转被当成任意 API 的开放代理。
-  if (env.KIWIVM_RELAY_TOKEN) {
-    headers["x-relay-token"] = env.KIWIVM_RELAY_TOKEN;
+  // 中转的共享口令就是访问口令：中转只做这一条 API 转发，不需要第二份凭据。
+  if (env.ACCESS_TOKEN) {
+    headers["x-relay-token"] = env.ACCESS_TOKEN;
   }
 
   // Workers 只支持 follow / manual，所以手动把 3xx 当失败，API Key 不会被送到第二个主机。

@@ -163,17 +163,20 @@ test("缺少必要配置时报 500", async () => {
   assert.equal(await noKey.response.text(), "Missing BWH_API_KEY");
 });
 
-test("KIWIVM_BASE 指向中转并带上共享口令", async () => {
-  const env = {
-    ...ENV,
-    KIWIVM_BASE: "https://relay.example.com/kiwivm/v1/",
-    KIWIVM_RELAY_TOKEN: "relay-s3cret",
-  };
+test("KIWIVM_BASE 指向中转，共享口令复用 ACCESS_TOKEN", async () => {
+  const env = { ...ENV, KIWIVM_BASE: "https://bwh-traffic.example.com/" };
   const { calls, response } = await call(env);
 
   assert.equal(response.status, 200);
-  assert.equal(calls[0].url.startsWith("https://relay.example.com/kiwivm/v1/getServiceInfo?"), true);
-  assert.equal(calls[0].init.headers["x-relay-token"], "relay-s3cret");
+  // 基地址末尾斜杠去掉后直接接 /getServiceInfo
+  assert.equal(calls[0].url.startsWith("https://bwh-traffic.example.com/getServiceInfo?"), true);
+  assert.equal(calls[0].init.headers["x-relay-token"], ENV.ACCESS_TOKEN);
+});
+
+test("没有 ACCESS_TOKEN 时不带中转口令头", async () => {
+  const { calls } = await call({ ...ENV, ACCESS_TOKEN: "" }, { token: undefined });
+
+  assert.equal(calls[0].init.headers["x-relay-token"], undefined);
 });
 
 test("debug=1 在被拒时给出空 userinfo 与上游正文", async () => {

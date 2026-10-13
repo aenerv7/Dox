@@ -1593,20 +1593,18 @@ Sub-Store ──▶ bwh-traffic Worker ──▶ 中转 ──▶ api.64clouds.c
 ```powershell
 cd bwh-traffic
 npx wrangler deploy
-npx wrangler secret put ACCESS_TOKEN     # 访问口令，任意随机串
+npx wrangler secret put ACCESS_TOKEN     # 访问口令，同时也是中转的共享口令
 npx wrangler secret put BWH_VEID         # KiwiVM 面板里的 VEID
 npx wrangler secret put BWH_API_KEY      # KiwiVM 面板 API 页的 private_ 开头的 Key
-npx wrangler secret put KIWIVM_BASE      # 中转地址，例如 https://relay.example.com/kiwivm/v1
-npx wrangler secret put KIWIVM_RELAY_TOKEN  # 与中转的共享口令一致
+npx wrangler secret put KIWIVM_BASE      # 中转地址，例如 https://bwh-traffic.ddtwstudio.com
 ```
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `ACCESS_TOKEN` | 否 | 设置后必须带 `?token=<值>` 才能访问；不设置则公开可读 |
+| `ACCESS_TOKEN` | 否 | 设置后必须带 `?token=<值>` 才能访问；同时作为 `X-Relay-Token` 发给中转（不设置则不发该头） |
 | `BWH_VEID` | 是 | KiwiVM 的 VEID |
 | `BWH_API_KEY` | 是 | KiwiVM 的 API Key（`private_` 开头） |
-| `KIWIVM_BASE` | 否 | 中转基地址，默认 `https://api.64clouds.com/v1`（直连，当前会失败） |
-| `KIWIVM_RELAY_TOKEN` | 否 | 设置后每个上游请求带 `X-Relay-Token` 头，供中转做共享口令校验 |
+| `KIWIVM_BASE` | 否 | 中转基地址，只填 origin，Worker 自己接 `/getServiceInfo`；默认 `https://api.64clouds.com/v1`（直连，当前会失败） |
 
 `BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN` 一律走 `wrangler secret put`：secret 在 `wrangler deploy` 之间会保留，而 `wrangler.jsonc` 里的明文 `vars` 会被每次部署覆盖，把口令放进去等于每次上云都要重新配一遍。
 
@@ -1615,13 +1613,13 @@ npx wrangler secret put KIWIVM_RELAY_TOKEN  # 与中转的共享口令一致
 | 项 | 值 |
 |---|---|
 | Worker | `https://bwh-traffic.aenerv7.workers.dev` |
-| 中转 | `https://bwh-traffic.ddtwstudio.com/kiwivm/v1` → 搬瓦工 VPS `magi-bandwagonhost` 上的 Caddy（`/etc/caddy/Caddyfile`） |
+| 中转 | `https://bwh-traffic.ddtwstudio.com` → 搬瓦工 VPS `magi-bandwagonhost` 上的 Caddy（`/etc/caddy/Caddyfile`） |
 | 证书 | `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期） |
 | DNS | `bwh-traffic.ddtwstudio.com` A `23.106.154.176`，DNS only（不经过 Cloudflare 代理） |
 
 ### 中转
 
-任何不在 Cloudflare 上的 HTTP 服务都行，只需把 `/getServiceInfo` 连同查询串转发给 `https://api.64clouds.com/v1/getServiceInfo`。自己的 VPS 用 Caddy（当前实现）：
+任何不在 Cloudflare 上的 HTTP 服务都行，只需把 `/getServiceInfo` 连同查询串转发给 `https://api.64clouds.com/v1/getServiceInfo`。自己的 VPS 用 Caddy（当前实现，中转域名专用于本 Worker，所以路径没有额外前缀）：
 
 ```caddyfile
 bwh-traffic.ddtwstudio.com {
@@ -1630,12 +1628,12 @@ bwh-traffic.ddtwstudio.com {
     # 只放行 Worker 的 getServiceInfo，且必须带共享口令，避免变成开放代理
     @relay {
         method GET
-        path /kiwivm/v1/getServiceInfo
-        header X-Relay-Token <共享口令>
+        path /getServiceInfo
+        header X-Relay-Token <ACCESS_TOKEN>
     }
 
     handle @relay {
-        uri strip_prefix /kiwivm
+        uri replace /getServiceInfo /v1/getServiceInfo
         reverse_proxy https://api.64clouds.com {
             header_up Host api.64clouds.com
         }
@@ -1647,13 +1645,13 @@ bwh-traffic.ddtwstudio.com {
 }
 ```
 
-改完 `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` 再 `systemctl reload caddy`。`<共享口令>` 与 Worker 的 `KIWIVM_RELAY_TOKEN` 必须一致，换口令要同时改两处并 `wrangler secret put`。
+改完 `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` 再 `systemctl reload caddy`。`<ACCESS_TOKEN>` 与 Worker 的访问口令是同一个值，换口令要同时改 Caddyfile 和 `wrangler secret put ACCESS_TOKEN`。
 
 nginx 等价写法：
 
 ```nginx
-location = /kiwivm/v1/getServiceInfo {
-    if ($http_x_relay_token != "<共享口令>") { return 403; }
+location = /getServiceInfo {
+    if ($http_x_relay_token != "<ACCESS_TOKEN>") { return 403; }
     if ($request_method != GET) { return 403; }
 
     proxy_pass https://api.64clouds.com/v1/getServiceInfo;

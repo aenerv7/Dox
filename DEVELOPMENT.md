@@ -1508,7 +1508,7 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 | `bwh-traffic/worker.test.js` | `node --test` 单元测试，桩掉 `fetch`，不访问网络 |
 | `bwh-traffic/wrangler.jsonc` | Worker 名 `bwh-traffic`，入口 `worker.js` |
 
-Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`、`KIWIVM_BASE`、`KIWIVM_RELAY_TOKEN`。**不含 KV / D1 / R2 / Durable Objects / Cron**，纯请求-响应。
+Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`（同时是中转的共享口令）、`KIWIVM_BASE`。**不含 KV / D1 / R2 / Durable Objects / Cron**，纯请求-响应。
 
 #### 上游事实（2026-10 实测）
 
@@ -1519,9 +1519,9 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`、`KIWIVM_BASE`、`K
 
 #### 中转现状
 
-中转是搬瓦工 VPS `magi-bandwagonhost`（`23.106.154.176:16022`）上的一个 Caddy 站点块，写在 `/etc/caddy/Caddyfile`：`bwh-traffic.ddtwstudio.com` 只放行 `GET /kiwivm/v1/getServiceInfo` 且必须带 `X-Relay-Token`，`uri strip_prefix /kiwivm` 后反代到 `https://api.64clouds.com`（`header_up Host api.64clouds.com`），其余请求一律 403。共用 `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期），DNS 是 DNS only 的 A 记录。改配置后先 `caddy validate`，再 `systemctl reload caddy`。
+中转是搬瓦工 VPS `magi-bandwagonhost`（`23.106.154.176:16022`）上的一个 Caddy 站点块，写在 `/etc/caddy/Caddyfile`：`bwh-traffic.ddtwstudio.com` 只放行 `GET /getServiceInfo` 且必须带 `X-Relay-Token`（值等于 Worker 的 `ACCESS_TOKEN`），`uri replace /getServiceInfo /v1/getServiceInfo` 后反代到 `https://api.64clouds.com`（`header_up Host api.64clouds.com`），其余请求一律 403。这个二级域名专用于本 Worker，所以路径里不再有 `/kiwivm` 和 `/v1` 前缀，`KIWIVM_BASE` 就是 `https://bwh-traffic.ddtwstudio.com`。共用 `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期），DNS 是 DNS only 的 A 记录。改配置后先 `caddy validate`，再 `systemctl reload caddy`。
 
-中转口令在两处必须一致：Caddyfile 的 `header X-Relay-Token` 与 Worker secret `KIWIVM_RELAY_TOKEN`；轮换口令要同时改两处。中转不可用时 Worker 会以 502 报出上游状态，不影响其它模块。
+中转口令只有一份：Caddyfile 的 `header X-Relay-Token` 与 Worker 的 `ACCESS_TOKEN` 必须同值，换口令改两处（`wrangler secret put ACCESS_TOKEN` + Caddyfile）。中转不可用时 Worker 会以 502 报出上游状态，不影响其它模块。
 
 #### 不变量
 
@@ -1531,7 +1531,7 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`、`KIWIVM_BASE`、`K
 4. 成功响应按平铺字段解析，同时兼容网关加 `data` 信封；两者都不满足时报 502 并列出实际字段名。
 5. `ACCESS_TOKEN` 为空时不校验口令；配置后不匹配必须在请求上游之前返回 403。
 6. `?debug=1` 回显上游状态、字段名、截断正文和算出的 userinfo，是排查线上问题的唯一入口，不得删。
-7. `BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN` 只用 `wrangler secret put` 配置：secret 跨 `wrangler deploy` 保留，明文 `vars` 会被覆盖清空（历史版本用明文 var 存过前两者，一次部署就丢了）。
+7. `BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN`、`KIWIVM_BASE` 只用 `wrangler secret put` 配置：secret 跨 `wrangler deploy` 保留，明文 `vars` 会被覆盖清空（历史版本用明文 var 存过 VEID 和访问口令，一次部署就丢了）。
 
 #### 验证
 
@@ -1540,9 +1540,9 @@ node --test bwh-traffic/worker.test.js
 cd bwh-traffic; npx wrangler deploy --dry-run
 ```
 
-覆盖：成功正文与响应头同值、查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与共享口令、`debug=1`。
+覆盖：成功正文与响应头同值、查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与复用 `ACCESS_TOKEN` 的中转口令、`debug=1`。
 
-线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<重置时间>`；若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <口令>" "https://bwh-traffic.ddtwstudio.com/kiwivm/v1/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
+线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<重置时间>`；若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <ACCESS_TOKEN>" "https://bwh-traffic.ddtwstudio.com/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
 
 ## 4. 开发环境与构建命令速查
 
