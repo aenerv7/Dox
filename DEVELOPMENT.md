@@ -1514,6 +1514,12 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`、`KIWIVM_BASE`、`K
 2. **来自 Cloudflare 出口的 `/v1/*` 请求被拒**：返回 `HTTP 200` + `{ "success": true, "token": <n> }`（`content-type: text/html`），永远拿不到服务信息。已排除的因素：GET/POST、查询串或表单传参、有无 User-Agent、完整浏览器头、`CF-Worker` / `CDN-Loop` / `X-Forwarded-For` 头、`/v1/` 之外的路径、`kiwivm.64clouds.com` 上的 `/v1` `/api/v1`、明文 HTTP、把 token 回填（查询串 / 头 / Cookie）。同一 URL 从非 Cloudflare 出口（本机 curl、r.jina.ai）能拿到正常响应，含 700005 认证失败。→ 结论是**出口维度**的拦截，不是凭据、请求头或路径问题，Worker 内没有任何代码改动能绕过。
 3. 因此上游必须经 `KIWIVM_BASE` 指向的非 Cloudflare 中转访问；默认值仍为 `https://api.64clouds.com/v1`，直连失败时返回明确的 `BLOCKED_HINT`，不再报成"缺流量字段"。
 
+#### 中转现状
+
+中转是搬瓦工 VPS `magi-bandwagonhost`（`23.106.154.176:16022`）上的一个 Caddy 站点块，写在 `/etc/caddy/Caddyfile`：`bwh-traffic.ddtwstudio.com` 只放行 `GET /kiwivm/v1/getServiceInfo` 且必须带 `X-Relay-Token`，`uri strip_prefix /kiwivm` 后反代到 `https://api.64clouds.com`（`header_up Host api.64clouds.com`），其余请求一律 403。共用 `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期），DNS 是 DNS only 的 A 记录。改配置后先 `caddy validate`，再 `systemctl reload caddy`。
+
+中转口令在两处必须一致：Caddyfile 的 `header X-Relay-Token` 与 Worker secret `KIWIVM_RELAY_TOKEN`；轮换口令要同时改两处。中转不可用时 Worker 会以 502 报出上游状态，不影响其它模块。
+
 #### 不变量
 
 1. `subscription-userinfo` 格式固定 `upload=0; download=<已用>; total=<配额>[; expire=<下次重置>]`，字节数均为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量全部计入 `download`。
@@ -1533,7 +1539,7 @@ cd bwh-traffic; npx wrangler deploy --dry-run
 
 覆盖：成功头拼装与查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与共享口令、`debug=1`。
 
-线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`；若为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。改上游字段、响应头语义或中转约定时，同一提交更新本节与模块 `README.md`。
+线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<重置时间>`；若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <口令>" "https://bwh-traffic.ddtwstudio.com/kiwivm/v1/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与模块 `README.md`。
 
 ## 4. 开发环境与构建命令速查
 
