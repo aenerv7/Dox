@@ -27,9 +27,25 @@ CapsLockOSD/CapsLockOSD.ini
 Firefox/**/web-ext-artifacts/
 Firefox/**/.amo-upload-uuid
 
+# Firefox registry scripts
+Firefox/__pycache__/
+
+# Firefox 简体中文补丁（构建产物、原版备份与本机报告）
+Firefox/build/
+Firefox/backups/
+Firefox/validation.json
+
+# Firefox/Zen（补丁构建产物、原版备份与本机报告）
+Firefox/Zen/**/build/
+Firefox/Zen/**/backups/
+Firefox/Zen/**/__pycache__/
+Firefox/Zen/**/dist/
+Firefox/Zen/**/validation.json
+Firefox/Zen/**/runtime-validation.json
+
 # PortableBridge build output (including the old local build directory)
 Firefox/PortableBridge/bin/
-PortableBridge/bin/
+PortableBridge/**/bin/
 
 # DeepSeek Harness Launcher（构建产物）
 DeepSeek Harness/Launcher/bin/
@@ -45,3 +61,30 @@ HeliumLanguagePatcher/__pycache__/
 HeliumLanguagePatcher/*.bak
 HeliumLanguagePatcher/*.bak-*
 HeliumLanguagePatcher/.*.tmp
+
+# Dox Reader 网页版与后端（依赖、构建产物与本机凭据）
+Dox Reader/Cloudflare Workers/**/node_modules/
+Dox Reader/Cloudflare Workers/**/dist/
+Dox Reader/Cloudflare Workers/**/.wrangler/
+Dox Reader/Cloudflare Workers/**/*.log
+Dox Reader/Backend/**/node_modules/
+Dox Reader/Backend/**/dist/
+Dox Reader/Backend/**/.wrangler/
+Dox Reader/Backend/**/.dev.vars
+Dox Reader/Backend/**/.env*
+
+# Sub-Store 部署产物与本地上游源码
+sub-store/**/.upstream/
+sub-store/**/build/
+sub-store/**/node_modules/
+sub-store/**/.wrangler/
+
+# Sub-Store-Front-End 上游 release 解压产物与本地依赖
+sub-store-front-end/**/dist/
+sub-store-front-end/**/build/
+sub-store-front-end/**/node_modules/
+sub-store-front-end/**/.wrangler/
+
+# bwh-traffic Worker 本地依赖与 wrangler 状态
+bwh-traffic/**/node_modules/
+bwh-traffic/**/.wrangler/

@@ -1,5 +1,0 @@
-# 上游 release 解压产物与本地依赖
-dist/
-build/
-node_modules/
-.wrangler/

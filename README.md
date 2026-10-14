@@ -9,6 +9,7 @@
 - 想处理 Edge 默认关联残留：先运行 `Scripts/RemoveMSEdge.bat -audit-associations`，确认后再使用 `-repair-associations`；这两个入口只检查/修复关联，不会卸载 Edge。
 - 想安装或升级 FFmpeg：运行 `Scripts/InstallFFmpeg.ps1`，它升级 `PATH` 中 `ffmpeg.exe` 所在的那份安装，重复运行即替换为新版本；`PATH` 里没有 `ffmpeg.exe` 时脚本不安装任何东西。
 - 想修改 Helium 翻译：先阅读下方“Helium 语言补丁”，完整实现和测试约束见 [`DEVELOPMENT.md`](./DEVELOPMENT.md#315-heliumlanguagepatcher)。
+- 想补全 Firefox 界面翻译：运行 `Firefox/patch_firefox.py`，它会按 Firefox 当前语言找缺项，先 `scan` 看缺项，再 `build` 自动翻译并生成补丁（需要本机运行 magpie）。
 
 ## 功能一览
 
@@ -23,7 +24,9 @@
 | [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
 | [`bwh-traffic`](./bwh-traffic) | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
 | [`Firefox/AutoSortBookmarks`](./Firefox/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
-| [`Firefox/Zen`](#zen中文补全与默认应用重复项) | Zen 简体中文补全与快捷键显示修正，自动识别安装和配置目录，支持备份还原；另含默认应用重复项清理 |
+| [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py) | 清理让「设置 > 默认应用」重复显示 Firefox 或 Zen 的注册表项 |
+| [`Firefox/patch_firefox.py`](./Firefox/patch_firefox.py) | Firefox 界面翻译补全：按当前语言扫描缺项、调用本机 magpie 自动翻译并生成可还原的资源补丁 |
+| [`Firefox/Zen`](#zen中文补全与默认应用重复项) | Zen 简体中文补全与快捷键显示修正，自动识别安装和配置目录，支持备份还原 |
 | [`PortableBridge`](./PortableBridge) | Firefox / Chrome 便携浏览器会话级 HTTP(S) 桥接，最近启动者接管 |
 | [`Scripts`](./Scripts) | Windows 批处理工具、Edge 关联清理辅助脚本和 FFmpeg 安装脚本 |
 | [`DeepSeek Harness/Launcher`](#deepseek-harness-launcher) | Windows 托盘监督器，负责启动、停止和重启本地 DeepSeek Harness |
@@ -451,7 +454,7 @@ URL 日志只记录时间、调用方、协议/主机、通道和结果，不记
 
 ## Zen（中文补全与默认应用重复项）
 
-[`Firefox/Zen`](#zen中文补全与默认应用重复项) 为 Windows 版 Zen **1.23.2b / Gecko 157.0.1**（Build ID `20261009073723`）补齐 329 个简体中文条目，并将快捷键统一显示为 `F5`、`Shift+F5`、`Home`、`End` 等文本形式。同目录的 `fix_zen_duplicate.py` 删除让「设置 > 默认应用」重复显示 Zen 的注册表项。
+[`Firefox/Zen`](#zen中文补全与默认应用重复项) 为 Windows 版 Zen **1.23.2b / Gecko 157.0.1**（Build ID `20261009073723`）补齐 329 个简体中文条目，并将快捷键统一显示为 `F5`、`Shift+F5`、`Home`、`End` 等文本形式。重复注册项清理已移到 [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py)，同时处理 Firefox 与 Zen。
 
 需要 Python 3.11+，安装目录和用户配置自动识别。在仓库根目录运行：
 
@@ -459,20 +462,21 @@ URL 日志只记录时间、调用方、协议/主机、通道和结果，不记
 python .\Firefox\Zen\patch_zen.py detect
 # 完全退出 Zen 后安装；Program Files 安装版通常需要管理员终端
 python .\Firefox\Zen\patch_zen.py install
-python .\Firefox\Zen\fix_zen_duplicate.py detect
+python .\Firefox\fix_duplicate.py detect
 ```
 
 首次安装会自动生成补丁并备份原文件；`restore` 可还原，`--profile` 可指定非默认配置。源文件可复制到其他 Windows 电脑使用，不需要携带本机配置或浏览器资源包。补丁严格校验版本与资源包哈希，Zen 升级后需要重新适配。新版新增英文消息时，`build` 会按本机 Codex 配置自动翻译、写回 `translations.ftl` 并停止等待复核后重跑；无法联网时用 `--no-translate` 只列缺项。
 
 维护说明见 [DEVELOPMENT.md](./DEVELOPMENT.md#316-zen中文补全与默认应用重复项)。
 
-Windows 版 Zen Browser 的两个本机脚本。适用版本：**Zen 1.23.2b / Gecko 157.0.1**，Build ID `20261009073723`。
+Windows 版 Zen Browser 的中文补全脚本。适用版本：**Zen 1.23.2b / Gecko 157.0.1**，Build ID `20261009073723`。
 安装目录和用户配置目录均自动识别，不需要修改脚本中的用户名或随机配置文件名。
 
 | 脚本 | 用途 |
 |---|---|
 | [`patch_zen.py`](#简体中文补全) | 追加简体中文条目、修正快捷键显示，支持备份还原 |
-| [`fix_zen_duplicate.py`](#默认应用重复项) | 删除「设置 > 默认应用」里重复的 Zen 注册项 |
+
+重复注册项清理脚本由 Firefox 与 Zen 共用，见 [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py) 与[默认应用重复项](#默认应用重复项)。
 
 实现结构、资源基线、判定规则、重新构建及测试方法统一见仓库根 [DEVELOPMENT.md](DEVELOPMENT.md#316-zen中文补全与默认应用重复项)。
 
@@ -583,7 +587,9 @@ python .\patch_zen.py install --install-dir 'D:\Apps\Zen' --profiles-root 'D:\Ze
 
 ### 默认应用重复项
 
-「设置 > 应用 > 默认应用」每行对应注册表里一条 `RegisteredApplications` 记录，不是一个程序一行。Zen 安装程序把同一个客户端键同时写进机器级和用户级两个位置，于是同一个 Zen 显示两行：
+清理脚本位于 [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py)，Firefox 与 Zen 共用。
+
+「设置 > 应用 > 默认应用」每行对应注册表里一条 `RegisteredApplications` 记录，不是一个程序一行。Zen 安装程序把同一个客户端键同时写进机器级和用户级两个位置，于是同一个 Zen 显示两行；Firefox 安装同样会留下机器级与用户级两条：
 
 ```text
 HKLM\Software\RegisteredApplications   Firefox-<hash> -> Software\Clients\StartMenuInternet\Firefox-<hash>\Capabilities
@@ -593,22 +599,22 @@ HKCU\Software\RegisteredApplications   Firefox-<hash> -> 同一目标
                                              Zen
 ```
 
-只读检查（Zen 运行中也可以执行）：
+只读检查（浏览器运行中也可以执行）：
 
 ```powershell
-python .\fix_zen_duplicate.py detect
+python .\Firefox\fix_duplicate.py detect
 ```
 
 确认输出后清理：
 
 ```powershell
-python .\fix_zen_duplicate.py fix
+python .\Firefox\fix_duplicate.py fix
 ```
 
-- 只处理可执行文件名为 `zen.exe` 的注册项，Firefox 等其他浏览器不受影响。
-- 两处指向同一个 `zen.exe` 时删除用户级（HKCU）那条并保留机器级，按用户和按机器两种安装都能保留可用入口。
+- 只处理可执行文件名为 `firefox.exe` 或 `zen.exe` 的注册项；Firefox 与 Zen 各自判定，一个浏览器的注册项不会被当成另一个的重复项，其他浏览器不受影响。
+- 两处指向同一个可执行文件时删除用户级（HKCU）那条并保留机器级，按用户和按机器两种安装都能保留可用入口。
 - 文件已不存在而所在磁盘仍在的注册项按残留删除；磁盘不在的保留，避免误删暂时离线的移动盘安装。
-- 两份 `zen.exe` 都真实存在（两份 Zen 安装）时不删除，只在输出的 `unresolved` 中列出，由人工判断。
+- 同一浏览器有两份都真实存在的可执行文件（两份安装）时不删除，只在输出的 `unresolved` 中列出，由人工判断。
 - 删除 HKCU 项不需要管理员权限；涉及 HKLM 项时需要管理员终端，否则以退出码 1 结束并列出失败项。
 - 清理后设置页面立即刷新，不需要重启。Zen 再次写入用户级注册时重复项会回来，重跑一次即可。
 
@@ -629,7 +635,7 @@ python .\patch_zen.py build --install-dir '.\backups\20261009073723'
 
 新版新增英文条目时，`build` 会先自动翻译、写回并停止（见上文），确认后才产出资源包；`--no-translate` 只列缺项。
 
-`fix_zen_duplicate.py` 不写文件，只删除注册表项；删除前可用 `detect` 查看将删除的内容，HKCU 部分可用 `reg export` 自行备份。
+`Firefox/fix_duplicate.py` 不写文件，只删除注册表项；删除前可用 `detect` 查看将删除的内容，HKCU 部分可用 `reg export` 自行备份。
 
 ### 浏览器更新
 
@@ -639,6 +645,79 @@ Zen 更新可能覆盖这些本地资源。补丁不依赖固定的原版哈希�
 
 原始资源来自本机 Zen 安装包，对应 `zen-browser/desktop` 提交 `185e856f68a451dc71988e988bc080c56452ea66`，以及其基于的 Mozilla 资源。
 对原有源文件的修改遵循其 Mozilla Public License 2.0；生成的 JavaScript 保留原许可证头。原文与本地翻译之间的消息 ID 对应关系可在 `translations.ftl`、生成资源和校验清单中核对。
+
+## Firefox 界面翻译补全
+
+[`Firefox/patch_firefox.py`](./Firefox/patch_firefox.py) 先判定安装包自带哪些语言、Firefox 当前用的是哪一种，再扫描「英文有、该语言没有」的界面文案，调用本机 magpie 的 OpenAI 兼容接口翻译，并生成可还原的 `omni.ja` / `browser/omni.ja` 补丁。当前语言是英文时没有可补的内容。
+
+适用：本机已安装且至少启动过一次的 Firefox（发布版 / ESR / Developer Edition / Nightly 均可），需要 Python 3.11+ 和本机运行的 magpie。在仓库根目录运行：
+
+```powershell
+python .\Firefox\patch_firefox.py detect     # 只读：版本、安装目录、配置、自带语言与当前语言
+python .\Firefox\patch_firefox.py scan       # 只读：列出缺项（加 --verbose 显示消息 ID）
+python .\Firefox\patch_firefox.py build      # 自动翻译缺项并生成补丁
+python .\Firefox\patch_firefox.py validate   # 校验补丁（需要 fluent.syntax）
+# 完全退出 Firefox 后（Program Files 安装通常需要管理员终端）
+python .\Firefox\patch_firefox.py install
+python .\Firefox\patch_firefox.py verify
+python .\Firefox\patch_firefox.py restore    # 还原
+```
+
+`install` 与 `restore` 需要安装目录写权限，并且必须先完全退出 Firefox（包括后台进程）。其余命令不需要管理员权限，浏览器可以开着。复制到其他电脑时只需 `Firefox/patch_firefox.py`、对应的 `Firefox/translations.<语言>.ftl`，不需要 `build/`、`backups/` 或本机配置。
+
+### 语言判定
+
+`detect` 会打印安装包自带的语言（`shipped_locales`）和判定出的当前语言（`locale`）及其依据（`source`）。顺序为：
+
+1. `--target-locale 语言代码`；
+2. 配置 `prefs.js` 的 `intl.locale.requested`（逗号列表取第一项），其次 `general.useragent.locale`；
+3. 安装目录 `defaults/pref/*.js`（其次归档内 `defaults/pref/*.js`）的 `general.useragent.locale`；
+4. 安装包中唯一的非英文语言；
+5. 安装包中唯一的语言。
+
+自带多种非英文语言而配置里没写时，脚本会列出可选语言并要求 `--target-locale`；指定的语言不在自带语言中也会明确报错。译文按语言分文件保存：`Firefox/translations.<语言>.ftl`（例如 `translations.zh-CN.ftl`、`translations.ja.ftl`）。`build/` 里的补丁只对应一种语言：语言变化后 `build` 会拒绝，要求先 `restore` 或删除 `build/` 再重建。
+
+### magpie 配置
+
+默认连接本机 `http://127.0.0.1:16110/v1`，模型 `opencode-go/deepseek-v4.1-flash`。
+
+| 参数 | 环境变量 | 说明 |
+|---|---|---|
+| `--base-url` | `MAGPIE_BASE_URL` | OpenAI 兼容地址；非本机地址必须是 HTTPS |
+| `--model` | `MAGPIE_MODEL` | 模型名；不存在时会列出可用示例并退出 |
+| `--api-key` | `MAGPIE_API_KEY` | 只有需要密钥的网关才要填，本机 magpie 通常不需要 |
+
+翻译前脚本会先请求 `/models`：magpie 没运行、地址写错或模型不存在都会立刻打印原因并以退出码 1 结束，不写任何文件。译文按检测到的语言翻译（提示词里写明目标语言），每批 16 条，逐条比对消息 ID、属性、变量引用和命名链接，任何一条不合格就整体失败且不写入。
+
+### 常用参数
+
+| 参数 | 作用 |
+|---|---|
+| `--target-locale 语言代码` | 指定要补全的语言，覆盖自动判定（如 `zh-CN`、`ja`） |
+| `--install-dir 目录` | 手动指定安装目录；有多个安装，或要从备份目录构建时使用 |
+| `--profile 名称或路径` | 指定配置；语言判定会读它的 `prefs.js`，默认自动识别 |
+| `--limit N` | 只翻译前 N 条缺项，适合分批推进或先看译文质量 |
+| `--review-first` | 翻译并写入译文文件后停下，复核后再运行 `build` |
+| `--no-translate` | 只报告缺项，不联网 |
+| `--original-dir 目录` | `validate` 的参照原版目录；默认用构建来源或 `backups/<Build ID>` |
+| `--verbose` | `scan` 时列出每条缺失消息的 ID |
+
+### 译文与还原
+
+- 译文按语言写在 `Firefox/translations.<语言>.ftl`，按 `# @file <归档> <资源>` 分段；`build` 只追加、不重排，重复运行不会重复写入。
+- 想重译某条：删掉该条再运行 `build`。想先复核再生效：`build --review-first`，确认后重新 `build`。
+- `build/` 保存补丁、构建清单和可读资源；`backups/<Build ID>/` 保存原版资源包，保留它才能 `restore`。
+- Firefox 升级后直接运行 `install`：检测到没见过的原版资源会按新版自动重建补丁；升级覆盖掉补丁时重跑一次即可。
+- 补丁只改 `localization/<语言>/` 下的 Fluent 资源，不动代码、偏好设置、书签、扩展或配置目录；缓存只清理所选配置的 `startupCache`。
+
+### 限制
+
+- 只补 Fluent（`.ftl`）文案，`*.properties`、`*.dtd` 等旧格式不在范围内。
+- 只能补安装包自带语言中的一种；语言包未安装的语言会明确报错，纯英文安装没有可补的内容。
+- 自动译文没有逐条人工审阅，界面文案以实际显示为准；重要界面建议用 `--review-first` 过一遍。
+- 修改 `omni.ja` 属于改动安装目录，Firefox 自动更新仍会替换这些文件。
+
+维护说明见 [DEVELOPMENT.md](./DEVELOPMENT.md#319-firefox界面翻译补全)。
 
 ## Firefox 扩展
 

@@ -1,18 +1,19 @@
-"""Remove the duplicate Zen registration that makes Windows list Zen twice.
+"""Remove duplicate Windows "Default apps" registrations for Firefox and Zen.
 
-Windows renders one "Default apps" row per registered application entry. Zen
-writes the same client key to the machine hive and the user hive, so one
+Windows renders one "Default apps" row per registered application entry. Firefox
+and Zen write the same client key to the machine hive and the user hive, so one
 installation is registered twice:
 
     HKLM\\Software\\RegisteredApplications   Firefox-<hash> -> Software\\Clients\\StartMenuInternet\\Firefox-<hash>\\Capabilities
     HKCU\\Software\\RegisteredApplications   Firefox-<hash> -> same target
                         |
-                        +-- Settings > Default apps:  Zen
-                                                      Zen
+                        +-- Settings > Default apps:  Firefox
+                                                      Firefox
 
 `detect` reports without writing; `fix` keeps one entry per installation and
 deletes the rest. The machine hive wins when both hives name the same
-executable; two live installations on different paths are never touched.
+executable; two live installations on different paths are never touched. Each
+browser is planned apart, so a live Firefox is never read as a second Zen.
 """
 from __future__ import annotations
 
@@ -24,7 +25,7 @@ from pathlib import Path
 
 REGISTERED = r'Software\RegisteredApplications'
 CLIENTS = r'Software\Clients\StartMenuInternet'
-EXECUTABLE = 'zen.exe'
+BROWSERS = ('firefox.exe', 'zen.exe')  # Both use Firefox-<hash> keys, so plan them per product.
 HIVES = ('HKLM', 'HKCU')  # Machine-wide first: it outlives any single user profile.
 LIVE, GONE, OFFLINE = 'live', 'gone', 'offline'
 
@@ -46,9 +47,15 @@ class Entry:
 
 @dataclass
 class Plan:
-    keep: Entry | None = None
+    keeps: list = field(default_factory=list)       # one entry per browser
     remove: list = field(default_factory=list)      # duplicates and dead leftovers
     unresolved: list = field(default_factory=list)  # kept for the user to judge
+
+    def extend(self, other):
+        # Both browsers share one report; each contributes at most one keep.
+        self.keeps += other.keeps
+        self.remove += other.remove
+        self.unresolved += other.unresolved
 
 
 def normal(path):
@@ -80,25 +87,39 @@ def rank(entry):
     return (HIVES.index(entry.hive), entry.key_id.lower())
 
 
+def product(entry):
+    return entry.exe.name.lower()
+
+
 def classify(entries, probe=probe_state):
-    """Pick the entry to keep and the entries that are safe to delete."""
-    zen = [entry for entry in entries if entry.exe.name.lower() == EXECUTABLE]
-    states = {normal(entry.exe): probe(entry.exe) for entry in zen}
-    live = [entry for entry in zen if states[normal(entry.exe)] == LIVE]
+    """Pick one entry to keep per browser and the entries that are safe to delete."""
+    plan = Plan()
+    for browser in BROWSERS:
+        # A Zen entry must never count as a duplicate Firefox installation, and the reverse.
+        group = [entry for entry in entries if product(entry) == browser]
+        if group:
+            plan.extend(plan_browser(group, probe))
+    return plan
+
+
+def plan_browser(entries, probe=probe_state):
+    """Pick the entry to keep and the entries that are safe to delete for one browser."""
+    states = {normal(entry.exe): probe(entry.exe) for entry in entries}
+    live = [entry for entry in entries if states[normal(entry.exe)] == LIVE]
     if not live:
         # Nothing runnable: report only, never delete the last registration.
-        return Plan(None, [], zen)
+        return Plan([], [], list(entries))
 
     keep = min(live, key=rank)
     remove, unresolved = [], []
-    for entry in zen:
+    for entry in entries:
         if entry is keep:
             continue
         if normal(entry.exe) == normal(keep.exe) or states[normal(entry.exe)] == GONE:
             remove.append(entry)
         else:
             unresolved.append(entry)
-    return Plan(keep, remove, unresolved)
+    return Plan([keep], remove, unresolved)
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +168,7 @@ def client_executable(root, target):
 
 
 def read_entries():
-    """All registered applications whose executable is zen.exe."""
+    """All registered applications whose executable is Firefox or Zen."""
     roots = hive_roots()
     entries = []
     for hive in HIVES:
@@ -158,7 +179,7 @@ def read_entries():
             continue
         for key_id, target in pairs:
             exe = client_executable(root, target)
-            if exe is None or exe.name.lower() != EXECUTABLE:
+            if exe is None or exe.name.lower() not in BROWSERS:
                 continue
             entries.append(Entry(hive, key_id, exe, value(root, target, 'ApplicationName') or ''))
     return entries
@@ -190,7 +211,7 @@ def delete_entry(entry):
 # ---------------------------------------------------------------------------
 
 def describe(plan):
-    return {'keep': plan.keep.describe() if plan.keep else None,
+    return {'keeps': [entry.describe() for entry in plan.keeps],
             'remove': [entry.describe() for entry in plan.remove],
             'unresolved': [entry.describe() for entry in plan.unresolved],
             'needs_fix': bool(plan.remove)}
@@ -212,28 +233,29 @@ def apply(plan):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='fix_zen_duplicate.py', add_help=False,
+        prog='fix_duplicate.py', add_help=False,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description='删除让「设置 > 默认应用」重复显示 Zen 的注册表项（Windows / Python 3.11+）。',
+        description='删除让「设置 > 默认应用」重复显示 Firefox 或 Zen 的注册表项（Windows / Python 3.11+）。',
         epilog=r'''命令说明：
   help    显示本帮助；不传命令时也显示帮助，不写入注册表。
-  detect  只读检查，列出 Zen 的注册项、保留项和待删除项。
+  detect  只读检查，列出 Firefox 与 Zen 的注册项、保留项和待删除项。
   fix     删除重复项：每个安装只保留一条注册，机器级（HKLM）优先。
 
 判定规则：
-  只处理可执行文件名为 zen.exe 的注册项，Firefox 等其他浏览器不受影响。
-  两个 hive 指向同一个 zen.exe 时删除用户级（HKCU）那条，机器级保留。
+  只处理可执行文件名为 firefox.exe 或 zen.exe 的注册项，其他浏览器不受影响。
+  Firefox 与 Zen 各自判定，一个浏览器的注册项不会被当成另一个的重复项。
+  两个 hive 指向同一个可执行文件时删除用户级（HKCU）那条，机器级保留。
   文件已不存在且所在磁盘仍在的注册项按残留删除；磁盘不在的保留，避免误删移动盘安装。
-  两处指向不同且都存在的 zen.exe（两份 Zen 安装）不删除，只在 unresolved 中报告。
+  两处指向不同且都存在的同一浏览器可执行文件（两份安装）不删除，只在 unresolved 中报告。
 
 权限与退出：
-  detect 无需管理员权限，Zen 可以开着。
+  detect 无需管理员权限，浏览器可以开着。
   fix 删除 HKCU 项无需管理员；删除 HKLM 项需要管理员终端，否则记入 failed 并以退出码 1 结束。
   重复项清掉后设置页面立即刷新，不需要重启。
 
 常用示例：
-  python -B .\fix_zen_duplicate.py detect
-  python -B .\fix_zen_duplicate.py fix
+  python -B .\fix_duplicate.py detect
+  python -B .\fix_duplicate.py fix
 
 相关说明见仓库根 README.md 的 Zen 小节。''')
     parser.add_argument('-h', '--help', action='help', help='显示中文使用指南并退出')

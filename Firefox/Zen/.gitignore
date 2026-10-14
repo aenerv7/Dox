@@ -1,6 +1,0 @@
-build/
-backups/
-__pycache__/
-dist/
-validation.json
-runtime-validation.json
