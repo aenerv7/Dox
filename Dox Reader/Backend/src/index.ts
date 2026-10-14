@@ -17,6 +17,11 @@ type Bindings = Env & { BACKEND_TOKEN?: string; PLAN?: string };
 const FEED_FETCH_TIMEOUT_MS = 90_000;
 const FETCH_LEASE_MS = FEED_FETCH_TIMEOUT_MS + 30_000;
 const FEED_USER_AGENT = "Dox-Reader/1.1 (+https://github.com/aenerv7/Dox)";
+// 变更日志每次最多下发多少条；保留条数决定客户端还能不能增量同步。
+const CHANGE_PAGE = 200;
+const MAX_CHANGES = 50_000;
+// SQLite 单条语句最多 100 个绑定参数，按块查询时留余量。
+const SQL_PARAM_LIMIT = 90;
 type Row = {
   id: string;
   url: string;
@@ -62,6 +67,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       INSERT OR IGNORE INTO totals VALUES(1,0,0);
       CREATE TRIGGER IF NOT EXISTS article_insert AFTER INSERT ON articles BEGIN UPDATE totals SET count=count+1,bytes=bytes+NEW.bytes WHERE id=1; END;
       CREATE TRIGGER IF NOT EXISTS article_delete AFTER DELETE ON articles BEGIN UPDATE totals SET count=count-1,bytes=bytes-OLD.bytes WHERE id=1; END;
+      CREATE TABLE IF NOT EXISTS changes (seq INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, id TEXT NOT NULL);
     `);
   }
   private get<T>(key: string, fallback: T): T {
@@ -80,6 +86,69 @@ export class ReaderLibrary extends DurableObject<Bindings> {
   private changed() {
     this.put("revision", this.get("revision", 0) + 1);
   }
+  // 变更日志是客户端的增量同步来源：seq 单调递增，客户端只记水位。
+  private recordChange(kind: string, id: string) {
+    this.ctx.storage.sql.exec(
+      "INSERT INTO changes(kind,id) VALUES (?,?)",
+      kind,
+      id,
+    );
+  }
+  private seqRange() {
+    const row = this.ctx.storage.sql
+      .exec<{ min: number | null; max: number | null }>(
+        "SELECT MIN(seq) AS min, MAX(seq) AS max FROM changes",
+      )
+      .one();
+    // 日志为空时 minSeq 取 0，客户端不会因为“落后于已裁剪的日志”而白白全量同步。
+    return { minSeq: row.min ?? row.max ?? 0, maxSeq: row.max ?? 0 };
+  }
+  private trimChanges() {
+    const total = this.ctx.storage.sql
+      .exec<{ n: number }>("SELECT COUNT(*) AS n FROM changes")
+      .one().n;
+    const excess = total - MAX_CHANGES;
+    if (excess > 0)
+      this.ctx.storage.sql.exec(
+        "DELETE FROM changes WHERE seq IN (SELECT seq FROM changes ORDER BY seq LIMIT ?)",
+        excess,
+      );
+  }
+  private statesByIds(ids: string[]) {
+    const states: { id: string; read: boolean; starred: boolean }[] = [];
+    for (let start = 0; start < ids.length; start += SQL_PARAM_LIMIT) {
+      const slice = ids.slice(start, start + SQL_PARAM_LIMIT);
+      const rows = this.ctx.storage.sql
+        .exec<{ id: string; read: number; starred: number }>(
+          `SELECT id,read,starred FROM articles WHERE id IN (${slice.map(() => "?").join(",")})`,
+          ...slice,
+        )
+        .toArray();
+      for (const row of rows)
+        states.push({ id: row.id, read: !!row.read, starred: !!row.starred });
+    }
+    return states;
+  }
+  private itemsByIds(ids: string[]) {
+    const items: ItemRecord[] = [];
+    for (let start = 0; start < ids.length; start += SQL_PARAM_LIMIT) {
+      const slice = ids.slice(start, start + SQL_PARAM_LIMIT);
+      const rows = this.ctx.storage.sql
+        .exec<{ data: string; read: number; starred: number }>(
+          `SELECT data,read,starred FROM articles WHERE id IN (${slice.map(() => "?").join(",")})`,
+          ...slice,
+        )
+        .toArray();
+      for (const row of rows)
+        items.push({
+          ...JSON.parse(row.data),
+          content: "",
+          read: !!row.read,
+          starred: !!row.starred,
+        });
+    }
+    return items;
+  }
   private config() {
     return clampConfig(this.get("config", this.limits.defaultConfig), this.limits);
   }
@@ -88,21 +157,26 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       .exec<{ count: number }>("SELECT count FROM totals WHERE id=1")
       .one().count;
     const excess = count - this.config().maxArticles;
-    if (excess > 0)
-      this.ctx.storage.sql.exec(
-        "DELETE FROM articles WHERE id IN (SELECT id FROM articles ORDER BY publishedAt,id LIMIT ?)",
-        excess,
-      );
+    if (excess > 0) this.removeOldest(excess);
     // Content + metadata is bounded per article; retain an additional aggregate guard.
     while (
       this.ctx.storage.sql
         .exec<{ bytes: number }>("SELECT bytes FROM totals WHERE id=1")
         .one().bytes > this.limits.maxLibraryBytes
     ) {
-      this.ctx.storage.sql.exec(
-        "DELETE FROM articles WHERE id IN (SELECT id FROM articles ORDER BY publishedAt,id LIMIT 100)",
-      );
+      this.removeOldest(100);
     }
+  }
+  // 删除最旧的 N 篇并在日志里留删除记录，客户端增量同步才删得掉本地副本。
+  private removeOldest(limit: number) {
+    this.ctx.storage.sql.exec(
+      "INSERT INTO changes(kind,id) SELECT 'remove',id FROM articles ORDER BY publishedAt,id LIMIT ?",
+      limit,
+    );
+    this.ctx.storage.sql.exec(
+      "DELETE FROM articles WHERE id IN (SELECT id FROM articles ORDER BY publishedAt,id LIMIT ?)",
+      limit,
+    );
   }
   private usage() {
     const day = new Date().toISOString().slice(0, 10);
@@ -126,6 +200,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
         dailyWriteUnits: this.limits.dailyWriteUnits,
       },
       revision: this.get("revision", 0),
+      ...this.seqRange(),
       job: this.get("job", emptyJob()),
       nextFetchAt: this.ctx.storage.sql
         .exec<{ due: number | null }>("SELECT MIN(due) AS due FROM feeds")
@@ -153,6 +228,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       this.ctx.storage.transactionSync(() => {
         this.put("config", config);
         this.prune();
+        this.trimChanges();
         this.changed();
         this.ctx.storage.sql.exec(
           "UPDATE feeds SET due=MIN(due,?)",
@@ -198,6 +274,40 @@ export class ReaderLibrary extends DurableObject<Bindings> {
         feeds,
         next:
           rows.length === 200 ? { time: last.publishedAt, id: last.id } : null,
+      };
+    }
+    if (action === "delta") {
+      const since = Number(p.since);
+      const cursor = p.cursor === undefined ? since : Number(p.cursor);
+      if (!Number.isFinite(since) || !Number.isFinite(cursor))
+        throw new Error("增量同步参数无效");
+      const { minSeq, maxSeq } = this.seqRange();
+      const changes = this.ctx.storage.sql
+        .exec<{ seq: number; kind: string; id: string }>(
+          "SELECT seq,kind,id FROM changes WHERE seq>? ORDER BY seq LIMIT ?",
+          cursor,
+          CHANGE_PAGE,
+        )
+        .toArray();
+      const ids = (kind: string) =>
+        changes.filter((row) => row.kind === kind).map((row) => row.id);
+      return {
+        revision: this.get("revision", 0),
+        // 订阅列表很小，首页整体下发；客户端据此丢弃已删除订阅的文章。
+        ...(p.cursor === undefined
+          ? {
+              feeds: this.ctx.storage.sql
+                .exec<Row>("SELECT * FROM feeds")
+                .toArray()
+                .map((row) => JSON.parse(row.data)),
+            }
+          : {}),
+        items: this.itemsByIds(ids("item")),
+        states: this.statesByIds(ids("state")),
+        removed: ids("remove"),
+        next: changes.length === CHANGE_PAGE ? changes.at(-1)!.seq : null,
+        minSeq,
+        maxSeq,
       };
     }
     if (action === "article") {
@@ -253,6 +363,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
         now,
       );
       this.changed();
+      this.recordChange("feed", id);
       await this.arm();
       return feed;
     }
@@ -305,6 +416,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
         });
       }
       this.changed();
+      this.recordChange("feed", id);
       await this.arm();
       return feed;
     }
@@ -329,6 +441,8 @@ export class ReaderLibrary extends DurableObject<Bindings> {
               );
               changed += r.rowsWritten;
             }
+          // 状态只进变更日志：全量快照的 revision 保持不变，客户端不必重下整个库。
+          if (changed > 0) this.recordChange("state", id);
         });
       } else {
         const where = p.feedId ? " AND feedId=?" : "";
@@ -340,14 +454,19 @@ export class ReaderLibrary extends DurableObject<Bindings> {
           .one().n;
         if (usage.writes + n > this.limits.dailyWriteUnits)
           throw new Error("操作超过今日写入预算，请分批或明日重试");
-        changed = this.ctx.storage.sql.exec(
-          `UPDATE articles SET read=1 WHERE read=0${where}`,
-          ...args,
-        ).rowsWritten;
+        this.ctx.storage.transactionSync(() => {
+          this.ctx.storage.sql.exec(
+            `INSERT INTO changes(kind,id) SELECT 'state',id FROM articles WHERE read=0${where}`,
+            ...args,
+          );
+          changed = this.ctx.storage.sql.exec(
+            `UPDATE articles SET read=1 WHERE read=0${where}`,
+            ...args,
+          ).rowsWritten;
+        });
       }
       usage.writes += changed;
       this.put("usage", usage);
-      this.changed();
       return changed;
     }
     if (action === "refresh") {
@@ -543,6 +662,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
               );
               budget.writes += 4;
               updated++;
+              this.recordChange("item", item.id);
               this.prune();
             }
             record.title = parsed.title.slice(0, 500);
@@ -562,12 +682,15 @@ export class ReaderLibrary extends DurableObject<Bindings> {
             );
             this.put("usage", budget);
             this.prune();
+            this.trimChanges();
             if (
               updated > 0 ||
               record.title !== feed.title ||
               record.siteUrl !== feed.siteUrl
-            )
+            ) {
               this.changed();
+              this.recordChange("feed", row.id);
+            }
           });
         }
       } finally {
@@ -581,7 +704,10 @@ export class ReaderLibrary extends DurableObject<Bindings> {
         .toArray()[0];
       if (current && current.url === row.url) {
         const feed: FeedRecord = JSON.parse(current.data);
-        if ((feed.error ?? "") !== error) this.changed();
+        if ((feed.error ?? "") !== error) {
+          this.changed();
+          this.recordChange("feed", row.id);
+        }
         feed.error = error || undefined;
         feed.lastFetchedAt = now;
         const failures = error ? Math.min(row.failures + 1, 6) : 0;

@@ -22,6 +22,9 @@ export interface BackendStatus {
   config: BackendConfig;
   limits?: BackendLimits;
   revision: number;
+  /** 变更日志保留窗口；旧版本后端不上报，缺省视为只能全量同步。 */
+  minSeq?: number;
+  maxSeq?: number;
   nextFetchAt: number | null;
   storageBytes: number;
   job: {
@@ -38,6 +41,16 @@ export interface SnapshotPage {
   feeds: FeedRecord[];
   items: ItemRecord[];
   next: { time: number; id: string } | null;
+}
+export interface DeltaPage {
+  /** 只在增量首页下发；订阅被删除时客户端据此清理该源的文章。 */
+  feeds?: FeedRecord[];
+  items: ItemRecord[];
+  states: { id: string; read: boolean; starred: boolean }[];
+  removed: string[];
+  next: number | null;
+  minSeq: number;
+  maxSeq: number;
 }
 // 旧版本后端不上报 limits；回退到免费档范围，客户端不会接受后端必然拒绝的取值。
 export const FALLBACK_LIMITS: BackendLimits = {
@@ -150,62 +163,132 @@ export async function connectBackend(settings: AppSettings) {
     cache = new BackendCache(name);
   }
 }
+async function localSeq(db: BackendCache) {
+  const record = await db.meta.get("seq");
+  return typeof record?.value === "number" ? record.value : -1;
+}
+// 全量快照：分页读整个库，收齐后原子替换本机缓存。
+async function fullSnapshot(
+  db: BackendCache,
+  status: BackendStatus,
+  watermark: number,
+) {
+  const itemLimit = backendLimits(status).maxArticles.max;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const items: ItemRecord[] = [];
+    let feeds: FeedRecord[] = [];
+    let revision: number | undefined;
+    let cursor: SnapshotPage["next"] = null;
+    try {
+      do {
+        const page: SnapshotPage = await backendCall<SnapshotPage>("snapshot", {
+          ...(cursor ? { cursor } : {}),
+          ...(revision === undefined ? {} : { revision }),
+        });
+        if (revision === undefined) {
+          revision = page.revision;
+          feeds = page.feeds;
+        }
+        items.push(...page.items);
+        cursor = page.next;
+        if (items.length > itemLimit) throw new Error("后端分页响应无效");
+      } while (cursor !== null);
+      const old = await db.items.bulkGet(items.map((item) => item.id));
+      await db.transaction("rw", db.feeds, db.items, db.meta, async () => {
+        await db.feeds.clear();
+        await db.feeds.bulkPut(feeds);
+        await db.items.clear();
+        await db.items.bulkPut(
+          items.map((item, index) => ({
+            ...item,
+            content: old[index]?.content ?? "",
+          })),
+        );
+        await db.meta.put({ key: "seq", value: watermark });
+      });
+      return;
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !error.message.includes("SNAPSHOT_CHANGED") ||
+        attempt === 2
+      )
+        throw error;
+    }
+  }
+  throw new Error("后端持续变化，请稍后重试");
+}
+// 增量：只按变更日志补插入、删除和阅读状态，返回 false 表示日志已裁剪。
+async function applyDelta(db: BackendCache, since: number) {
+  let cursor: number | undefined;
+  for (;;) {
+    const page = await backendCall<DeltaPage>("delta", {
+      since,
+      ...(cursor === undefined ? {} : { cursor }),
+    });
+    if (page.minSeq > since) return false;
+    await applyDeltaPage(db, page, page.next ?? page.maxSeq);
+    if (page.next === null) return true;
+    cursor = page.next;
+  }
+}
+async function applyDeltaPage(
+  db: BackendCache,
+  page: DeltaPage,
+  watermark: number,
+) {
+  await db.transaction("rw", db.feeds, db.items, db.meta, async () => {
+    if (page.feeds) {
+      const known = new Set(page.feeds.map((feed) => feed.id));
+      const dropped = (await db.feeds.toArray())
+        .map((feed) => feed.id)
+        .filter((id) => !known.has(id));
+      for (const id of dropped)
+        await db.items.where("feedId").equals(id).delete();
+      await db.feeds.clear();
+      await db.feeds.bulkPut(page.feeds);
+    }
+    if (page.removed.length) await db.items.bulkDelete(page.removed);
+    if (page.states.length) {
+      const patch = new Map(page.states.map((state) => [state.id, state]));
+      const rows = await db.items.bulkGet(page.states.map((state) => state.id));
+      await db.items.bulkPut(
+        rows.flatMap((row) => {
+          const state = row ? patch.get(row.id) : undefined;
+          return row && state
+            ? [{ ...row, read: state.read, starred: state.starred }]
+            : [];
+        }),
+      );
+    }
+    if (page.items.length) {
+      const old = await db.items.bulkGet(page.items.map((item) => item.id));
+      await db.items.bulkPut(
+        page.items.map((item, index) => ({
+          ...item,
+          content: old[index]?.content ?? "",
+        })),
+      );
+    }
+    await db.meta.put({ key: "seq", value: watermark });
+  });
+}
 async function pull(): Promise<BackendStatus> {
   const db = backendCache();
   try {
     const status = await testBackend(connection!);
-    const itemLimit = backendLimits(status).maxArticles.max;
-    if ((await db.meta.get("revision"))?.value === status.revision) {
-      offline = false;
-      return status;
+    const since = await localSeq(db);
+    const minSeq = status.minSeq ?? 0;
+    const maxSeq = status.maxSeq ?? 0;
+    // 水位落在日志保留窗口内才走增量；首次同步或落后太多时退回全量快照。
+    if (since >= minSeq && since <= maxSeq) {
+      if (since < maxSeq && !(await applyDelta(db, since)))
+        await fullSnapshot(db, status, maxSeq);
+    } else {
+      await fullSnapshot(db, status, maxSeq);
     }
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const items: ItemRecord[] = [];
-      let feeds: FeedRecord[] = [];
-      let revision: number | undefined;
-      let cursor: SnapshotPage["next"] = null;
-      try {
-        do {
-          const page: SnapshotPage = await backendCall<SnapshotPage>(
-            "snapshot",
-            {
-              ...(cursor ? { cursor } : {}),
-              ...(revision === undefined ? {} : { revision }),
-            },
-          );
-          if (revision === undefined) {
-            revision = page.revision;
-            feeds = page.feeds;
-          }
-          items.push(...page.items);
-          cursor = page.next;
-          if (items.length > itemLimit) throw new Error("后端分页响应无效");
-        } while (cursor !== null);
-        const old = await db.items.bulkGet(items.map((item) => item.id));
-        await db.transaction("rw", db.feeds, db.items, db.meta, async () => {
-          await db.feeds.clear();
-          await db.feeds.bulkPut(feeds);
-          await db.items.clear();
-          await db.items.bulkPut(
-            items.map((item, i) => ({
-              ...item,
-              content: old[i]?.content ?? "",
-            })),
-          );
-          await db.meta.put({ key: "revision", value: revision });
-        });
-        offline = false;
-        return status;
-      } catch (error) {
-        if (
-          !(error instanceof Error) ||
-          !error.message.includes("SNAPSHOT_CHANGED") ||
-          attempt === 2
-        )
-          throw error;
-      }
-    }
-    throw new Error("后端持续变化，请稍后重试");
+    offline = false;
+    return status;
   } catch (error) {
     offline = true;
     throw error;

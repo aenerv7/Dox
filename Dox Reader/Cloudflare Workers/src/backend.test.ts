@@ -163,6 +163,86 @@ describe("backend mode isolation", () => {
     await pullBackend();
     expect(await backendCache().items.count()).toBe(150);
   });
+  it("syncs read state through the change log without re-downloading the snapshot", async () => {
+    await connectBackend(settings);
+    await backendCache().meta.clear();
+    let maxSeq = 2;
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url, init) => {
+        const request = JSON.parse(init.body);
+        calls.push(request.action);
+        if (request.action === "status")
+          return Response.json({ ...status, minSeq: 1, maxSeq });
+        if (request.action === "snapshot")
+          return Response.json({
+            revision: 1,
+            feeds: [feed],
+            items: [item],
+            next: null,
+          });
+        if (request.action === "delta")
+          return Response.json({
+            feeds: [feed],
+            items: [],
+            states: [{ id: "item", read: true, starred: false }],
+            removed: [],
+            next: null,
+            minSeq: 1,
+            maxSeq,
+          });
+        throw new Error(`unexpected ${request.action}`);
+      }),
+    );
+
+    await pullBackend();
+    expect(calls).toEqual(["status", "snapshot"]);
+
+    calls.length = 0;
+    maxSeq = 3;
+    await pullBackend();
+    expect(calls).toEqual(["status", "delta"]);
+    expect((await backendCache().items.get("item"))?.read).toBe(true);
+
+    calls.length = 0;
+    await pullBackend();
+    expect(calls).toEqual(["status"]);
+  });
+  it("falls back to a full snapshot when the change log was trimmed", async () => {
+    await connectBackend(settings);
+    await backendCache().meta.clear();
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url, init) => {
+        const request = JSON.parse(init.body);
+        calls.push(request.action);
+        if (request.action === "status")
+          return Response.json({ ...status, minSeq: 1, maxSeq: 6 });
+        if (request.action === "snapshot")
+          return Response.json({
+            revision: 1,
+            feeds: [feed],
+            items: [item],
+            next: null,
+          });
+        return Response.json({
+          items: [],
+          states: [],
+          removed: [],
+          next: null,
+          minSeq: 5,
+          maxSeq: 6,
+        });
+      }),
+    );
+
+    await backendCache().meta.put({ key: "seq", value: 4 });
+    await pullBackend();
+    expect(calls).toEqual(["status", "delta", "snapshot"]);
+    expect((await backendCache().meta.get("seq"))?.value).toBe(6);
+  });
   it("does not change local read state when the remote write fails", async () => {
     await connectBackend(settings);
     await backendCache().items.put(item);

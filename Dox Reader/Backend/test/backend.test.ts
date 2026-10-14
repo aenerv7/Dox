@@ -389,6 +389,111 @@ describe("personal backend", () => {
       nextFetchAt: null,
     });
   });
+  it("serves only changes since the client watermark", async () => {
+    const stub = make();
+    expect(await stub.command("status", {})).toMatchObject({ minSeq: 0, maxSeq: 0 });
+    expect(await stub.command("delta", { since: 0 })).toMatchObject({
+      items: [],
+      states: [],
+      removed: [],
+      next: null,
+    });
+
+    await stub.command("addFeed", { url: "https://news.example.com/delta" });
+    vi.mocked(fetch).mockImplementationOnce(
+      async () =>
+        new Response(
+          "<rss><channel><title>Delta</title><item><guid>one</guid><description>Body</description></item></channel></rss>",
+        ),
+    );
+    await runDurableObjectAlarm(stub);
+
+    const inserted = (await stub.command("delta", { since: 0 })) as {
+      feeds: unknown[];
+      items: { id: string }[];
+      next: number | null;
+    };
+    expect(inserted.feeds).toHaveLength(1);
+    expect(inserted.items).toHaveLength(1);
+    expect(inserted.next).toBeNull();
+
+    // 阅读状态只进变更日志，不再让全量快照的 revision 失效。
+    const before = (await stub.command("status", {})) as {
+      maxSeq: number;
+      revision: number;
+    };
+    await stub.command("state", { id: inserted.items[0].id, read: true });
+    const after = (await stub.command("status", {})) as {
+      maxSeq: number;
+      revision: number;
+    };
+    expect(after.revision).toBe(before.revision);
+    expect(after.maxSeq).toBeGreaterThan(before.maxSeq);
+
+    const states = (await stub.command("delta", { since: before.maxSeq })) as {
+      items: unknown[];
+      states: { id: string; read: boolean; starred: boolean }[];
+    };
+    expect(states.items).toEqual([]);
+    expect(states.states).toEqual([
+      { id: inserted.items[0].id, read: true, starred: false },
+    ]);
+  });
+  it("pages the change log instead of re-reading the whole library", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      for (let i = 0; i < 250; i++) {
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes) VALUES(?,?,?,?,?,?)",
+          `item-${i}`,
+          "feed",
+          i,
+          JSON.stringify({ id: `item-${i}`, feedId: "feed", publishedAt: i }),
+          "",
+          10,
+        );
+        state.storage.sql.exec(
+          "INSERT INTO changes(kind,id) VALUES('item',?)",
+          `item-${i}`,
+        );
+      }
+    });
+    const first = (await stub.command("delta", { since: 0 })) as {
+      items: unknown[];
+      next: number | null;
+    };
+    expect(first.items).toHaveLength(200);
+    const second = (await stub.command("delta", {
+      since: 0,
+      cursor: first.next!,
+    })) as { items: unknown[]; next: number | null };
+    expect(second.items).toHaveLength(50);
+    expect(second.next).toBeNull();
+  });
+  it("records retention removals in the change log", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      for (let i = 0; i < 120; i++)
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes) VALUES(?,?,?,?,?,?)",
+          String(i).padStart(3, "0"),
+          "feed",
+          i,
+          JSON.stringify({ id: String(i).padStart(3, "0"), publishedAt: i }),
+          "body",
+          10,
+        );
+    });
+    await stub.command("configure", {
+      config: { intervalMinutes: 60, maxArticles: 100 },
+    });
+    const page = (await stub.command("delta", { since: 0 })) as {
+      removed: string[];
+    };
+    expect(page.removed).toHaveLength(20);
+    expect(page.removed).toContain("000");
+    expect(page.removed).not.toContain("119");
+  });
   it("does not resurrect a feed removed during its network request", async () => {
     const stub = make();
     const feed = (await stub.command("addFeed", {

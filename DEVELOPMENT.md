@@ -721,7 +721,7 @@ npx wrangler deploy --dry-run
 
 抓取由持久 Alarm 驱动，一次处理一个到期源，90 秒总超时，最多 5 跳重定向且每跳检查公开 HTTP(S) 地址，拒绝私有/保留 IP、凭据、非常规端口和 XML DTD/ENTITY。RSS 请求使用固定、非个人化的 Dox Reader `User-Agent` 并兼容常见 XML MIME。先保存恢复 Alarm 再做网络 I/O；恢复租约比抓取超时多 30 秒，finally 重新调度。每小时 Cron 只修复缺失 Alarm。失败指数退避。客户端全量/单源刷新创建持久队列，已有手动任务时合并请求，最短 1 分钟；轮询最多 2 分钟，关闭客户端不取消任务。删除排队/抓取中的源必须清理任务并防止复活。
 
-SQL 使用绑定参数，插入去重并保留已有 read/starred；快照以 revision 验证一致性，按发布时间/ID 游标分页避免 OFFSET 扫描开销。缓存快照完整收齐后原子替换，不得部分失败覆盖已缓存数据。后端列表按 200 篇渐进展示。每分钟仅在可见客户端查询状态，revision 不变不重传全库。
+SQL 使用绑定参数，插入去重并保留已有 read/starred；全量快照以 revision 验证一致性，按发布时间/ID 游标分页避免 OFFSET 扫描开销，缓存快照完整收齐后原子替换，不得部分失败覆盖已缓存数据。后端列表按 200 篇渐进展示。增量同步走 `changes` 变更日志（`item`/`state`/`remove`/`feed` 四类，seq 单调递增，最多保留 `MAX_CHANGES` 条）：`status` 下发 `minSeq`/`maxSeq`，客户端在 `meta.seq` 保存水位，`delta` 按页补插入、删除和阅读状态，订阅列表随增量首页整体下发（客户端据此丢弃已删订阅的文章）。阅读状态只进日志、不再 bump `revision`，因此标已读不会让客户端重下整个库。水位落在保留窗口之外（首次同步、日志被裁剪、后端被重置）必须回退全量快照，不能只信任增量；全量快照写完再落水位，水位取快照前的 `maxSeq`，宁可重复同步也不能漏。
 
 后端 npm run check 使用本地 Workers runtime 集成测试，验证鉴权、Alarm、条件抓取、全库裁剪、竞态删除、预算顺延和手动抓取；免费档用例在 test/backend.test.ts，付费档在 test/paid.test.ts，由 vitest.config.ts 的两个 project 分别用 PLAN 绑定运行。部署前 npx wrangler deploy --dry-run；默认创建 dox-reader-backend，令牌经 wrangler secret bulk/put 配置。生产验证添加临时测试源、确认无人在线抓取与手动刷新、清理测试源，不能遗留测试用户数据。前端新增模式时同步修改网页端和后端的隐私说明。
 
