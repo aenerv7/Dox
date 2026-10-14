@@ -244,11 +244,8 @@ export function App() {
   const readBusyKeys = useRef(new Set<string>());
   const itemListRef = useRef<HTMLDivElement>(null);
 
-  const loadData = useCallback(async () => {
-    if (backendEnabled()) {
-      try {setBackendStatus(await pullBackend());setBackendNotice('');}
-      catch(error) {setBackendNotice('后端连接失败，仅显示已缓存内容：'+(error instanceof Error?error.message:String(error)));}
-    }
+  // 只读本机缓存渲染，不触网：启动时先用它出首屏，不等后端拉取。
+  const loadCached = useCallback(async () => {
     const [nextFeeds, nextItems, nextCounts, nextFeedUnread] = await Promise.all([
       listFeeds(),
       listItems("all"),
@@ -263,6 +260,18 @@ export function App() {
     setCounts(nextCounts);
     setFeedUnread(nextFeedUnread);
   }, []);
+
+  // 后端快照会重写本机缓存，拉完必须重读一次，列表才是新的。
+  const syncBackend = useCallback(async () => {
+    try {setBackendStatus(await pullBackend());setBackendNotice('');}
+    catch(error) {setBackendNotice('后端连接失败，仅显示已缓存内容：'+(error instanceof Error?error.message:String(error)));}
+    await loadCached();
+  }, [loadCached]);
+
+  const loadData = useCallback(async () => {
+    if (backendEnabled()) await syncBackend();
+    else await loadCached();
+  }, [loadCached, syncBackend]);
 
   const performSync = useCallback(async (currentSettings = settings, quiet = false) => {
     if(currentSettings.storageMode==='backend') {await loadData();return currentSettings;}
@@ -356,15 +365,17 @@ export function App() {
       applyAppearance(saved);
       try {await connectBackend(saved);} catch(error) {setToast(error instanceof Error?error.message:String(error));setReady(true);return;}
       await migrateLegacyEntities();
-      await loadData();
+      await loadCached();
       setReady(true);
-      if (saved.storageMode === "local" && saved.webdavUrl) await performSync(saved, true);
+      // 后端模式首屏先出缓存，全量拉取放后台；syncBackend 拉完会自己重读缓存。
+      if (backendEnabled()) void syncBackend();
+      else if (saved.storageMode === "local" && saved.webdavUrl) await performSync(saved, true);
       await maybeAutoRefresh();
     })();
     return () => {
       if (syncTimer.current !== null) window.clearTimeout(syncTimer.current);
     };
-  }, [loadData]);
+  }, [loadCached, syncBackend]);
 
   useEffect(() => {
     if (!toast) return;
