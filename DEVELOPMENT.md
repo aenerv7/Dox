@@ -1518,13 +1518,13 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 
 ### 3.18 bwh-traffic（BandwagonHost 流量订阅头）
 
-`bwh-traffic/worker.js` 是一个单文件 Cloudflare Worker：请求 KiwiVM 的 `getServiceInfo`，把流量同时写进响应头 `subscription-userinfo` 和响应正文，不含节点。用户说明见根 [README.md 的 bwh-traffic 小节](./README.md#bwh-trafficbandwagonhost-流量)。
+`bwh-traffic/worker.js` 是一个单文件 Cloudflare Worker：请求 KiwiVM 的 `getServiceInfo`，把流量同时写进响应头 `subscription-userinfo` 和响应正文，不含节点。浏览器（`Accept` 含 `text/html`）拿到一张自包含的用量面板，其余客户端（Sub-Store、curl）拿到纯文本 userinfo。用户说明见根 [README.md 的 bwh-traffic 小节](./README.md#bwh-trafficbandwagonhost-流量)。
 
 #### 边界与文件
 
 | 文件 | 角色 |
 |---|---|
-| `bwh-traffic/worker.js` | 唯一实现：鉴权、上游调用、字段解析、响应头拼装、debug 回显 |
+| `bwh-traffic/worker.js` | 唯一实现：鉴权、上游调用、字段解析、响应头拼装、HTML 面板、内联 favicon、debug 回显 |
 | `bwh-traffic/worker.test.js` | `node --test` 单元测试，桩掉 `fetch`，不访问网络 |
 | `bwh-traffic/wrangler.jsonc` | Worker 名 `bwh-traffic`，入口 `worker.js` |
 
@@ -1545,11 +1545,11 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`（同时是中转的
 
 #### 不变量
 
-1. `subscription-userinfo` 格式固定 `upload=0; download=<已用>; total=<配额>[; expire=<下次重置>]`，字节数均为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量全部计入 `download`。正文必须与这个头同值——Sub-Store 的「流量信息 URL」（单条/组合订阅的 `subUserinfo`）在 `utils/flow.js` 的 `getFlowHeaders` 里先 `parseFlowHeaders(正文)`，正文三项齐全就用正文，否则才回退响应头。
-2. `expire` 取 `data_next_reset`（流量重置时间），不是套餐到期时间；缺失或非正数时不输出该段。
+1. `subscription-userinfo` 格式固定 `upload=0; download=<已用>; total=<配额>; expire=<下一年 1 月 1 日>`，字节数均为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量全部计入 `download`。正文分两路：`Accept` 含 `text/html` 给 HTML 面板，否则是纯文本 userinfo。Sub-Store 的「流量信息 URL」（单条/组合订阅的 `subUserinfo`）在 `utils/flow.js` 的 `getFlowHeaders` 里先 `parseFlowHeaders(正文)`，正文三项齐全就用正文，否则才回退响应头——它发的 `Accept` 不含 `text/html`，永远走纯文本；面板里也埋一份同值 `<meta name="subscription-userinfo">`，万一被纯正则的 `parseFlowHeaders` 扫到，数字不变。
+2. `expire` **写死**为下一年 1 月 1 日 UTC 零点（`expireAt()`），不取上游：`data_next_reset` 是流量重置时间，Sub-Store 的 `validCheck` 却拿 `expire` 判「订阅已过期」，照抄会误报。`data_next_reset` 仍在 debug 回显里，但不参与计算。
 3. `redirect: "manual"` 且 3xx 判失败（Workers 不支持 `redirect: "error"`）：API Key 不得被转发到第二个主机。
 4. 成功响应按平铺字段解析，同时兼容网关加 `data` 信封；两者都不满足时报 502 并列出实际字段名。
-5. `ACCESS_TOKEN` 为空时不校验口令；配置后不匹配必须在请求上游之前返回 403。
+5. `ACCESS_TOKEN` 为空时不校验口令；配置后取**路径首段**（`https://<worker>/<token>`，与 Sub-Store 后端的「鉴权即路径前缀」一致）必须匹配，不匹配必须在请求上游之前返回 403。`?token=` 不再放行，`?debug=1` 仍是查询参数。口令因此只能用 URL 安全字符。
 6. `?debug=1` 回显上游状态、字段名、截断正文和算出的 userinfo，是排查线上问题的唯一入口，不得删。
 7. `BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN`、`KIWIVM_BASE` 只用 `wrangler secret put` 配置：secret 跨 `wrangler deploy` 保留，明文 `vars` 会被覆盖清空（历史版本用明文 var 存过 VEID 和访问口令，一次部署就丢了）。
 
@@ -1560,9 +1560,9 @@ node --test bwh-traffic/worker.test.js
 cd bwh-traffic; npx wrangler deploy --dry-run
 ```
 
-覆盖：成功正文与响应头同值、查询串、multiplier、缺 `data_next_reset`、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与复用 `ACCESS_TOKEN` 的中转口令、`debug=1`。
+覆盖：成功正文与响应头同值、查询串、multiplier、`expire` 写死为下一年 1 月 1 日 UTC、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与复用 `ACCESS_TOKEN` 的中转口令、`debug=1`、浏览器 HTML 面板（响应头同值、正则扫描数字不变、图标内联无外链）、非浏览器仍是纯文本。
 
-线上验收：`curl.exe "https://<worker>/?debug=1&token=<ACCESS_TOKEN>"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<重置时间>`；若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <ACCESS_TOKEN>" "https://bwh-traffic.ddtwstudio.com/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
+线上验收：`curl.exe "https://<worker>/<ACCESS_TOKEN>?debug=1"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<下一年 1 月 1 日>`；浏览器打开同一地址（去掉 `debug=1`）应看到用量面板。若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <ACCESS_TOKEN>" "https://bwh-traffic.ddtwstudio.com/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
 
 ### 3.19 Firefox（界面翻译补全）
 

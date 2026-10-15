@@ -4,7 +4,8 @@
 // （upload/download/total/expire）。本 Worker 把 KiwiVM 的 getServiceInfo
 // 变成这个头，正文重复同一串 userinfo：Sub-Store 读「流量信息 URL」时先解析
 // 正文、失败才看响应头（backend/src/utils/flow.js 的 getFlowHeaders），
-// 两边同值就不用赌它走哪条路。正文不含节点。
+// 两边同值就不用赌它走哪条路。浏览器（Accept: text/html）改拿一张用量面板，
+// 两条路都不含节点。
 //
 // 为什么 KIWIVM_BASE 可配置
 // -------------------------
@@ -33,6 +34,23 @@ const UPDATE_INTERVAL_HOURS = "1";
 
 const DEBUG_BODY_LIMIT = 400;
 
+const HTML_TYPE = "text/html; charset=utf-8";
+const TEXT_TYPE = "text/plain; charset=utf-8";
+const ACCEPT_HTML = "text/html";
+const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
+
+const BRAND_YELLOW = "#f5a623";
+
+// bandwagonhost.com 上没有 favicon（/favicon.ico 等路径全是 404），唯一的官方
+// 图形是 814×100 的 wordmark，当标签页图标会糊成一团；这里用品牌配色画一个
+// 内联方形标记，既不热链也不发外部请求。
+const FAVICON_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">` +
+  `<rect width="64" height="64" rx="14" fill="${BRAND_YELLOW}"/>` +
+  `<text x="32" y="45" font-family="Arial,Helvetica,sans-serif" font-size="34"` +
+  ` font-weight="700" text-anchor="middle" fill="#22282e">BH</text></svg>`;
+const FAVICON = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`;
+
 const BLOCKED_HINT =
   "KiwiVM 拒绝了来自 Cloudflare 的请求：api.64clouds.com 对 Cloudflare 出口" +
   "返回 {success, token} 而非服务信息。请把 KIWIVM_BASE 指向非 Cloudflare " +
@@ -41,17 +59,22 @@ const BLOCKED_HINT =
 function plain(status, message) {
   return new Response(message, {
     status,
-    headers: { "content-type": "text/plain; charset=utf-8" },
+    headers: { "content-type": TEXT_TYPE },
   });
 }
 
-// 口令只在配置了 ACCESS_TOKEN 时校验，?token= 必须匹配。
+// 口令放在路径首段（https://<worker>/<token>），与 Sub-Store 后端 URL 的形状
+// 一致；只在配置了 ACCESS_TOKEN 时校验。
+function tokenFrom(request) {
+  return new URL(request.url).pathname.split("/").filter(Boolean)[0] || "";
+}
+
 function tokenMismatch(request, env) {
   if (!env.ACCESS_TOKEN) {
     return false;
   }
 
-  return new URL(request.url).searchParams.get("token") !== env.ACCESS_TOKEN;
+  return tokenFrom(request) !== env.ACCESS_TOKEN;
 }
 
 function missingConfig(env) {
@@ -125,12 +148,32 @@ async function callKiwiVM(base, env) {
   return { status: response.status, body: await response.text() };
 }
 
+// 到期时间写死为「下一年的 1 月 1 日」UTC 零点。KiwiVM 的 data_next_reset 是
+// 流量重置时间，不是套餐到期时间，而 Sub-Store 的 validCheck 拿 expire 判「订阅
+// 已过期」，照抄重置时间会误报；写死一个恒在未来、每年自动前移的值最省事。
+function expireAt(now = Date.now()) {
+  return Math.floor(Date.UTC(new Date(now).getUTCFullYear() + 1, 0, 1) / 1000);
+}
+
+// 口径唯一：userinfo 头和 HTML 面板都从这里取数，避免两处各算一遍 multiplier。
 // BWH 的 data_counter 双向合计，于是已用量统一放在 download。
-function userinfo(info) {
+function traffic(info) {
   const multiplier = Number(info.monthly_data_multiplier ?? 1) || 1;
   const total = Math.round(Number(info.plan_monthly_data) * multiplier);
   const used = Math.round(Number(info.data_counter) * multiplier);
-  const expire = Math.round(Number(info.data_next_reset ?? 0));
+  const expire = expireAt();
+
+  return {
+    used,
+    total,
+    expire,
+    remaining: Math.max(total - used, 0),
+    percent: total > 0 ? Math.min((used / total) * 100, 100) : 0,
+  };
+}
+
+function userinfo(info) {
+  const { used, total, expire } = traffic(info);
 
   const parts = ["upload=0", `download=${used}`, `total=${total}`];
 
@@ -148,6 +191,107 @@ function userinfoHeaders(value) {
     "access-control-allow-origin": "*",
     "access-control-expose-headers": `${HEADER_USERINFO}, ${HEADER_INTERVAL}`,
   };
+}
+
+function wantsHtml(request) {
+  return (request.headers.get("accept") || "").includes(ACCEPT_HTML);
+}
+
+function humanBytes(bytes) {
+  let value = Number(bytes) || 0;
+  let unit = 0;
+
+  while (value >= 1024 && unit < BYTE_UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+
+  return `${value.toFixed(unit === 0 || value >= 100 ? 0 : 2)} ${BYTE_UNITS[unit]}`;
+}
+
+// 浏览器直接打开时给一张自包含的用量面板。Sub-Store 不发 Accept: text/html，
+// 拿到的一直是纯文本 userinfo；两条路互不干扰。面板里还埋一份同值 userinfo，
+// 万一某个客户端拿 HTML 去正则扫描（parseFlowHeaders 认第一个匹配），数字不变。
+function page(info) {
+  const value = userinfo(info);
+  const { used, total, expire, remaining, percent } = traffic(info);
+  const percentText = `${percent.toFixed(1)}%`;
+  const reset = expire > 0 ? new Date(expire * 1000).toISOString() : "";
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="subscription-userinfo" content="${value}">
+<link rel="icon" href="${FAVICON}">
+<title>BandwagonHost 流量</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #14181d;
+    color: #e8eaed;
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .card {
+    width: min(92vw, 420px);
+    padding: 24px;
+    border: 1px solid #2c343e;
+    border-radius: 18px;
+    background: #1d232b;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  }
+  header { display: flex; align-items: center; gap: 12px; }
+  .mark { width: 40px; height: 40px; border-radius: 10px; }
+  h1 { margin: 0; font-size: 17px; letter-spacing: 0.2px; }
+  .sub { margin: 2px 0 0; font-size: 12px; color: #8b949e; }
+  .used { margin: 24px 0 10px; font-size: 36px; font-weight: 700; color: ${BRAND_YELLOW}; }
+  .used span { margin-left: 6px; font-size: 15px; font-weight: 400; color: #8b949e; }
+  .bar { height: 8px; border-radius: 999px; background: #2c343e; overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 999px; background: ${BRAND_YELLOW}; }
+  dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 22px 0 0; }
+  dt { font-size: 12px; color: #8b949e; }
+  dd { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
+  .expire { margin: 20px 0 0; font-size: 13px; color: #8b949e; }
+  footer { margin-top: 14px; padding-top: 14px; border-top: 1px solid #2c343e; font-size: 12px; color: #6e7681; }
+</style>
+</head>
+<body>
+<main class="card">
+  <header>
+    <img class="mark" src="${FAVICON}" alt="">
+    <div>
+      <h1>BandwagonHost</h1>
+      <p class="sub">KiwiVM 流量用量</p>
+    </div>
+  </header>
+
+  <p class="used">${humanBytes(used)}<span>／ ${humanBytes(total)}</span></p>
+  <div class="bar"><span style="width:${percentText}"></span></div>
+
+  <dl>
+    <div><dt>剩余</dt><dd>${humanBytes(remaining)}</dd></div>
+    <div><dt>配额</dt><dd>${humanBytes(total)}</dd></div>
+    <div><dt>使用率</dt><dd>${percentText}</dd></div>
+  </dl>
+
+  <p class="expire">到期 <time datetime="${reset}">${reset || "未知"}</time></p>
+  <footer>数据来源 KiwiVM getServiceInfo</footer>
+</main>
+<script>
+  // 服务端只能按 UTC 渲染，交给浏览器换成用户本地时区；到期写死为 UTC 零点，只显示日期。
+  const t = document.querySelector("time[datetime]");
+  if (t && t.dateTime) {
+    t.textContent = new Date(t.dateTime).toLocaleDateString();
+  }
+</script>
+</body>
+</html>`;
 }
 
 function report(base, upstream, payload) {
@@ -227,6 +371,16 @@ export default {
 
     const value = userinfo(info);
 
-    return new Response(value, { status: HTTP_OK, headers: userinfoHeaders(value) });
+    if (wantsHtml(request)) {
+      return new Response(page(info), {
+        status: HTTP_OK,
+        headers: { ...userinfoHeaders(value), "content-type": HTML_TYPE },
+      });
+    }
+
+    return new Response(value, {
+      status: HTTP_OK,
+      headers: { ...userinfoHeaders(value), "content-type": TEXT_TYPE },
+    });
   },
 };

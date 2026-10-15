@@ -1647,12 +1647,13 @@ npm run deploy  # 认证交给 wrangler：本地 login 或 CI 的 API Token
 
 把 BandwagonHost（搬瓦工）KiwiVM 的流量用量转成 Sub-Store 能读的订阅响应头。
 
-Sub-Store 从远程订阅的响应头里读 `subscription-userinfo`（`upload` / `download` / `total` / `expire`）。本 Worker 提供这个头，正文是同一串 userinfo（Sub-Store 先解析正文、失败才看响应头，两边同值就不用赌它走哪条路），不含任何节点。
+Sub-Store 从远程订阅的响应头里读 `subscription-userinfo`（`upload` / `download` / `total` / `expire`）。本 Worker 提供这个头；普通客户端（Sub-Store、curl）拿到的正文是同一串 userinfo，浏览器（`Accept: text/html`）拿到的是一张用量面板。两条路都不含任何节点。
 
 ```text
 Sub-Store ──▶ bwh-traffic Worker ──▶ 中转 ──▶ api.64clouds.com/v1/getServiceInfo
                     │
-                    └─ 响应头: subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<下次重置>
+                    ├─ 响应头: subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<下一年 1 月 1 日>
+                    └─ 正文: 同一个串（Sub-Store）；浏览器则是一张用量面板
 ```
 
 ### 它为什么需要中转
@@ -1680,7 +1681,7 @@ npx wrangler secret put KIWIVM_BASE      # 中转地址，例如 https://bwh-tra
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `ACCESS_TOKEN` | 否 | 设置后必须带 `?token=<值>` 才能访问；同时作为 `X-Relay-Token` 发给中转（不设置则不发该头） |
+| `ACCESS_TOKEN` | 否 | 设置后必须以 `/{token}` 形式访问（`https://<worker>/<值>`，取路径首段）；同时作为 `X-Relay-Token` 发给中转（不设置则不发该头）。和 Sub-Store 后端一样是路径前缀，所以值只能用 URL 安全字符 |
 | `BWH_VEID` | 是 | KiwiVM 的 VEID |
 | `BWH_API_KEY` | 是 | KiwiVM 的 API Key（`private_` 开头） |
 | `KIWIVM_BASE` | 否 | 中转基地址，只填 origin，Worker 自己接 `/getServiceInfo`；默认 `https://api.64clouds.com/v1`（直连，当前会失败） |
@@ -1743,29 +1744,37 @@ location = /getServiceInfo {
 
 ### 在 Sub-Store 里用
 
-填到**单条订阅编辑弹窗里的「订阅流量信息」字段**（英文界面是 `Subscription-Userinfo`，占位符写着「值/链接」，问号弹窗标题是「手动设置订阅流量信息」）：
+填到**单条订阅编辑弹窗里的「订阅流量信息」字段**（英文界面是 `Subscription-Userinfo`，占位符写着「值/链接」，问号弹窗标题是「手动设置订阅流量信息」）。口令走路径首段，形状和 Sub-Store 后端地址一致：
 
 ```text
-https://bwh-traffic.aenerv7.workers.dev/?token=<ACCESS_TOKEN>
+https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>
 ```
+
+`?token=<值>` 不再认，务必换成上面的路径写法。
 
 不要填到订阅自己的「订阅链接」里：那个字段的内容会被当节点订阅解析，本 Worker 没有节点。组合订阅也有同名「订阅流量信息」字段，填法一样。
 
-行为取自上游 `backend/src/utils/flow.js` 的 `getFlowHeaders`：GET 这个 URL → 先 `parseFlowHeaders(正文)`，正文里 `upload` / `download` / `total` 齐全就用正文，否则退回响应头 `subscription-userinfo` / `profile-web-page-url` / `plan-name`。本 Worker 两条路都是同一串值。
+行为取自上游 `backend/src/utils/flow.js` 的 `getFlowHeaders`：GET 这个 URL → 先 `parseFlowHeaders(正文)`，正文里 `upload` / `download` / `total` 齐全就用正文，否则退回响应头 `subscription-userinfo` / `profile-web-page-url` / `plan-name`。本 Worker 两条路都是同一串值，面板（HTML）只发给浏览器。
+
+Sub-Store 会拿 `expire` 判「订阅已过期」，所以这里写死为下一年 1 月 1 日 UTC 零点，不用 KiwiVM 的流量重置时间。
 
 想每次都拿最新用量（Sub-Store 对流量信息有缓存）就在地址后加片段参数：
 
 ```text
-https://bwh-traffic.aenerv7.workers.dev/?token=<ACCESS_TOKEN>#noCache
+https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>#noCache
 ```
 
 `#headersCacheTtl=60` 也可以，单位秒。
+
+### 浏览器面板
+
+同一地址用浏览器打开（或 `curl -H "Accept: text/html"`）会得到一张用量面板：已用／配额、进度条、剩余、使用率和到期日，页签图标是内联的 BandwagonHost 标记。面板不引用任何外部资源，`subscription-userinfo` 响应头照旧。
 
 ### 排查
 
 ```powershell
 ## 回显上游 HTTP 状态、返回字段、原始正文和算出来的 userinfo
-curl.exe "https://<worker 域名>/?debug=1&token=<ACCESS_TOKEN>"
+curl.exe "https://<worker 域名>/<ACCESS_TOKEN>?debug=1"
 
 ## 单元测试
 node --test bwh-traffic/worker.test.js
@@ -1775,8 +1784,9 @@ node --test bwh-traffic/worker.test.js
 
 ### 维护约束
 
-- 成功响应近几个月是平铺字段（`error`、`plan_monthly_data`、`data_counter`、`monthly_data_multiplier`、`data_next_reset`）；代码兼容网关加 `data` 信封的情况。
-- 正文与 `subscription-userinfo` 必须同值：Sub-Store 的流量信息 URL 先读正文，正文非法才回退响应头。
+- 成功响应近几个月是平铺字段（`error`、`plan_monthly_data`、`data_counter`、`monthly_data_multiplier`、`data_next_reset`）；代码兼容网关加 `data` 信封的情况。`data_next_reset` 只作参考，已不再进 `expire`。
+- 正文与 `subscription-userinfo` 必须同值：Sub-Store 的流量信息 URL 先读正文，正文非法才回退响应头。所以正文只在 `Accept` 含 `text/html`（浏览器）时换成 HTML 面板，其余客户端一律拿纯文本；面板里也埋一份同值 userinfo，被正则扫描时数字不变。
 - 用量一律按字节、口径为 `字段 × monthly_data_multiplier`；搬瓦工双向计费，已用量统一写进 `download`。
-- `expire` 用 `data_next_reset`（下次流量重置时间），不是套餐到期时间。这是 Sub-Store 流量条能拿到的最接近的值。
+- `expire` 写死为**下一年 1 月 1 日 UTC 零点**，不取上游：`data_next_reset` 是流量重置时间，而 Sub-Store 的 `validCheck` 拿 `expire` 判「订阅已过期」，照抄会误报。
+- 标签页图标是内联 SVG 品牌标记：bandwagonhost.com 没有 favicon（`/favicon.ico` 等全是 404），唯一的官方图形是 814×100 的 wordmark，当图标会糊。页面不引用任何外部地址。
 - `redirect: "manual"` + 3xx 判失败：Workers 不支持 `redirect: "error"`，所以手动拒绝重定向，避免 API Key 被转发到第二个主机。
