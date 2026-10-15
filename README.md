@@ -1405,6 +1405,8 @@ https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>#noCache
 
 同一地址用浏览器打开（或 `curl -H "Accept: text/html"`）会得到一张用量面板：已用／配额、进度条、剩余、使用率和到期日，页签图标是内联的 BandwagonHost 标记。面板不引用任何外部资源，`subscription-userinfo` 响应头照旧。两个域名打开都是这张面板。
 
+面板每 60 秒自动刷新一次：页面在原地重取同一地址并只替换卡片内容，不整页重载、不闪屏，页脚会显示最后一次更新时间。刷新失败（例如上游报错）时保留上一次的数据，只在页脚标出失败原因。
+
 ### 排查
 
 ```powershell

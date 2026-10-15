@@ -270,6 +270,9 @@ test("浏览器拿到 HTML 面板，Sub-Store 的正则解析仍读到同一组�
   // 标签页图标是内联 SVG，不引用外部主机
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
   assert.doesNotMatch(html, /(src|href)="https?:\/\//);
+  // 面板每 60 秒静默重取一次（同一地址，只换卡片内容）
+  assert.match(html, /每 60 秒自动刷新/);
+  assert.match(html, /setInterval\(refresh, 60000\)/);
 });
 
 test("Accept 不含 text/html 的客户端拿到纯文本正文", async () => {

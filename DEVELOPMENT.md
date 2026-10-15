@@ -1270,6 +1270,7 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`（同时是中转的
 6. `?debug=1` 回显上游状态、字段名、截断正文和算出的 userinfo，是排查线上问题的唯一入口，不得删。
 7. `BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN`、`KIWIVM_BASE` 只用 `wrangler secret put` 配置：secret 跨 `wrangler deploy` 保留，明文 `vars` 会被覆盖清空（历史版本用明文 var 存过 VEID 和访问口令，一次部署就丢了）。
 8. `bwh-traffic.ddtwstudio.com` 只能是 **DNS only**，且不能同时挂成 Worker 的自定义域/路由。一旦它走橙云，Worker 取 `https://bwh-traffic.ddtwstudio.com/getServiceInfo` 会被 CF 当同区回源处理，源站不可达就回 `error code: 522`，Sub-Store 侧表现为 502（2026-10-15 实测）。判据：`?debug=1` 里 `upstream_status=522`、`upstream_body="error code: 522"`，而同一请求从非 Cloudflare 出口取 `api.64clouds.com` 正常返回 700005。
+9. 浏览器面板每 `PANEL_REFRESH_MS`（60 秒）静默重取一次同一地址：`fetch(location.href, { headers: { accept: "text/html" }, cache: "no-store" })`，只把新页面的 `main.card` 内容换进来，不整页重载；失败保留上一次数据，只在页脚标「更新失败」。因为刷新会替换整个 `main`（页脚也在里面），脚本里的节点必须现查现用，不能缓存引用。面板仍然自包含（内联 favicon、无任何外部 `src`/`href`）。
 
 #### 验证
 
@@ -1278,7 +1279,7 @@ node --test bwh-traffic/worker.test.js
 cd bwh-traffic; npx wrangler deploy --dry-run
 ```
 
-覆盖：成功正文与响应头同值、查询串、multiplier、`expire` 写死为下一年 1 月 1 日 UTC、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与复用 `ACCESS_TOKEN` 的中转口令、`debug=1`、浏览器 HTML 面板（响应头同值、正则扫描数字不变、图标内联无外链）、非浏览器仍是纯文本。
+覆盖：成功正文与响应头同值、查询串、multiplier、`expire` 写死为下一年 1 月 1 日 UTC、`data` 信封、KiwiVM 错误码、Cloudflare 拦截形状、非 JSON、缺字段列名、口令 403（且不发上游请求）、缺配置 500、`KIWIVM_BASE` 与复用 `ACCESS_TOKEN` 的中转口令、`debug=1`、浏览器 HTML 面板（响应头同值、正则扫描数字不变、图标内联无外链、刷新间隔为 60000 ms）、非浏览器仍是纯文本。
 
 线上验收：`curl.exe "https://<worker>/<ACCESS_TOKEN>?debug=1"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<下一年 1 月 1 日>`；浏览器打开同一地址（去掉 `debug=1`）应看到用量面板。若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <ACCESS_TOKEN>" "https://bwh-traffic.ddtwstudio.com/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
 

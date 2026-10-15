@@ -41,6 +41,9 @@ const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
 
 const BRAND_YELLOW = "#f5a623";
 
+// 面板自动刷新间隔：KiwiVM 的用量变化很慢，60 秒足够，也不会让页面频繁闪烁。
+const PANEL_REFRESH_MS = 60000;
+
 // bandwagonhost.com 上没有 favicon（/favicon.ico 等路径全是 404），唯一的官方
 // 图形是 814×100 的 wordmark，当标签页图标会糊成一团；这里用品牌配色画一个
 // 内联方形标记，既不热链也不发外部请求。
@@ -281,14 +284,59 @@ function page(info) {
   </dl>
 
   <p class="expire">到期 <time datetime="${reset}">${reset || "未知"}</time></p>
-  <footer>数据来源 KiwiVM getServiceInfo</footer>
+  <footer>数据来源 KiwiVM getServiceInfo · 每 ${PANEL_REFRESH_MS / 1000} 秒自动刷新 · <span id="updated">–</span></footer>
 </main>
 <script>
+  const card = document.querySelector("main.card");
+
   // 服务端只能按 UTC 渲染，交给浏览器换成用户本地时区；到期写死为 UTC 零点，只显示日期。
-  const t = document.querySelector("time[datetime]");
-  if (t && t.dateTime) {
-    t.textContent = new Date(t.dateTime).toLocaleDateString();
+  function localizeDate() {
+    const t = document.querySelector("time[datetime]");
+
+    if (t && t.dateTime) {
+      t.textContent = new Date(t.dateTime).toLocaleDateString();
+    }
   }
+
+  // 每次刷新都会整体替换卡片内容（footer 也在里面），所以节点必须现查现用。
+  function markUpdated(prefix) {
+    const updated = document.querySelector("#updated");
+
+    if (updated) {
+      updated.textContent = prefix + " " + new Date().toLocaleTimeString();
+    }
+  }
+
+  // 静默刷新：重取同一地址（带 Accept: text/html 才拿到面板），只换卡片内容，
+  // 不整页重载也不闪屏；上游报错时 Worker 回纯文本 502，此时保留上一次的数据。
+  async function refresh() {
+    try {
+      const response = await fetch(location.href, {
+        headers: { accept: "text/html" },
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
+
+      const next = new DOMParser().parseFromString(await response.text(), "text/html");
+      const fresh = next.querySelector("main.card");
+
+      if (fresh) {
+        card.innerHTML = fresh.innerHTML;
+        localizeDate();
+      }
+
+      markUpdated("最后更新");
+    } catch (error) {
+      markUpdated("更新失败 · " + error.message);
+    }
+  }
+
+  localizeDate();
+  markUpdated("最后更新");
+  setInterval(refresh, ${PANEL_REFRESH_MS});
 </script>
 </body>
 </html>`;
