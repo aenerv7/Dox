@@ -54,6 +54,10 @@ export function planName(limits: Limits): string {
   return limits.plan === PAID_LIMITS.plan ? "付费" : "免费";
 }
 
+// 收藏不参与淘汰：保留上限（或字节预算）被收藏占满后，后端停止收录新文章并下发这句提示。
+export const RETENTION_FULL_MESSAGE =
+  "全库保留空间已被收藏占满，已停止收录新文章；请调高保留上限或取消部分收藏";
+
 export function validateConfig(value: unknown, limits: Limits) {
   const v = value as Partial<{
     intervalMinutes: number;

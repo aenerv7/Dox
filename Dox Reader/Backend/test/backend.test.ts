@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   FREE_LIMITS,
   PAID_LIMITS,
+  RETENTION_FULL_MESSAGE,
   boundedContent,
   clampConfig,
   feedUrl,
@@ -278,7 +279,7 @@ describe("personal backend", () => {
       await runInDurableObject(stub, (_i, state) => state.storage.getAlarm()),
     ).toBeGreaterThan(Date.now());
   });
-  it("retains the latest articles globally including starred, with deterministic ties", async () => {
+  it("retains the latest articles globally while keeping starred ones", async () => {
     const stub = make();
     await runInDurableObject(stub, (_instance, state) => {
       for (let i = 0; i < 10050; i++)
@@ -298,10 +299,11 @@ describe("personal backend", () => {
     });
     const range = await runInDurableObject(stub, (_i, state) =>
       state.storage.sql
-        .exec("SELECT COUNT(*) AS n,MIN(publishedAt) AS first FROM articles")
+        .exec("SELECT COUNT(*) AS n,MIN(publishedAt) AS first,SUM(starred) AS starred FROM articles")
         .one(),
     );
-    expect(range).toMatchObject({ n: 10000, first: 50 });
+    // 最旧的 50 篇是收藏，淘汰跳过它们，改删紧随其后的 50 篇未收藏文章。
+    expect(range).toMatchObject({ n: 10000, first: 0, starred: 50 });
     await stub.command("configure", {
       config: { intervalMinutes: 120, maxArticles: 100 },
     });
@@ -310,6 +312,307 @@ describe("personal backend", () => {
         state.storage.sql.exec("SELECT count FROM totals").one(),
       ),
     ).toMatchObject({ count: 100 });
+  });
+  it("keeps starred articles when the byte budget is exhausted", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      // 只写 bytes 列即可超预算：600 MiB 预算下 20 篇各占 600 MiB。
+      for (let i = 0; i < 20; i++)
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes,starred) VALUES(?,?,?,?,?,?,?)",
+          String(i).padStart(3, "0"),
+          "feed",
+          i,
+          JSON.stringify({ id: String(i), publishedAt: i }),
+          "body",
+          FREE_LIMITS.maxLibraryBytes,
+          i < 10 ? 1 : 0,
+        );
+    });
+    await stub.command("configure", {
+      config: { intervalMinutes: 60, maxArticles: 10000 },
+    });
+    // 删完未收藏文章后预算仍然超支：不能再删收藏，也不能死循环。
+    expect(
+      await runInDurableObject(stub, (_i, state) =>
+        state.storage.sql
+          .exec("SELECT COUNT(*) AS n,SUM(starred) AS starred FROM articles")
+          .one(),
+      ),
+    ).toMatchObject({ n: 10, starred: 10 });
+  });
+  it("stops fetching when the retention limit is filled by starred articles", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      for (let i = 0; i < 100; i++)
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes,starred) VALUES(?,?,?,?,?,?,1)",
+          String(i).padStart(3, "0"),
+          "feed",
+          i,
+          JSON.stringify({ id: String(i), publishedAt: i }),
+          "body",
+          10,
+        );
+    });
+    await stub.command("configure", {
+      config: { intervalMinutes: 60, maxArticles: 100 },
+    });
+    await stub.command("addFeed", { url: "https://news.example.com/full" });
+    const status = (await stub.command("status", {})) as {
+      retention: { articles: number; starred: number; blocked: boolean };
+    };
+    expect(status.retention).toMatchObject({
+      articles: 100,
+      starred: 100,
+      blocked: true,
+    });
+    await runDurableObjectAlarm(stub);
+    // 收藏占满上限：抓取直接顺延，不发起网络请求，也不消耗每日抓取预算。
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    expect(
+      ((await stub.command("status", {})) as { usage: { attempts: number } })
+        .usage.attempts,
+    ).toBe(0);
+    expect(
+      await runInDurableObject(stub, async (instance) => {
+        try {
+          await instance.command("refresh", {});
+          return "";
+        } catch (e) {
+          return (e as Error).message;
+        }
+      }),
+    ).toBe(RETENTION_FULL_MESSAGE);
+  });
+  it("requires confirmation before the limit drops below the starred count", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      for (let i = 0; i < 120; i++)
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes,starred) VALUES(?,?,?,?,?,?,?)",
+          String(i).padStart(3, "0"),
+          "feed",
+          i,
+          JSON.stringify({ id: String(i), publishedAt: i }),
+          "body",
+          10,
+          i < 110 ? 1 : 0,
+        );
+    });
+    // 上限 100 小于收藏 110：未确认时必须拒绝，一篇都不删。
+    const message = await runInDurableObject(stub, async (instance) => {
+      try {
+        await instance.command("configure", {
+          config: { intervalMinutes: 60, maxArticles: 100 },
+        });
+        return "";
+      } catch (e) {
+        return (e as Error).message;
+      }
+    });
+    expect(message).toContain("收藏 110 篇");
+    const untouched = (await stub.command("status", {})) as {
+      config: { maxArticles: number };
+      retention: { articles: number };
+    };
+    expect(untouched.config.maxArticles).toBe(FREE_LIMITS.defaultConfig.maxArticles);
+    expect(untouched.retention.articles).toBe(120);
+    // 确认后按由旧到新裁剪到新上限：最旧的 20 篇收藏让位，最新的 10 篇未收藏文章保留。
+    await stub.command("configure", {
+      config: { intervalMinutes: 60, maxArticles: 100 },
+      confirmStarred: true,
+    });
+    const status = (await stub.command("status", {})) as {
+      retention: {
+        articles: number;
+        starred: number;
+        limit: number;
+        blocked: boolean;
+      };
+    };
+    expect(status.retention).toEqual({
+      articles: 100,
+      starred: 90,
+      limit: 100,
+      blocked: false,
+    });
+    const survivors = (await stub.command("snapshot", {})) as {
+      items: { publishedAt: number }[];
+    };
+    expect(Math.min(...survivors.items.map((item) => item.publishedAt))).toBe(20);
+  });
+  it("keeps stars when the unstarred articles absorb the reduction", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      for (let i = 0; i < 120; i++)
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes,starred) VALUES(?,?,?,?,?,?,?)",
+          String(i).padStart(3, "0"),
+          "feed",
+          i,
+          JSON.stringify({ id: String(i), publishedAt: i }),
+          "body",
+          10,
+          i >= 100 ? 1 : 0,
+        );
+    });
+    // 收藏 20 篇远少于新上限 100：不需要确认，删掉的都是未收藏的旧文章。
+    await stub.command("configure", {
+      config: { intervalMinutes: 60, maxArticles: 100 },
+    });
+    const page = (await stub.command("snapshot", {})) as {
+      items: { publishedAt: number; starred: boolean }[];
+    };
+    expect(page.items).toHaveLength(100);
+    expect(Math.min(...page.items.map((item) => item.publishedAt))).toBe(20);
+    expect(page.items.filter((item) => item.starred)).toHaveLength(20);
+    // 上限回归硬约束后抓取照常：新文章顶掉最旧的未收藏文章，总数不变。
+    const feed = (await stub.command("addFeed", {
+      url: "https://news.example.com/resume",
+    })) as { id: string };
+    vi.mocked(fetch).mockImplementationOnce(
+      async () =>
+        new Response(
+          `<rss><channel><title>Resume</title><item><guid>fresh</guid><pubDate>${new Date(9000).toUTCString()}</pubDate></item></channel></rss>`,
+        ),
+    );
+    await stub.command("refresh", { ids: [feed.id] });
+    await runDurableObjectAlarm(stub);
+    const after = (await stub.command("snapshot", {})) as {
+      items: { guid?: string }[];
+    };
+    expect(after.items.flatMap((item) => item.guid ?? [])).toEqual(["fresh"]);
+    expect(after.items).toHaveLength(100);
+  });
+  it("skips candidates older than the oldest evictable article", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      for (let i = 0; i < 100; i++)
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes,starred) VALUES(?,?,?,?,?,?,?)",
+          String(i).padStart(3, "0"),
+          "feed",
+          i,
+          JSON.stringify({ id: String(i), publishedAt: i }),
+          "body",
+          10,
+          i > 0 ? 1 : 0,
+        );
+    });
+    await stub.command("configure", {
+      config: { intervalMinutes: 60, maxArticles: 100 },
+    });
+    await stub.command("addFeed", { url: "https://news.example.com/evict" });
+    vi.mocked(fetch).mockImplementationOnce(
+      async () =>
+        new Response(
+          `<rss><channel><title>Full</title><item><guid>new-900</guid><pubDate>${new Date(9000).toUTCString()}</pubDate></item><item><guid>new-800</guid><pubDate>${new Date(8000).toUTCString()}</pubDate></item></channel></rss>`,
+          { headers: { etag: '"full"' } },
+        ),
+    );
+    await runDurableObjectAlarm(stub);
+    const page = (await stub.command("snapshot", {})) as {
+      items: { guid?: string }[];
+    };
+    // 唯一可淘汰的“000”让位给较新的候选；更旧的候选连它都比不过，直接跳过。
+    expect(page.items.flatMap((item) => item.guid ?? [])).toEqual(["new-900"]);
+    expect(page.items).toHaveLength(100);
+    // 保留窗口主动舍弃过旧候选不算收录中断，验证头照常保存。
+    expect(
+      await runInDurableObject(stub, (_i, state) =>
+        state.storage.sql.exec("SELECT etag FROM feeds").one(),
+      ),
+    ).toMatchObject({ etag: '"full"' });
+    expect(
+      (
+        (await stub.command("status", {})) as {
+          retention: { blocked: boolean };
+        }
+      ).retention.blocked,
+    ).toBe(false);
+  });
+  it("drops an in-flight feed once the last evictable article is starred", async () => {
+    const stub = make();
+    await runInDurableObject(stub, (_instance, state) => {
+      for (let i = 0; i < 100; i++)
+        state.storage.sql.exec(
+          "INSERT INTO articles(id,feedId,publishedAt,data,content,bytes,starred) VALUES(?,?,?,?,?,?,?)",
+          String(i).padStart(3, "0"),
+          "feed",
+          i,
+          JSON.stringify({ id: String(i), publishedAt: i }),
+          "body",
+          10,
+          i > 0 ? 1 : 0,
+        );
+    });
+    await stub.command("configure", {
+      config: { intervalMinutes: 60, maxArticles: 100 },
+    });
+    const feed = (await stub.command("addFeed", {
+      url: "https://news.example.com/race",
+    })) as { id: string };
+    await runInDurableObject(stub, async (instance) => {
+      // 抓取途中用户收藏了最后一篇可淘汰文章，这一轮就再也腾不出位置了。
+      vi.mocked(fetch).mockImplementationOnce(async () => {
+        await instance.command("state", { id: "000", starred: true });
+        return new Response(
+          `<rss><channel><title>Full</title><item><guid>new-900</guid><pubDate>${new Date(9000).toUTCString()}</pubDate></item></channel></rss>`,
+          { headers: { etag: '"full"' } },
+        );
+      });
+      await instance.alarm();
+    });
+    const page = (await stub.command("snapshot", {})) as {
+      items: { guid?: string }[];
+    };
+    expect(page.items.flatMap((item) => item.guid ?? [])).toEqual([]);
+    expect(page.items).toHaveLength(100);
+    // 一条都没收下就必须清掉验证头，否则下次抓取不会再取回这条文章。
+    expect(
+      await runInDurableObject(stub, (_i, state) =>
+        state.storage.sql.exec("SELECT etag FROM feeds WHERE id=?", feed.id).one(),
+      ),
+    ).toMatchObject({ etag: "" });
+    expect(
+      (
+        (await stub.command("status", {})) as {
+          retention: { blocked: boolean };
+        }
+      ).retention.blocked,
+    ).toBe(true);
+  });
+  it("re-reads feeds without validators when the refresh is full", async () => {
+    const stub = make();
+    const feed = (await stub.command("addFeed", {
+      url: "https://news.example.com/rearchive",
+    })) as { id: string };
+    vi.mocked(fetch).mockImplementationOnce(
+      async () =>
+        new Response(
+          "<rss><channel><title>Archive</title><item><guid>kept</guid></item></channel></rss>",
+          {
+            headers: {
+              etag: '"v1"',
+              "last-modified": "Mon, 07 Sep 2026 00:00:00 GMT",
+            },
+          },
+        ),
+    );
+    await runDurableObjectAlarm(stub);
+    // 误删后重新归档：full 刷新必须先清掉验证头，这一跳不能再带条件请求头。
+    vi.mocked(fetch).mockImplementationOnce(async (_url, init) => {
+      const headers = new Headers(init?.headers);
+      expect(headers.has("if-none-match")).toBe(false);
+      expect(headers.has("if-modified-since")).toBe(false);
+      return new Response(
+        "<rss><channel><title>Archive</title><item><guid>kept</guid></item></channel></rss>",
+      );
+    });
+    await stub.command("refresh", { ids: [feed.id], full: true });
+    await runDurableObjectAlarm(stub);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
   });
   it("snapshot paging detects concurrent changes instead of mixing revisions", async () => {
     const stub = make();

@@ -747,6 +747,15 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
+.retention-warning {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .item-row {
   position: relative;
   display: block;

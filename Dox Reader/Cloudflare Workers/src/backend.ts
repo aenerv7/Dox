@@ -15,12 +15,21 @@ export interface BackendLimits {
   dailyFetchAttempts: number;
   dailyWriteUnits: number;
 }
+/** 保留空间占用；旧版本后端不上报，缺省视为未满。 */
+export interface BackendRetention {
+  articles: number;
+  starred: number;
+  limit: number;
+  /** 收藏占满保留空间：后端已停止收录新文章。 */
+  blocked: boolean;
+}
 export interface BackendStatus {
   product: "Dox Reader Backend";
   apiVersion: 1;
   plan?: "free" | "paid";
   config: BackendConfig;
   limits?: BackendLimits;
+  retention?: BackendRetention;
   revision: number;
   /** 变更日志保留窗口；旧版本后端不上报，缺省视为只能全量同步。 */
   minSeq?: number;

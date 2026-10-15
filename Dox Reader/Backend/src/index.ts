@@ -4,6 +4,7 @@ import { parseFeedXml } from "./shared/feed-parser";
 import type { FeedRecord, ItemRecord } from "./shared/model";
 import {
   type Limits,
+  RETENTION_FULL_MESSAGE,
   boundedContent,
   clampConfig,
   feedUrl,
@@ -47,6 +48,12 @@ const emptyJob = (): Job => ({
   updated: 0,
   startedAt: 0,
 });
+// 淘汰范围：抓取与字节预算只删未收藏文章，收藏是用户资产；
+// 只有用户确认调低上限（或档位降级收紧上限）时才连收藏一起删，否则总数会永久高于上限。
+enum Evict {
+  ExceptStarred,
+  All,
+}
 
 export class ReaderLibrary extends DurableObject<Bindings> {
   // 档位在部署时由 wrangler.jsonc 的 PLAN 变量声明；后端不会自动升级套餐。
@@ -152,29 +159,76 @@ export class ReaderLibrary extends DurableObject<Bindings> {
   private config() {
     return clampConfig(this.get("config", this.limits.defaultConfig), this.limits);
   }
-  private prune() {
-    const count = this.ctx.storage.sql
-      .exec<{ count: number }>("SELECT count FROM totals WHERE id=1")
-      .one().count;
-    const excess = count - this.config().maxArticles;
-    if (excess > 0) this.removeOldest(excess);
+  private totals() {
+    return this.ctx.storage.sql
+      .exec<{ count: number; bytes: number }>("SELECT count,bytes FROM totals WHERE id=1")
+      .one();
+  }
+  // 保留空间按“收藏 / 未收藏”分开统计：只有未收藏的文章可以被淘汰。
+  private tallies() {
+    const totals = this.totals();
+    const starred = this.ctx.storage.sql
+      .exec<{ n: number }>("SELECT COUNT(*) AS n FROM articles WHERE starred=1")
+      .one().n;
+    return { ...totals, starred, evictable: totals.count - starred };
+  }
+  private oldestEvictable() {
+    return this.ctx.storage.sql
+      .exec<{
+        publishedAt: number;
+        id: string;
+      }>("SELECT publishedAt,id FROM articles WHERE starred=0 ORDER BY publishedAt,id LIMIT 1")
+      .toArray()[0];
+  }
+  // 保留窗口已满（篇数或字节）：新文章必须先淘汰一篇未收藏的旧文章。
+  private full() {
+    const totals = this.totals();
+    return (
+      totals.count >= this.config().maxArticles ||
+      totals.bytes > this.limits.maxLibraryBytes
+    );
+  }
+  // 收藏占满全部保留空间后无法再淘汰，只能停止收录；客户端据此提示用户。
+  private retention() {
+    const { count, starred, evictable } = this.tallies();
+    return {
+      articles: count,
+      starred,
+      limit: this.config().maxArticles,
+      blocked: evictable === 0 && this.full(),
+    };
+  }
+  // 收敛到保留上限：按由旧到新删除，evict 决定收藏是否参与。
+  private prune(evict: Evict) {
+    const excess = this.totals().count - this.config().maxArticles;
+    if (excess > 0) this.removeOldest(excess, evict);
     // Content + metadata is bounded per article; retain an additional aggregate guard.
-    while (
-      this.ctx.storage.sql
-        .exec<{ bytes: number }>("SELECT bytes FROM totals WHERE id=1")
-        .one().bytes > this.limits.maxLibraryBytes
-    ) {
-      this.removeOldest(100);
+    // 字节超预算时只删未收藏文章：删无可删就停手，避免空转。
+    while (this.totals().bytes > this.limits.maxLibraryBytes) {
+      const before = this.totals().count;
+      this.removeOldest(100, Evict.ExceptStarred);
+      if (this.totals().count === before) break;
     }
   }
+  // 上限低于收藏数时缺口无法只靠未收藏文章填平，收藏必须让位；
+  // 该降幅已由 configure 征得用户确认，或由档位 clamp 强制收紧。
+  private evictScope(limit: number): Evict {
+    return limit < this.tallies().starred ? Evict.All : Evict.ExceptStarred;
+  }
+  // 档位 clamp（如付费降回免费）会绕过 configure 调低上限，这里补一次收敛，保证总数始终不超上限。
+  private reconcileLimit() {
+    const limit = this.config().maxArticles;
+    if (this.totals().count > limit) this.prune(this.evictScope(limit));
+  }
   // 删除最旧的 N 篇并在日志里留删除记录，客户端增量同步才删得掉本地副本。
-  private removeOldest(limit: number) {
+  private removeOldest(limit: number, evict: Evict) {
+    const scope = evict === Evict.ExceptStarred ? " WHERE starred=0" : "";
     this.ctx.storage.sql.exec(
-      "INSERT INTO changes(kind,id) SELECT 'remove',id FROM articles ORDER BY publishedAt,id LIMIT ?",
+      `INSERT INTO changes(kind,id) SELECT 'remove',id FROM articles${scope} ORDER BY publishedAt,id LIMIT ?`,
       limit,
     );
     this.ctx.storage.sql.exec(
-      "DELETE FROM articles WHERE id IN (SELECT id FROM articles ORDER BY publishedAt,id LIMIT ?)",
+      `DELETE FROM articles WHERE id IN (SELECT id FROM articles${scope} ORDER BY publishedAt,id LIMIT ?)`,
       limit,
     );
   }
@@ -202,6 +256,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
       revision: this.get("revision", 0),
       ...this.seqRange(),
       job: this.get("job", emptyJob()),
+      retention: this.retention(),
       nextFetchAt: this.ctx.storage.sql
         .exec<{ due: number | null }>("SELECT MIN(due) AS due FROM feeds")
         .one().due,
@@ -225,9 +280,15 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     if (action === "status") return this.status();
     if (action === "configure") {
       const config = validateConfig(p.config, this.limits);
+      const starred = this.tallies().starred;
+      // 上限降到收藏数以下必然要删收藏文章：先让用户确认，避免误删。
+      if (config.maxArticles < starred && p.confirmStarred !== true)
+        throw new Error(
+          `新上限 ${config.maxArticles} 小于收藏 ${starred} 篇，保存会按由旧到新裁剪，至少删除 ${starred - config.maxArticles} 篇收藏文章，确认后再保存`,
+        );
       this.ctx.storage.transactionSync(() => {
         this.put("config", config);
-        this.prune();
+        this.prune(this.evictScope(config.maxArticles));
         this.trimChanges();
         this.changed();
         this.ctx.storage.sql.exec(
@@ -471,6 +532,8 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     }
     if (action === "refresh") {
       if (this.get("job", emptyJob()).running) return this.status();
+      // 收藏占满保留空间：抓取不可能收录任何新文章，直接提示用户，不空跑一轮。
+      if (this.retention().blocked) throw new Error(RETENTION_FULL_MESSAGE);
       if (Date.now() - this.get("lastManual", 0) < 60000)
         throw new Error("手动抓取间隔至少 1 分钟");
       const usage = this.usage();
@@ -498,12 +561,20 @@ export class ReaderLibrary extends DurableObject<Bindings> {
           "pending",
           rows.map((r) => r.id),
         );
-        for (const row of rows)
+        for (const row of rows) {
+          // full：清掉条件请求验证头，强制订阅源返回完整体而不是 304，
+          // 用于保留策略误删后重新归档（受每日写入预算限制，分数天补齐）。
+          if (p.full === true)
+            this.ctx.storage.sql.exec(
+              "UPDATE feeds SET etag='',modified='' WHERE id=?",
+              row.id,
+            );
           this.ctx.storage.sql.exec(
             "UPDATE feeds SET due=? WHERE id=?",
             Date.now(),
             row.id,
           );
+        }
       });
       await this.arm();
       return this.status();
@@ -527,6 +598,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
     this.put("lease", now + FETCH_LEASE_MS);
     // Recovery wakeup is persisted before external I/O. Cron also repairs missing alarms.
     await this.ctx.storage.setAlarm(now + FETCH_LEASE_MS + 1000);
+    this.reconcileLimit();
     const usage = this.usage();
     if (
       usage.attempts >= this.limits.dailyFetchAttempts ||
@@ -541,6 +613,29 @@ export class ReaderLibrary extends DurableObject<Bindings> {
         running: false,
         errors: ["今日抓取预算已用完，明日自动恢复"],
       });
+      await this.arm();
+      return;
+    }
+    // 收藏占满保留空间：收录不了任何新文章，把该源顺延，不白耗一次抓取预算。
+    if (this.retention().blocked) {
+      this.ctx.storage.sql.exec(
+        "UPDATE feeds SET due=? WHERE id=?",
+        now + this.config().intervalMinutes * 60000,
+        row.id,
+      );
+      this.put("lease", 0);
+      const pending = this.get<string[]>("pending", []);
+      if (pending.includes(row.id)) {
+        const rest = pending.filter((id) => id !== row.id);
+        const job = this.get("job", emptyJob());
+        this.put("pending", rest);
+        this.put("job", {
+          ...job,
+          running: rest.length > 0,
+          completed: job.completed + 1,
+          errors: [...job.errors, RETENTION_FULL_MESSAGE].slice(-100),
+        });
+      }
       await this.arm();
       return;
     }
@@ -614,25 +709,20 @@ export class ReaderLibrary extends DurableObject<Bindings> {
                   .toArray().length
               )
                 continue;
-              const count = this.ctx.storage.sql
-                .exec<{ count: number }>("SELECT count FROM totals WHERE id=1")
-                .one().count;
-              const oldest =
-                count >= this.config().maxArticles
-                  ? this.ctx.storage.sql
-                      .exec<{
-                        publishedAt: number;
-                        id: string;
-                      }>("SELECT publishedAt,id FROM articles ORDER BY publishedAt,id LIMIT 1")
-                      .one()
-                  : null;
-              if (
-                oldest &&
-                (item.publishedAt < oldest.publishedAt ||
-                  (item.publishedAt === oldest.publishedAt &&
-                    item.id <= oldest.id))
-              )
-                continue;
+              // 保留窗口满时靠淘汰最旧的未收藏文章腾位置：没有可淘汰的文章就停止收录。
+              if (this.full()) {
+                const victim = this.oldestEvictable();
+                if (!victim) {
+                  incomplete = true;
+                  break;
+                }
+                if (
+                  item.publishedAt < victim.publishedAt ||
+                  (item.publishedAt === victim.publishedAt &&
+                    item.id <= victim.id)
+                )
+                  continue;
+              }
               const content = boundedContent(
                 item.content,
                 this.limits.maxContentBytes,
@@ -663,7 +753,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
               budget.writes += 4;
               updated++;
               this.recordChange("item", item.id);
-              this.prune();
+              this.prune(Evict.ExceptStarred);
             }
             record.title = parsed.title.slice(0, 500);
             record.siteUrl = parsed.siteUrl.slice(0, 2048);
@@ -681,7 +771,7 @@ export class ReaderLibrary extends DurableObject<Bindings> {
               row.id,
             );
             this.put("usage", budget);
-            this.prune();
+            this.prune(Evict.ExceptStarred);
             this.trimChanges();
             if (
               updated > 0 ||

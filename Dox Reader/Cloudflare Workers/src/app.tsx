@@ -54,7 +54,7 @@ import {
   updateSyncedPreferences,
   getItem,
 } from "./repository";
-import { backendEnabled, backendOffline, backendCall, backendLimits, connectBackend, pullBackend, requestBackendRefresh, testBackend, type BackendConfig, type BackendStatus } from "./backend";
+import { backendEnabled, backendOffline, backendCall, backendLimits, connectBackend, pullBackend, requestBackendRefresh, testBackend, type BackendConfig, type BackendRetention, type BackendStatus } from "./backend";
 import { refreshFeed, refreshFeeds } from "./feed-service";
 import type { FeedRefreshProgress } from "./feed-service";
 import { needsInitialArticleRefresh } from "./initial-sync";
@@ -129,7 +129,20 @@ function itemReadAction(itemId: string): string {
   return `item:${itemId}`;
 }
 
+// 收藏占满保留空间时后端停止收录新文章：界面需要持续提示，而不是只闪一条 toast。
+function retentionNotice(retention?: BackendRetention): string {
+  if (!retention?.blocked) return "";
+  return `全库已满：${retention.articles} / ${retention.limit} 篇，其中收藏 ${retention.starred} 篇。后端已停止收录新文章，调高保留上限或取消部分收藏后恢复。`;
+}
+
+// 上限降到收藏数以下会按由旧到新裁剪，收藏文章也会被删除；与后端 configure 的校验同一口径。
+function retentionCutWarning(limit: number, starred: number): string {
+  return `新上限 ${limit} 小于当前收藏 ${starred} 篇。保存会按由旧到新裁剪到该上限，至少删除 ${starred - limit} 篇收藏文章，且无法恢复。确定继续？`;
+}
+
 function formatBackendStatus(status: BackendStatus | null): string {
+  const full = retentionNotice(status?.retention);
+  if (full) return full;
   if (status?.job.running) return "后台正在抓取";
   if (status?.nextFetchAt) return `下次抓取 ${new Date(status.nextFetchAt).toLocaleString()}`;
   return "暂无抓取计划";
@@ -409,6 +422,7 @@ export function App() {
   const selectedFeedUnread = selectedFeed ? (feedUnread[selectedFeed.id] ?? 0) : 0;
   const unreadCount = counts.unread;
   const starredCount = counts.starred;
+  const retentionFullNotice = retentionNotice(backendStatus?.retention);
   const refreshSourceLabel = !refreshProgress
     ? ""
     : refreshProgress.activeFeedNames.length
@@ -507,7 +521,8 @@ export function App() {
       if(backendEnabled()) {
         const status=await requestBackendRefresh(targets,feedId?undefined:progress=>setRefreshProgress(displayRefreshProgress(progress,currentFeeds)));
         setBackendStatus(status);await loadData();
-        setToast(status.job.running?'后端仍在抓取，关闭页面也会继续':'后端抓取完成：新增 '+status.job.updated+' 篇，失败 '+status.job.errors.length+' 个');
+        const full=retentionNotice(status.retention);
+        setToast(full||(status.job.running?'后端仍在抓取，关闭页面也会继续':'后端抓取完成：新增 '+status.job.updated+' 篇，失败 '+status.job.errors.length+' 个'));
         return;
       }
       const result = await refreshFeeds(
@@ -628,11 +643,11 @@ export function App() {
     }
   }
 
-  async function handleSaveSettings(next: AppSettings, config?:BackendConfig) {
+  async function handleSaveSettings(next: AppSettings, config?:BackendConfig, opts?:{confirmStarred:boolean}) {
     const changedMode=next.storageMode!==settings.storageMode || next.backendUrl!==settings.backendUrl || next.backendToken!==settings.backendToken;
     if(next.storageMode==='backend') {
       await testBackend(next);
-      if(config) await backendCall('configure',{config},next);
+      if(config) await backendCall('configure',{config,...(opts?.confirmStarred?{confirmStarred:true}:{})},next);
     } else await updateSyncedPreferences(preferenceValues(next));
     await saveSettings(next);
     if(changedMode) {window.location.reload();return;}
@@ -867,6 +882,7 @@ export function App() {
           {query && <button title="清除搜索" onClick={() => setQuery("")}><X size={15} /></button>}
         </label>
         <div class={`item-list ${settings.showItemSnippet ? "" : "compact"}`} ref={itemListRef}>
+          {retentionFullNotice && <div class="retention-warning" role="status">{retentionFullNotice}</div>}
           {(settings.storageMode==='backend'?visibleItems.slice(0,visibleLimit):visibleItems).map((item) => {
             const itemFeed = feedsById.get(item.feedId);
             const source = formatItemSource(filter, itemFeed ? feedName(itemFeed) : "", sourceHost(item));
@@ -1130,7 +1146,7 @@ function SettingsDialog(props: {
   backendStatus: BackendStatus | null;
   syncing: boolean;
   onClose: () => void;
-  onSave: (settings: AppSettings, config?:BackendConfig) => Promise<void>;
+  onSave: (settings: AppSettings, config?:BackendConfig, opts?:{confirmStarred:boolean}) => Promise<void>;
   onSync: (settings: AppSettings) => Promise<AppSettings>;
   onTest: (settings: AppSettings) => Promise<string>;
   onImport: (file: File) => Promise<void>;
@@ -1188,7 +1204,12 @@ function SettingsDialog(props: {
     setSaving(true);setTestResult('');
     try {
       if (draft.storageMode === 'backend' && (!backendConfig || backendLoading)) throw new Error('请先等待后端设置读取成功');
-      await props.onSave(draft,draft.storageMode==='backend'?backendConfig??undefined:undefined);
+      const starred=backendDisplayStatus?.retention?.starred??0;
+      const limit=backendConfig?.maxArticles??0;
+      // 上限降到收藏数以下会连带裁剪收藏文章，保存前必须让用户确认。
+      const confirmStarred=!!backendConfig&&limit<starred;
+      if (confirmStarred&&!confirm(retentionCutWarning(limit,starred))) return;
+      await props.onSave(draft,draft.storageMode==='backend'?backendConfig??undefined:undefined,confirmStarred?{confirmStarred}:undefined);
     }
     catch(error){setTestResult(error instanceof Error?error.message:String(error));}
     finally{setSaving(false);}
@@ -1268,6 +1289,7 @@ function SettingsDialog(props: {
                   <label class="field"><span>抓取间隔（分钟）</span><input type="number" min={limits.intervalMinutes.min} max={limits.intervalMinutes.max} step="1" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.intervalMinutes ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)});}}/></label>
                   <label class="field"><span>全库最新文章上限</span><input type="number" min={limits.maxArticles.min} max={limits.maxArticles.max} step="100" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.maxArticles ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)});}}/></label>
                 </div>
+                {backendDisplayStatus?.retention && <div class="connection-result">已保留 {backendDisplayStatus.retention.articles} / {backendDisplayStatus.retention.limit} 篇，其中收藏 {backendDisplayStatus.retention.starred} 篇</div>}
             </>}
           </section>
           {draft.storageMode==='local' && <section class="settings-section">
