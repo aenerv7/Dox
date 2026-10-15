@@ -1693,9 +1693,9 @@ npx wrangler secret put KIWIVM_BASE      # 中转地址，例如 https://bwh-tra
 | 项 | 值 |
 |---|---|
 | Worker | `https://bwh-traffic.aenerv7.workers.dev` |
-| 中转 | `https://bwh-traffic.ddtwstudio.com` → 搬瓦工 VPS `magi-bandwagonhost` 上的 Caddy（`/etc/caddy/Caddyfile`） |
+| 中转兼面板入口 | `https://bwh-traffic.ddtwstudio.com` → 搬瓦工 VPS `magi-bandwagonhost` 上的 Caddy（`/etc/caddy/Caddyfile`）：`/getServiceInfo` 转发到 KiwiVM，其余路径反代回 Worker |
 | 证书 | `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期） |
-| DNS | `bwh-traffic.ddtwstudio.com` A `23.106.154.176`，DNS only（不经过 Cloudflare 代理） |
+| DNS | `bwh-traffic.ddtwstudio.com` A `23.106.154.176`，DNS only（不经过 Cloudflare 代理，必须如此，见下） |
 
 ### 中转
 
@@ -1719,11 +1719,17 @@ bwh-traffic.ddtwstudio.com {
         }
     }
 
+    # 其余路径（浏览器面板、Sub-Store 的 /<token>）反代回 Worker。
+    # Worker 取 /getServiceInfo 时命中的是上面的 @relay，不会回到这里，所以不自环。
     handle {
-        respond "Forbidden" 403
+        reverse_proxy https://bwh-traffic.aenerv7.workers.dev
     }
 }
 ```
+
+这样 `https://bwh-traffic.ddtwstudio.com/<token>` 和 `https://bwh-traffic.aenerv7.workers.dev/<token>` 等价，都能看面板，Sub-Store 填哪个都行。
+
+**这个域名必须保持 DNS only。** 一旦改成橙云代理（或把 Worker 挂成它的自定义域/路由），Worker 再取 `https://bwh-traffic.ddtwstudio.com/getServiceInfo` 时就落不到 Caddy 上，Cloudflare 会回 `error code: 522`，Sub-Store 那边直接 502。
 
 改完 `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` 再 `systemctl reload caddy`。`<ACCESS_TOKEN>` 与 Worker 的访问口令是同一个值，换口令要同时改 Caddyfile 和 `wrangler secret put ACCESS_TOKEN`。
 
@@ -1740,15 +1746,18 @@ location = /getServiceInfo {
 }
 ```
 
-中转域名也可以放在 Cloudflare 后面：被拒的是 Cloudflare 访问 `api.64clouds.com` 这条腿，不是 Cloudflare 访问你自己的源站。其他形态同理（Deno Deploy、另一台 VPS、家里的机器 + Cloudflare Tunnel 等），Worker 只管把 `/getServiceInfo` 接到 `KIWIVM_BASE` 后面。
+中转域名原则上也可以放在 Cloudflare 后面（被拒的是 Cloudflare 访问 `api.64clouds.com` 这条腿，不是 Cloudflare 访问你自己的源站），但**不能既当 Worker 的对外地址又当中转**：那样 Worker 取它时 CF 按同区回源处理，源站连不上就回 `error code: 522`（2026-10-15 踩过，Sub-Store 直接 502）。其他形态同理（Deno Deploy、另一台 VPS、家里的机器 + Cloudflare Tunnel 等），Worker 只管把 `/getServiceInfo` 接到 `KIWIVM_BASE` 后面。
 
 ### 在 Sub-Store 里用
 
-填到**单条订阅编辑弹窗里的「订阅流量信息」字段**（英文界面是 `Subscription-Userinfo`，占位符写着「值/链接」，问号弹窗标题是「手动设置订阅流量信息」）。口令走路径首段，形状和 Sub-Store 后端地址一致：
+填到**单条订阅编辑弹窗里的「订阅流量信息」字段**（英文界面是 `Subscription-Userinfo`，占位符写着「值/链接」，问号弹窗标题是「手动设置订阅流量信息」）。口令走路径首段，形状和 Sub-Store 后端地址一致，两个域名通用：
 
 ```text
 https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>
+https://bwh-traffic.ddtwstudio.com/<ACCESS_TOKEN>
 ```
+
+后者经 VPS 的 Caddy 反代到同一个 Worker，参数与响应完全一致。
 
 `?token=<值>` 不再认，务必换成上面的路径写法。
 
@@ -1768,7 +1777,7 @@ https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>#noCache
 
 ### 浏览器面板
 
-同一地址用浏览器打开（或 `curl -H "Accept: text/html"`）会得到一张用量面板：已用／配额、进度条、剩余、使用率和到期日，页签图标是内联的 BandwagonHost 标记。面板不引用任何外部资源，`subscription-userinfo` 响应头照旧。
+同一地址用浏览器打开（或 `curl -H "Accept: text/html"`）会得到一张用量面板：已用／配额、进度条、剩余、使用率和到期日，页签图标是内联的 BandwagonHost 标记。面板不引用任何外部资源，`subscription-userinfo` 响应头照旧。两个域名打开都是这张面板。
 
 ### 排查
 
@@ -1780,7 +1789,7 @@ curl.exe "https://<worker 域名>/<ACCESS_TOKEN>?debug=1"
 node --test bwh-traffic/worker.test.js
 ```
 
-`upstream_keys` 是 `["success","token"]` 就说明还在走 Cloudflare 出口，`KIWIVM_BASE` 没配好或中转自己也在 Cloudflare 上。
+`upstream_keys` 是 `["success","token"]` 就说明还在走 Cloudflare 出口，`KIWIVM_BASE` 没配好或中转自己也在 Cloudflare 上；`upstream_status` 是 `522` 说明中转域名不再是 DNS only（或它同时被 Worker 占着）。
 
 ### 维护约束
 

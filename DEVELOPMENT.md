@@ -1539,7 +1539,7 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`（同时是中转的
 
 #### 中转现状
 
-中转是搬瓦工 VPS `magi-bandwagonhost`（`23.106.154.176:16022`）上的一个 Caddy 站点块，写在 `/etc/caddy/Caddyfile`：`bwh-traffic.ddtwstudio.com` 只放行 `GET /getServiceInfo` 且必须带 `X-Relay-Token`（值等于 Worker 的 `ACCESS_TOKEN`），`uri replace /getServiceInfo /v1/getServiceInfo` 后反代到 `https://api.64clouds.com`（`header_up Host api.64clouds.com`），其余请求一律 403。这个二级域名专用于本 Worker，所以路径里不再有 `/kiwivm` 和 `/v1` 前缀，`KIWIVM_BASE` 就是 `https://bwh-traffic.ddtwstudio.com`。共用 `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期），DNS 是 DNS only 的 A 记录。改配置后先 `caddy validate`，再 `systemctl reload caddy`。
+中转是搬瓦工 VPS `magi-bandwagonhost`（`23.106.154.176:16022`）上的一个 Caddy 站点块，写在 `/etc/caddy/Caddyfile`：`bwh-traffic.ddtwstudio.com` 只放行 `GET /getServiceInfo` 且必须带 `X-Relay-Token`（值等于 Worker 的 `ACCESS_TOKEN`），`uri replace /getServiceInfo /v1/getServiceInfo` 后反代到 `https://api.64clouds.com`（`header_up Host api.64clouds.com`）；**其余路径反代回 `https://bwh-traffic.aenerv7.workers.dev`**，于是 `https://bwh-traffic.ddtwstudio.com/<token>` 与 workers.dev 那个地址等价（面板、Sub-Store 都可用），而 Worker 自己取 `/getServiceInfo` 命中的是 `@relay`，不会自环。这个二级域名专用于本 Worker，所以路径里不再有 `/kiwivm` 和 `/v1` 前缀，`KIWIVM_BASE` 就是 `https://bwh-traffic.ddtwstudio.com`。共用 `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期），**DNS 必须是 DNS only 的 A 记录**（见不变量 8）。改配置后先 `caddy validate`，再 `systemctl reload caddy`（备份沿用 `Caddyfile.bak-<时间戳>` 命名）。
 
 中转口令只有一份：Caddyfile 的 `header X-Relay-Token` 与 Worker 的 `ACCESS_TOKEN` 必须同值，换口令改两处（`wrangler secret put ACCESS_TOKEN` + Caddyfile）。中转不可用时 Worker 会以 502 报出上游状态，不影响其它模块。
 
@@ -1552,6 +1552,7 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`（同时是中转的
 5. `ACCESS_TOKEN` 为空时不校验口令；配置后取**路径首段**（`https://<worker>/<token>`，与 Sub-Store 后端的「鉴权即路径前缀」一致）必须匹配，不匹配必须在请求上游之前返回 403。`?token=` 不再放行，`?debug=1` 仍是查询参数。口令因此只能用 URL 安全字符。
 6. `?debug=1` 回显上游状态、字段名、截断正文和算出的 userinfo，是排查线上问题的唯一入口，不得删。
 7. `BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN`、`KIWIVM_BASE` 只用 `wrangler secret put` 配置：secret 跨 `wrangler deploy` 保留，明文 `vars` 会被覆盖清空（历史版本用明文 var 存过 VEID 和访问口令，一次部署就丢了）。
+8. `bwh-traffic.ddtwstudio.com` 只能是 **DNS only**，且不能同时挂成 Worker 的自定义域/路由。一旦它走橙云，Worker 取 `https://bwh-traffic.ddtwstudio.com/getServiceInfo` 会被 CF 当同区回源处理，源站不可达就回 `error code: 522`，Sub-Store 侧表现为 502（2026-10-15 实测）。判据：`?debug=1` 里 `upstream_status=522`、`upstream_body="error code: 522"`，而同一请求从非 Cloudflare 出口取 `api.64clouds.com` 正常返回 700005。
 
 #### 验证
 
