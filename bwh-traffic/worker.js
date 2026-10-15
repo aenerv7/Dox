@@ -225,7 +225,7 @@ function page(info) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="subscription-userinfo" content="${value}">
 <link rel="icon" href="${FAVICON}">
-<title>BandwagonHost 流量</title>
+<title>BandwagonHOST</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -266,7 +266,7 @@ function page(info) {
   <header>
     <img class="mark" src="${FAVICON}" alt="">
     <div>
-      <h1>BandwagonHost</h1>
+      <h1>BandwagonHOST</h1>
       <p class="sub">KiwiVM 流量用量</p>
     </div>
   </header>

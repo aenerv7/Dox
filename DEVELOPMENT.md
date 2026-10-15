@@ -1541,7 +1541,7 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `ACCESS_TOKEN`（同时是中转的
 
 中转是搬瓦工 VPS `magi-bandwagonhost`（`23.106.154.176:16022`）上的一个 Caddy 站点块，写在 `/etc/caddy/Caddyfile`：`bwh-traffic.ddtwstudio.com` 只放行 `GET /getServiceInfo` 且必须带 `X-Relay-Token`（值等于 Worker 的 `ACCESS_TOKEN`），`uri replace /getServiceInfo /v1/getServiceInfo` 后反代到 `https://api.64clouds.com`（`header_up Host api.64clouds.com`）；**其余路径反代回 `https://bwh-traffic.aenerv7.workers.dev`**，于是 `https://bwh-traffic.ddtwstudio.com/<token>` 与 workers.dev 那个地址等价（面板、Sub-Store 都可用），而 Worker 自己取 `/getServiceInfo` 命中的是 `@relay`，不会自环。这个二级域名专用于本 Worker，所以路径里不再有 `/kiwivm` 和 `/v1` 前缀，`KIWIVM_BASE` 就是 `https://bwh-traffic.ddtwstudio.com`。共用 `/etc/ssl/ddtwstudio.com.fullchain`（`*.ddtwstudio.com` 通配，acme.sh 每日 00:00 UTC 续期），**DNS 必须是 DNS only 的 A 记录**（见不变量 8）。改配置后先 `caddy validate`，再 `systemctl reload caddy`（备份沿用 `Caddyfile.bak-<时间戳>` 命名）。
 
-中转口令只有一份：Caddyfile 的 `header X-Relay-Token` 与 Worker 的 `ACCESS_TOKEN` 必须同值，换口令改两处（`wrangler secret put ACCESS_TOKEN` + Caddyfile）。中转不可用时 Worker 会以 502 报出上游状态，不影响其它模块。
+中转口令只有一份：Caddyfile 的 `header X-Relay-Token` 与 Worker 的 `ACCESS_TOKEN` 必须同值，换口令改两处（`wrangler secret put ACCESS_TOKEN` + Caddyfile）。Caddyfile 里明文写着这个口令，权限固定 `root:caddy` 640（Caddy 以 `User=caddy` 运行，不需要 world-readable），改完 `systemctl reload caddy` 后确认 `is-active` 且中转域名仍返回 200。中转不可用时 Worker 会以 502 报出上游状态，不影响其它模块。
 
 #### 不变量
 
