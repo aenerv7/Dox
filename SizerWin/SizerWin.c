@@ -1,5 +1,5 @@
 // SizerWin - Windows native window sizer/positioner
-// Equivalent to SizerAHK, implemented with pure Win32 API
+// Native Win32 implementation, no script runtime required
 // Hotkey: Shift+Alt+Space
 
 #ifndef UNICODE

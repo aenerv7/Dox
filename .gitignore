@@ -1,4 +1,3 @@
-AutoHotkey/Test/Test.exe
 .DS_Store
 
 # Scripts logs
@@ -35,32 +34,14 @@ Firefox/build/
 Firefox/backups/
 Firefox/validation.json
 
-# Firefox/Zen（补丁构建产物、原版备份与本机报告）
-Firefox/Zen/**/build/
-Firefox/Zen/**/backups/
-Firefox/Zen/**/__pycache__/
-Firefox/Zen/**/dist/
-Firefox/Zen/**/validation.json
-Firefox/Zen/**/runtime-validation.json
-
-# PortableBridge build output (including the old local build directory)
-Firefox/PortableBridge/bin/
-PortableBridge/**/bin/
-
 # DeepSeek Harness Launcher（构建产物）
 DeepSeek Harness/Launcher/bin/
 
 # ApkRename（自动下载的工具）
-Android/ApkRename/tools/
+Scripts/tools/
 
 # Codex temporary workspace files
 .codex-tmp/
-
-# Helium language patcher cache backups and temporary files
-HeliumLanguagePatcher/__pycache__/
-HeliumLanguagePatcher/*.bak
-HeliumLanguagePatcher/*.bak-*
-HeliumLanguagePatcher/.*.tmp
 
 # Dox Reader 网页版与后端（依赖、构建产物与本机凭据）
 Dox Reader/Cloudflare Workers/**/node_modules/

@@ -1491,7 +1491,7 @@ magpie 配置：
   不保存固定基线；Firefox 升级后直接运行 install，检测到未知资源就按新版原包自动重建补丁。
   只补充 localization/ 下的 Fluent 消息，不改动代码、偏好设置、扩展或配置文件。
   资源已被打过补丁、或安装目录被替换时会明确报错，不会静默改错。
-  请保留 backups/ 用于还原；完整说明见仓库根 README.md 的 Firefox 小节。''')
+  请保留 backups/ 用于还原；完整说明见仓库根 README.md 的「Firefox 界面翻译补全」小节。''')
     parser.add_argument('-h', '--help', action='help', help='显示中文使用指南并退出')
     parser.add_argument('command', nargs='?', default='help',
                         choices=('help', 'detect', 'scan', 'build', 'validate', 'install', 'verify',

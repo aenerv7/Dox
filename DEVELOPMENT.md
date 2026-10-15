@@ -4,7 +4,7 @@
 >
 > **全仓库只有两份文档：根 `README.md`（用户使用）和本文件（维护规范）。** 不存在模块级 README，也不存在第二份开发文档；同一事实只写一处，不复制到两处。新增模块在根 `README.md` 加一个小节、在本文件加一个小节即可。
 >
-> 随包分发或合规用途的文件不属于此约定，保持原位：各 `PRIVACY.md`（隐私说明）、`Firefox/AutoSortBookmarks/THIRD_PARTY_NOTICES.md`（第三方许可）。
+> 随包分发或合规用途的文件不属于此约定，保持原位：各 `PRIVACY.md`（隐私说明）、`Firefox/Add-Ons/AutoSortBookmarks/THIRD_PARTY_NOTICES.md`（第三方许可）。
 
 ## 目录
 
@@ -12,24 +12,20 @@
 2. [全局规则](#2-全局规则)
 3. [模块开发文档](#3-模块开发文档)
    - 3.1 [中文字体优化（CJK 字体映射）](#31-中文字体优化cjk-字体映射)
-   - 3.2 [SizerAHK](#32-sizerahk)
-   - 3.3 [SizerWin](#33-sizerwin)
-   - 3.4 [SizerSwift](#34-sizerswift)
-   - 3.5 [CapsLockOSD](#35-capslockosd)
-   - 3.6 [Dox Reader](#36-dox-readercloudflare-workers--backend)
-   - 3.7 [Firefox Auto Sort Bookmarks](#37-firefox-auto-sort-bookmarks)
-   - 3.8 [Userscript 小脚本](#38-userscript-小脚本)
-   - 3.9 [Stash](#39-stash)
-   - 3.10 [AdGuard（magi.txt）](#310-adguardmagitxt)
-   - 3.11 [Scripts（Edge 清理与 FFmpeg 安装）](#311-scriptsedge-清理与-ffmpeg-安装)
-   - 3.12 [DeepSeek Harness Launcher](#312-deepseek-harness-launcher)
-   - 3.13 [Android ApkRename](#313-android-apkrename)
-   - 3.14 [PortableBridge](#314-portablebridge)
-   - 3.15 [HeliumLanguagePatcher](#315-heliumlanguagepatcher)
-   - 3.16 [Zen（中文补全与默认应用重复项）](#316-zen中文补全与默认应用重复项)
-   - 3.17 [Sub-Store（Cloudflare Workers）](#317-sub-storecloudflare-workers)
-   - 3.18 [bwh-traffic（BandwagonHost 流量订阅头）](#318-bwh-trafficbandwagonhost-流量订阅头)
-   - 3.19 [Firefox（界面翻译补全）](#319-firefox界面翻译补全)
+   - 3.2 [SizerWin](#32-sizerwin)
+   - 3.3 [SizerSwift](#33-sizerswift)
+   - 3.4 [CapsLockOSD](#34-capslockosd)
+   - 3.5 [Dox Reader](#35-dox-readercloudflare-workers--backend)
+   - 3.6 [Firefox Auto Sort Bookmarks](#36-firefox-auto-sort-bookmarks)
+   - 3.7 [Userscript 小脚本](#37-userscript-小脚本)
+   - 3.8 [AdGuard（magi.txt）](#38-adguardmagitxt)
+   - 3.9 [Scripts（Edge 清理与 FFmpeg 安装）](#39-scriptsedge-清理与-ffmpeg-安装)
+   - 3.10 [DeepSeek Harness Launcher](#310-deepseek-harness-launcher)
+   - 3.11 [ApkRename（APK 改名脚本）](#311-apkrenameapk-改名脚本)
+   - 3.12 [Firefox 默认应用重复项清理](#312-firefox-默认应用重复项清理)
+   - 3.13 [Sub-Store（Cloudflare Workers）](#313-sub-storecloudflare-workers)
+   - 3.14 [bwh-traffic（BandwagonHost 流量订阅头）](#314-bwh-trafficbandwagonhost-流量订阅头)
+   - 3.15 [Firefox（界面翻译补全）](#315-firefox界面翻译补全)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -45,45 +41,36 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 
 | 类型 | 文件 | 用途 |
 |---|---|---|
-| AutoHotkey v2 | `AutoHotkey/**/*.ahk` | Windows 桌面自动化和窗口调整 |
 | C / Win32 API | `SizerWin/*.c`、`SizerWin/*.rc`、`SizerWin/*.manifest`、`CapsLockOSD/` | 原生 Windows 窗口调整工具与 OSD 提示 |
 | C++20 / Win32 API | `DeepSeek Harness/Launcher/` | DeepSeek Harness 本地托盘监督器 |
-| C# / .NET Framework 4 | `PortableBridge/` | Firefox / Chrome 的会话级 HTTP(S) 桥接与生命周期监视 |
-| Python 3.11+ / 标准库 | `HeliumLanguagePatcher/` | Helium Chromium DataPack v5 语言包扫描、翻译缓存与补丁 |
-| Python 3.11+ / 标准库、PowerShell、HTTP | `Firefox/`、`Firefox/Zen/` | Firefox 界面翻译补全（按当前语言调用本机 magpie 翻译）、Firefox / Zen 默认应用重复项清理、Zen Fluent 中文补全与快捷键显示修正 |
+| Python 3.11+ / 标准库、PowerShell、HTTP | `Firefox/` | Firefox 界面翻译补全（按当前语言调用本机 magpie 翻译）、Firefox / Zen 默认应用重复项清理 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
-| JavaScript | `Userscript/*.user.js`、`Stash/*.js`、`Firefox/AutoSortBookmarks/` | 浏览器用户脚本、Stash 磁贴、Manifest V3 扩展 |
-| CSS | `CSS/*.css` | 字体映射和 VS Code 外观自定义 |
+| JavaScript | `Userscript/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/` | 浏览器用户脚本、Manifest V3 扩展 |
+| CSS | `CSS/*.css` | 字体映射 |
 | 批处理 / PowerShell | `Scripts/*.bat`、`Scripts/*.ps1` | Edge 清理脚本和 FFmpeg 安装脚本 |
 
 ### 1.3 模块清单
 
 | 模块 | 状态 | 内容 |
 |---|---|---|
-| `AutoHotkey/SizerAHK/` | 活跃 | AHK v2 版 Windows 窗口尺寸/位置调整工具，含图标资源 |
-| `AutoHotkey/Test/` | 实验 | AHK 键盘 Hook 测试脚本，`Test.exe` 是忽略的本地产物 |
-| `SizerWin/` | 活跃 | 纯 C + Win32 API 版窗口调整工具，适合 AHK 被拦截的场景 |
+| `SizerWin/` | 活跃 | 纯 C + Win32 API 版窗口调整工具 |
 | `SizerSwift/` | 活跃 | macOS 原生菜单栏窗口调整工具，Swift Package Manager 项目 |
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
 | `Dox Reader/` | 活跃 | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
-| `Firefox/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
+| `Firefox/Add-Ons/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
 | `Firefox/`（根目录） | 活跃 | Firefox 界面翻译补全（按当前语言扫描缺项、magpie 翻译、可还原补丁），以及 Firefox / Zen 共用的默认应用重复项清理 |
-| `Firefox/Zen/` | 活跃 | Zen 1.23.2b 中文本地补全与可还原的资源包补丁 |
-| `PortableBridge/` | 活跃 | Firefox / Chrome 会话级 HTTP(S) 回退，最新启动者接管 |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
-| `CSS/` | 活跃 | 中文字体映射 CSS 和 VS Code 自定义 CSS |
+| `CSS/` | 活跃 | 中文字体映射 CSS |
 | `Userscript/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
-| `Stash/` | 小工具 | Stash 外部 IP 地址磁贴脚本 |
 | `Scripts/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版）、Flatten 和 FFmpeg 安装脚本 |
-| `Android/ApkRename/` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
-| `HeliumLanguagePatcher/` | 活跃 | Helium 语言包扫描、翻译缓存与 DataPack v5 补丁 |
+| `Scripts/rename-apk.ps1` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
 | `sub-store/` | 活跃 | Sub-Store 后端在 Cloudflare Workers 上的适配（D1 持久化、路径口令鉴权） |
 | `sub-store-front-end/` | 活跃 | Sub-Store-Front-End 静态资源 Worker |
 | `bwh-traffic/` | 活跃 | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
 | `.github/workflows/` | 活跃 | Sub-Store 前后端的定时与手动部署 |
-| `magi.txt` | 已移除 | 历史 AdGuard 规则，当前检出不提供；保留第 3.10 节历史维护约定 |
+| `magi.txt` | 已移除 | 历史 AdGuard 规则，当前检出不提供；保留第 3.8 节历史维护约定 |
 | `README.md` | 用户文档 | 仓库主说明 |
 
 > `Windhawk/windhawk-mods` 是 git 子模块（独立的 Windhawk mods 集合），其文档与源码不归本仓库维护，使用方式以子模块内文档为准。
@@ -92,36 +79,28 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 
 仓库根 `.gitignore` 当前排除，以下即使出现也应视为生成产物或本地配置，不作为主要源码维护：
 
-- `AutoHotkey/Test/Test.exe`
 - `.DS_Store`
 - `Firefox/**/web-ext-artifacts/`
-- `PortableBridge/bin/`
 - `SizerSwift/.build/`、`SizerSwift/build/`
 - `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
 - `DeepSeek Harness/Launcher/bin/`
-- `HeliumLanguagePatcher/__pycache__/`、`*.bak`、`*.bak-*`、`.*.tmp`（均位于该模块内）
 - `Firefox/__pycache__/`
-- `Firefox/Zen/build/`、`backups/`、`dist/`、`__pycache__/`、`validation.json`、`runtime-validation.json`（均位于该模块内）
 - `Firefox/build/`、`Firefox/backups/`、`Firefox/validation.json`（Firefox 界面翻译补丁的本地产物）
 - `sub-store/.upstream/`、`sub-store/build/`
 - `sub-store-front-end/dist/`、`sub-store-front-end/build/`
+- `Scripts/tools/`
 
 当前源码入口：
 
-- `AutoHotkey/SizerAHK/SizerAHK.ahk`
 - `SizerWin/SizerWin.c`、`SizerWin/SizerWin.manifest`
 - `SizerSwift/Sources/main.swift`
 - `CapsLockOSD/`（C++ 源与资源脚本）
 - `CSS/font-face.css`
-- `Firefox/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
-- `PortableBridge/PortableBridge.cs`、`build.ps1`
-- `HeliumLanguagePatcher/helium_language_patcher.py`、`test_helium_language_patcher.py`、`zh-CN-overrides.json`
+- `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
 - `Firefox/patch_firefox.py`、`Firefox/translations.<语言>.ftl`、`Firefox/test_firefox_patch.py`、`Firefox/test_firefox_translate.py`
-- `Firefox/Zen/patch_zen.py`、`translations.ftl`、`test_discovery.py`、`test_translate.py`
 - `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
-- `Stash/external-ip-address-tile.js`
-- `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`
+- `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`、`Scripts/rename-apk.ps1`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
 - `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
@@ -132,10 +111,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 
 | 文件 | 用途 |
 |---|---|
-| `AutoHotkey/SizerAHK/logo_48.png` | 48×48 PNG 图标 |
-| `AutoHotkey/SizerAHK/logo_96.png` | 96×96 PNG 图标 |
-| `AutoHotkey/SizerAHK/logo.ico` | Windows 图标 |
-| `SizerWin/logo.ico` | Windows 图标，当前与 SizerAHK 的 ico 内容一致 |
+| `SizerWin/logo.ico` | Windows 图标 |
 | `SizerSwift/AppIcon.icns` | macOS 菜单栏/Bundle 图标 |
 | `Userscript/中文字体优化.png` | 512×512 Userscript 图标 |
 
@@ -157,20 +133,19 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 
 ### 2.2 资源与图标
 
-- `AutoHotkey/SizerAHK/logo.ico` 和 `SizerWin/logo.ico` 当前内容一致，更新一个时要评估另一个是否同步。
 - `SizerSwift/AppIcon.icns` 是 macOS 资源，不能直接用 PNG 替代。
 - `Userscript/中文字体优化.png` 被 Userscript 元数据 `@icon` 引用，移动或改名时必须更新 URL。
 - `DeepSeek Harness/Launcher/src/Launcher.ico` 由 `scripts\make-icon.ps1` 从官方 SVG 生成，不要手工编辑二进制 ICO。
 
 ### 2.3 生成产物
 
-生成产物边界统一维护在 [1.4](#14-源码与生成产物边界)，具体忽略模式以 `.gitignore` 为准，不在此重复列表。构建输出、备份、临时文件及本机认证配置不应提交；Helium 的 `zh-CN-overrides.json` 是需要维护的翻译数据，应随源码提交，其 `.bak` 不提交。
+生成产物边界统一维护在 [1.4](#14-源码与生成产物边界)，具体忽略模式以 `.gitignore` 为准，不在此重复列表。构建输出、备份、临时文件及本机认证配置不应提交。
 
 忽略规则只写在仓库根 `.gitignore`，不分散到模块目录：
 
 - 模块目录下不新建各自的 `.gitignore`；已有的并入根文件后删除。
-- 忽略项按模块分组、加注释，路径从仓库根写起（`Firefox/Zen/build/`、`Dox Reader/Backend/.env*`），不要沿用只在该模块目录内生效的相对模式（如裸 `build/` 会波及全仓库）。
-- 保持原匹配范围：模块 `.gitignore` 里未加斜杠的 `build/`、`__pycache__/`、`*.log` 在该模块下任意深度都生效，并入根文件要写成 `Firefox/Zen/**/build/`、`Dox Reader/Cloudflare Workers/**/*.log`（`**/` 匹配零层或多层目录）；只锚定直接子目录会漏掉嵌套产物。
+- 忽略项按模块分组、加注释，路径从仓库根写起（`Firefox/build/`、`Dox Reader/Backend/.env*`），不要沿用只在该模块目录内生效的相对模式（如裸 `build/` 会波及全仓库）。
+- 保持原匹配范围：模块 `.gitignore` 里未加斜杠的 `build/`、`__pycache__/`、`*.log` 在该模块下任意深度都生效，并入根文件要写成 `sub-store/**/build/`、`Dox Reader/Cloudflare Workers/**/*.log`（`**/` 匹配零层或多层目录）；只锚定直接子目录会漏掉嵌套产物。
 - 调整忽略项后确认判定未变：`git check-ignore -v --no-index <路径>`（可指向不存在的路径），并用 `git status --porcelain --ignored=matching` 对比改动前后的忽略清单。
 - 例外两处，不再并入根文件：git 子模块 `Windhawk/windhawk-mods/`，以及被忽略的上游源码目录 `sub-store/.upstream/`，其 `.gitignore` 属于上游内容。
 
@@ -196,7 +171,6 @@ rg -n "TODO|FIXME|BUG" -g "!**/.git/**" -g "!**/*.exe" -g "!**/*.ico" -g "!**/*.
 |---|---|
 | `CSS/font-face.css` | 独立样式表，可被其他工具直接引用 |
 | `Userscript/中文字体优化.user.js` | Tampermonkey/Greasemonkey 用户脚本；元数据头后把同一套 CSS 放进模板字符串注入页面 |
-| `CSS/vscode.css` | 仅给 VS Code 状态栏和最近项目区域指定中文字体链，不参与上述映射同步 |
 
 两个主文件当前各含 **70 条** `@font-face`，其中带 **`unicode-range`** 的 **21 条**。任一改动必须同步到另一文件，并递增脚本 `@version`。
 
@@ -286,49 +260,9 @@ $cssNoComments = [regex]::Replace($css, '/\*[\s\S]*?\*/', '')
 
 预期统计：`@font-face` 各 70，实际 `unicode-range` 各 21。
 
-### 3.2 SizerAHK
+### 3.2 SizerWin
 
-入口：`AutoHotkey/SizerAHK/SizerAHK.ahk`。使用 AutoHotkey v2 编写的窗口尺寸/位置调整工具，`Shift+Alt+Space` 呼出菜单。
-
-功能：预设分辨率、自动调整到当前显示器约 3/4、居中、自定义尺寸；多显示器；中英文双语 UI；深色模式。
-
-核心全局状态：
-
-- `windowTitle` / `windowHwnd`：当前目标窗口。
-- `taskBarHeight`：任务栏偏移计算基础值，当前为 48。
-- `darkModeEnabled`：读取 Windows 个性化注册表，供菜单深色模式初始化。
-- `guiWindowResize` / `guiWindowResizeTitle`：自定义尺寸窗口。
-
-主要函数：
-
-| 函数 | 职责 |
-|---|---|
-| `GetTaskbarOffset(monitorIndex)` | 根据主/副显示器和任务栏设置返回垂直偏移 |
-| `MonitorGetCurrent(...)` | 根据窗口中心点找到当前显示器 |
-| `Adjust_Auto(...)` | 当前显示器 3/4 尺寸并居中 |
-| `Adjust_Centre(...)` | 保持尺寸居中 |
-| `Adjust_MenuHandler(...)` | 菜单预设尺寸分派 |
-| `Adjust_Custom(...)` | 创建自定义尺寸 GUI |
-| `CustomResizeSubmitResize(...)` | 提交自定义尺寸，只调整大小 |
-| `CustomResizeSubmitResizeCentre(...)` | 提交自定义尺寸并居中 |
-| `AdjustWindowCentre(width, height, centre)` | 通用尺寸调整入口 |
-| `AdjustWindow(width, height)` | 预设尺寸调整，按住 Control 时同时居中 |
-
-快捷键：`Shift+Alt+Space` 弹菜单；自定义尺寸 GUI 内 `Enter` 调整、`Ctrl+Enter` 调整并居中。
-
-任务栏偏移逻辑：主显示器读取注册表 `StuckRects3\Settings` 字节偏移 8 判断是否自动隐藏（`03` = 自动隐藏），自动隐藏则绝对居中，否则抬升任务栏高度；副显示器读取 `MMTaskbarEnabled` 判断是否所有显示器显示任务栏。
-
-运行方式：
-
-```powershell
-AutoHotkey64.exe AutoHotkey\SizerAHK\SizerAHK.ahk
-```
-
-验证重点：菜单呼出；普通/最大化/最小化窗口行为；预设、Control+预设居中、自动 3/4、居中、自定义尺寸；主/副显示器任务栏偏移；简中系统与英文系统文案；深色模式可读性。
-
-### 3.3 SizerWin
-
-SizerAHK 的原生 Windows 移植版，纯 C + Win32 API，编译为独立 `SizerWin.exe`，不依赖 AutoHotkey 或其他运行时，覆盖 AHK 被游戏反作弊拦截的场景。入口：`SizerWin/SizerWin.c`（单文件，约 1750 行）。同样 `Shift+Alt+Space` 呼出菜单。
+纯 C + Win32 API 的原生 Windows 窗口调整工具，编译为独立 `SizerWin.exe`，不依赖任何运行时。入口：`SizerWin/SizerWin.c`（单文件，约 1750 行）。`Shift+Alt+Space` 呼出菜单。
 
 #### 功能
 
@@ -409,13 +343,13 @@ DPI：清单声明 Per-Monitor V2；`GetDpiForWindow`/`AdjustWindowRectExForDpi`
 - 预设不做超出屏幕边界校正；部分 UWP/自定义边框窗口对 `SetWindowPos` 响应不同。
 - 配置在 exe 同目录，exe 必须位于可写目录；`/SUBSYSTEM:WINDOWS` + `HWND_MESSAGE` 常驻，无控制台。
 - 深色菜单依赖 uxtheme 未公开 API，未来系统版本存在变化风险。
-- 与 AHK 版一致性：新增菜单动作加 `IDM_*` 分支并保持“先校验 `SW_SHOWNORMAL` → 算工作区 → `SetWindowPos`”；配色只改颜色函数；改默认预设需同步 `LoadDefaultPresets` 与 `GenerateConfigFile`；新增文案中英双份走 `g_isChinese`；`MOD_NOREPEAT`、`DWMWA_*`、`WM_DPICHANGED` 等常量在源码头部 `#ifndef` 兜底，勿删。
+- 实现一致性：新增菜单动作加 `IDM_*` 分支并保持“先校验 `SW_SHOWNORMAL` → 算工作区 → `SetWindowPos`”；配色只改颜色函数；改默认预设需同步 `LoadDefaultPresets` 与 `GenerateConfigFile`；新增文案中英双份走 `g_isChinese`；`MOD_NOREPEAT`、`DWMWA_*`、`WM_DPICHANGED` 等常量在源码头部 `#ifndef` 兜底，勿删。
 
 验证重点：首次运行生成 `SizerWin.ini`；权限不足弹窗退出；改 ini 后重新呼菜单即时生效；菜单呼出；自动/居中/预设/Control+预设居中/自定义尺寸；自定义窗口无右上角控制按钮；`Tab`/`Shift+Tab`/`Enter`/`Ctrl+Enter`/`Esc`；最大化/最小化不响应；多显示器与任务栏变化；高 DPI 无偏移；热键冲突提示；桌面/任务栏不误处理。
 
-### 3.4 SizerSwift
+### 3.3 SizerSwift
 
-SizerAHK 的 macOS 原生移植版，Swift 编写，最低 macOS 13，编译为独立 `.app`。入口：`SizerSwift/Sources/main.swift`。Swift tools version 5.9，单个 executable target。
+macOS 原生菜单栏窗口调整工具，Swift 编写，最低 macOS 13，编译为独立 `.app`。入口：`SizerSwift/Sources/main.swift`。Swift tools version 5.9，单个 executable target。
 
 功能：`⌥⌘C` 居中当前窗口（保持尺寸）；`⌃⌥⌘C` 调整到屏幕可见区域 75% 并居中；菜单栏常驻图标，无 Dock 图标；`SMAppService` 开机自启动；英语/繁中/简中。
 
@@ -473,7 +407,7 @@ SizerSwift.app/
 
 验证重点：无辅助功能权限时提示清楚并可打开系统设置；授权后菜单栏图标出现且无 Dock 图标；`⌥⌘C` 居中、`⌃⌥⌘C` 75% 并居中；不暴露 AX 窗口能拖拽回退至少居中；登录项切换正确；三种语言文案正确。
 
-### 3.5 CapsLockOSD
+### 3.4 CapsLockOSD
 
 Windows 原生 Caps Lock 状态屏幕提示，C++ + Win32 API + 系统 GDI+，不依赖第三方库或运行时。**本节是维护规范，用户使用见根 [README.md 的 CapsLockOSD 小节](./README.md#capslockosd)。**
 
@@ -622,7 +556,7 @@ cd CapsLockOSD
 | 修改 ini 越界值 | 下次启动生效且被 clamp |
 | `taskkill /IM CapsLockOSD.exe /F` | 进程结束，无残留托盘或前台效果 |
 
-### 3.6 Dox Reader（Cloudflare Workers + Backend）
+### 3.5 Dox Reader（Cloudflare Workers + Backend）
 
 local-first RSS/Atom 阅读器，仅维护 Cloudflare Workers 网页版（`Dox Reader/Cloudflare Workers/`）和可选个人后端（`Dox Reader/Backend/`）。**本节是唯一开发规范；安装、发布入口和两种数据模式的使用说明在根 [README.md 的 Dox Reader 小节](./README.md#dox-reader)。**
 
@@ -743,7 +677,7 @@ SQL 使用绑定参数，插入去重并保留已有 read/starred；全量快照
 
 网页端和后端的 `PRIVACY.md` 必须与实际数据流一致。修改默认设置、配色枚举、同步字段、Worker 限制、最低运行版本或发布命令时，同一提交更新本模块小节。
 
-### 3.7 Firefox Auto Sort Bookmarks
+### 3.6 Firefox Auto Sort Bookmarks
 
 Manifest V3 后台扩展（event page），递归整理 Bookmarks Menu（`menu________`）与 Other Bookmarks（`unfiled_____`）。文件：`manifest.json`、`background.js`（按 `sorter.js` → `background.js` 加载）、`sorter.js`、`tests/sorter.test.js`、`_locales/{en,zh_CN}/messages.json`、`icons/`、`THIRD_PARTY_NOTICES.md`。权限 `alarms`、`bookmarks`、`storage`；数据收集声明 `none`；最低 Firefox 142。
 
@@ -779,12 +713,12 @@ Firefox API 限制：标准 `windows` 只枚举 `navigator:browser`，无法观�
 测试：
 
 ```powershell
-node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
+node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 ```
 
 验证重点：测试覆盖比较顺序（标题→URL→id）、自然数字、大小写/重音、分隔线分段、递归多根；临时安装 `about:debugging#/runtime/this-firefox`；分隔线不移、文件夹不跨段；创建/改/移/删后约 1.5 秒自动重排且连续变化合并一次；`move` 顺序执行；Library 获焦不重排，切回普通窗口补做。
 
-### 3.8 Userscript 小脚本
+### 3.7 Userscript 小脚本
 
 涉及 `Userscript/` 下四个脚本。中文字体优化脚本的小节见 [3.1](#31-中文字体优化cjk-字体映射)。
 
@@ -816,13 +750,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 **维护约束**：站点为深色主题，按钮颜色用 `currentColor` 继承，只有成功态写死绿色；无 `@require`、`@grant none`；若改版导致失效，优先怀疑 `tr.rolebit`、`span.label`、`span.tl` 三个选择器。
 
-### 3.9 Stash
-
-`Stash/external-ip-address-tile.js` 通过 `http://ip-api.com/json/?lang=zh-CN` 获取 IP 和国家/地区，显示 `IP @ 国家/地区`；失败显示“获取失败”。
-
-维护规则：必须调用 `$done` 结束脚本；`$httpClient.get` 出错时 `$done({ content: "获取失败" })`；JSON 解析前考虑 API 失败或返回异常；网络错误和成功路径都返回简短 `content`；若改新 API，确认隐私、速率限制和返回字段。
-
-### 3.10 AdGuard（magi.txt）
+### 3.8 AdGuard（magi.txt）
 
 `magi.txt` 是历史 AdGuard 兼容规则列表，已从仓库移除，当前无需导入或验证。以下约定仅供以后恢复维护时使用：
 
@@ -833,7 +761,7 @@ node --test Firefox/AutoSortBookmarks/tests/sorter.test.js
 
 维护要求：保持白名单按顶级域或站点分组；元素隐藏规则尽量落实到具体站点，不写过宽选择器。
 
-### 3.11 Scripts（Edge 清理与 FFmpeg 安装）
+### 3.9 Scripts（Edge 清理与 FFmpeg 安装）
 
 `Scripts/` 收纳 Windows 批处理工具、Edge 清理辅助脚本和 FFmpeg 安装脚本。
 
@@ -991,7 +919,7 @@ pwsh -NoProfile -File .\Scripts\InstallFFmpeg.ps1 -Directory $env:TEMP\ff-check
 | 断开网络 / 无该资源 | 明确报错，不静默跳过校验 |
 | 结束后的临时目录 | `%TEMP%` 下无 `dox-ffmpeg-*` 残留 |
 
-### 3.12 DeepSeek Harness Launcher
+### 3.10 DeepSeek Harness Launcher
 
 `DeepSeek Harness/Launcher/` 是 DeepSeek Harness（`dsh web`）的本地托盘监督器，负责受管启动/停止/重启 `dsh web` 并通过系统托盘提供最小控制面。**本节是维护规范，用户使用见根 [README.md 的 DeepSeek Harness Launcher 小节](./README.md#deepseek-harness-launcher)。**
 
@@ -1132,204 +1060,13 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 
 交接清单：先改行为源（`Launcher.cpp`，配置默认同步 `Launcher.ini.example`）→ 图标先更 SVG 再 `make-icon.ps1` 生成 ICO → 编译并跑到生命周期/启动方式/端口测试 → 检查无残留 exe/测试 node/日志/临时 shim，`git diff --check` 通过 → 根 `README.md` 写使用，本文记录实现约束。
 
-### 3.13 Android ApkRename
+### 3.11 ApkRename（APK 改名脚本）
 
-`Android/ApkRename` 是只修改 APK 应用名称的 PowerShell 脚本：基于 apktool 反编译，仅改动名称相关的清单/字符串资源，重新打包并用原 keystore 重新签名，包名、代码与其余资源保持不变，最后逐文件哈希校验。工具（apktool、apksigner、zipalign、aapt）可下载到脚本目录 `tools\`（`.\rename-apk.ps1 -SetupTools`）。
+`Scripts/rename-apk.ps1` 是只修改 APK 应用名称的 PowerShell 脚本：基于 apktool 反编译，仅改动名称相关的清单/字符串资源，重新打包并用原 keystore 重新签名，包名、代码与其余资源保持不变，最后逐文件哈希校验。工具（apktool、apksigner、zipalign、aapt）可下载到 `Scripts/tools/`（`.\Scripts\rename-apk.ps1 -SetupTools`）。
 
 签名“字节”必然变化（内容变了），但只要用原 keystore，签名“身份”（同一证书）不变，可覆盖安装。维护时注意：只改名称相关资源，不得动包名与代码；签名必须用原 keystore。
 
-### 3.14 PortableBridge
-
-`PortableBridge/` 从 `Firefox/PortableBridge/` 提取为独立模块，支持 Firefox 和 Chrome 的会话级 HTTP(S) 回退。新版本为 3.1.0，新增 Chrome 注册表增量清理，仍用系统 .NET Framework 4 编译器构建，无 NuGet 或其他 Dox 模块依赖。
-
-所有通过 Windows 标准关联提交的 HTTP(S) 请求统一进入当前选中的会话，不按 Shell、Electron、OAuth 工具、GitHub CLI 等调用方做白名单。Bridge 仅在没有有效默认处理器时临时维护机器级协议根，不是持久默认浏览器注册器。
-
-#### 模块职责与文件
-
-| 文件 | 职责 |
-|---|---|
-| `PortableBridge.cs` | Monitor / open 入口、WMI 检测、HTTP(S) 所有权、关联自愈、注册表收尾、参数引用和脱敏日志 |
-| `SessionCoordinator.cs` | schema 2 多会话存储、幂等上报、按启动时间选举、切换及退出协调 |
-| `BrowserSupport.cs` | Firefox / Chrome 参数验证、精确主进程匹配、URL 参数构造与维护分派 |
-| `FirefoxMaintenance.cs` | 原 Firefox 便携路径迁移、Mozilla 环境、基线、Launcher 与退出清理；Chrome 不调用这些维护 |
-| `ChromeMaintenance.cs` | 当前用户 Chrome 各通道注册表白名单基线、共享 cohort、归属不明保护及退出增量清理 |
-| `announce.ps1` | 仅通过当前用户命名管道上报的 v3 客户端，不定位或启动 Bridge EXE |
-| `build.ps1` / `app.manifest` | x64 winexe、警告即错误、asInvoker 清单及 PE GUI 子系统校验 |
-| `test.ps1` / `tests/BridgeTests.cs` | 无系统关联修改的参数、状态、调度优先级与真实 WMI 验证 |
-
-开发规范集中于本节，不新增模块开发文档；用户说明写进根 `README.md` 的 PortableBridge 小节。
-
-#### 多浏览器运行与会话状态
-
-EXE 可部署到任意当前用户可写目录，与浏览器及配置目录解耦。状态和日志位于 EXE 同目录：`runtime-session.json`、`runtime-error.log`、`runtime-open.log`。零参数是唯一的常驻启动形式：只有成功提升的实例创建管道；未提升时使用 runas，拒绝 UAC 则退出。`open <session-guid> <URL>` 不请求 UAC，优先通过管道投递，连接失败时按同目录中心状态直接投递。
-
-中心状态使用 schema 2：一个 `SessionStore` 保存最多 32 个 `SessionState`。每个会话记录 browser、BrowserPath、ProfilePath、可选 ProfileDirectory、CreatedUtc、首次匹配的 StartedUtc、GUID、BridgePath、handler、Firefox 环境、协议根历史和所有权标志。整个列表原子更新，禁止两个 active 会话；最后一个会话收尾成功后才删除文件。
-
-阶段为 `pending`（已准备，等待主进程）、`active`（当前选中入口）、`standby`（运行中，协议入口已让出）、`cleaning`（退出或准备失败，等待维护收尾）。尚未接管的 pending 会话一旦观察到主进程，其 StartedUtc 会持久保存；仍在运行时不因 90 秒公告期限而清理。没有匹配到的会话在 90 秒后收尾。
-
-最近启动的已报告浏览器接管：按 WMI 主进程 CreationDate 排序；时间相同再按公告时间和 GUID 稳定排序。重复上报、浏览器新窗口、新标签页和短命 URL 转交进程不刷新优先级。新浏览器确认存活前，原浏览器继续接管；新浏览器退出后，选择仍存活的最新会话。Chrome 后台模式可能使主进程在关闭窗口后继续存活，此时不会回退。
-
-切换顺序必须为：旧 active 先写 FallbackActive=false / ProtocolFallbackActive=false → 严格回收其 URL 所有权 → 清空 MachineFallbackCreated，写 standby → 新目标重新记录原始协议根状态并激活。切换不执行仍在运行的 Firefox 的便携收尾。撤销失败时保留旧状态并重试，不能让新会话覆盖其树。
-
-退出时同样先撤销 URL 所有权，再进入 cleaning，确认主进程不存在后执行浏览器专有收尾，最后移除该会话。Firefox 清理失败只保留自己的 cleaning 记录；已释放协议所有权时，其他浏览器可以继续工作。任意 WMI 查询失败或关键信息不可读都视为未知，不能当成进程退出或切换依据。恢复后的进程还必须匹配持久记录的 StartedUtc，避免把同 EXE/配置的新进程接入旧 GUID。执行便携收尾前另做不绑定启动时间的同配置存活检查，保护新进程正在使用的目录；此时旧会话保留 cleaning。没有 Firefox 会话时仍每 5 秒清理严格匹配的孤立 Launcher 值，不因 Chrome 继续运行而无限推迟。
-
-会话上报、选举、状态读取/替换、协议操作、退出清理和 URL 投递由当前用户级状态互斥体串行化；JSON 采用先落盘、再注册的顺序。短命入口和 Monitor 共用互斥体，避免在切换校验之后向旧会话启动 URL 辅助进程。
-
-#### 浏览器适配与便携维护边界
-
-- Firefox：EXE 文件名必须为 firefox.exe；配置目录存在，主进程显式使用 `--profile`（也支持 `-profile` / `--profile=`），排除内容进程、no-remote 和 URL 辅助进程。投递使用 `--profile <PROFILE> -url <URL>`。
-- Firefox 保留既有 PortableLayout 规则：从 Profile 的父目录确定 Data，再确定 Root；EXE 与 Profile 不必有共同根。环境包括 TEMP/TMP、MOZ_APP_DATA/MOZ_LOCAL_APP_DATA、崩溃报告目录和禁用变量。路径迁移修复包括 pkcs11.txt、compatibility.ini、extensions.json、迁移备份和相关缓存；portable-state.json 是持久迁移元数据。
-- Firefox 主进程初次启动、安装更新和环境设置仍归外部 Firefox.cmd。其原有 Mozilla 元数据、大小/SHA-256/Authenticode 验证和安装回滚流程不属于 Bridge；此仓库不包含那个启动器。
-- Firefox 的 Mozilla 基线和 Launcher 清理存在用户级共享资源，因此同一用户仅允许一个不同的 Firefox 会话，冲突返回 73，收尾中返回 75。重复相同会话不会覆盖原基线。
-- Chrome：EXE 文件名必须为 chrome.exe；ProfilePath 表示整个 User Data 根，必须显式传 `--user-data-dir`，支持等号和分离参数；拒绝 `--type` 子进程。可选 ProfileDirectory 只能是单个合法目录名，不能带路径分隔符、点/点点或尾随点/空格，且首次启动也须传入同一值。
-- Chrome 投递使用 `--user-data-dir=<ROOT> [--profile-directory=<NAME>] <URL>`，不创建/修改默认 User Data，不应用 Mozilla 环境和清理。多个 Chrome 会话须使用不同 User Data 根；同一根中的不同子配置不是独立主进程会话。
-- Chrome 安装更新、启动器环境和跨机器用户数据迁移不由 Bridge 执行；不能把显式 User Data 描述为解除了 Windows 加密绑定。
-
-3.1 的 Chrome 基线由协调器在成功上报前捕获并原子持久化到 SessionState.ChromeRegistry（schema 2 可选字段），而不是放在 Profile 文件里。识别产品根后，只枚举当前用户两种注册表视图中的 BLBeacon、PreferenceMACs、StabilityMetrics、ThirdParty 和根值 UsageStatsInSample。只保存键名和值名，不保存值内容；清理仅删除新增白名单值与新增且已空的键，不恢复被修改的既有值。NativeMessagingHosts、Google Update、HKLM、Classes 和 Profile 不在范围内。
-
-同一产品根重叠会话必须共享同一 cohort GUID 和完全一致的基线，ValidateStore 拒绝不一致的副本。最后一个 cohort 会话收尾时才清理共享注册表，并等待 Chrome 辅助进程全部退出。清理异常保留 cleaning 状态以便重试；部分成功后的重试幂等。观察到未上报 Chrome 或 WMI 不确定时，Unsafe 标记在下一次观察周期持久化到全部 cohort 成员。Monitor 重启时恢复的基线也被标记 Unsafe，避免删除停机期间可能由别人创建的值。旧会话没有基线则不删除。不能宣称轮询建立了绝对的写入归属或运行期间零注册表写入。
-
-tests/ChromeMaintenanceTests.cs 在随机 HKCU\Software\PortableBridge.Tests 子树测试实际注册表差分，不触碰生产 Google/Chromium 根；同时验证持久化、多 Profile 延后清理、错误重试、损坏路径/冲突 cohort 拒绝及重启保护。修改白名单或生命周期时须保持这些回归检查通过。
-
-#### IPC、兼容与升级
-
-新管道为 `PortableBridge-Control-<identity>`，identity 仍为当前用户 SID 大写 UTF-8 SHA-256 前 12 字节的 24 位小写十六进制；ACL 只允许当前用户 SID FullControl。载荷为 .NET BinaryWriter UTF-8 字符串序列：`announce-v3`、browser（firefox/chrome）、EXE 绝对路径、Profile 根绝对路径、ProfileDirectory（默认空字符串）；响应 Int32 0 表示接受。
-
-保留 `FirefoxPortableBridge-Control-<identity>` 和 `announce-v2` 的原三字段契约，隐式映射到 Firefox；两个端点共用同一协调器。新旧版本共用历史 `Local\FirefoxPortableBridge-Monitor-<identity>` 与 State 互斥体，防止并发 Monitor。历史所有权值名 `FirefoxPortableSessionId` 保留，仅作为兼容标识。
-
-73 表示会话资源冲突或容量上限；75 表示同一会话已退出或资源还在收尾。相同 pending/存活会话重复上报为 0。客户端同步握手后才启动浏览器，75 每 500 ms 重试，最多约 60 秒；不可成功握手时中止启动。具体客户端示例维护在根 `README.md` 的 PortableBridge 小节。旧 watch/cleanup/EXE announce/单 URL/gh-open 入口不恢复。
-
-升级必须先用旧 Bridge 让 Firefox 正常退出并清理 runtime-session.json，再停止旧 Monitor、更新 EXE 和登录任务。schema 1 活动文件不自动转换，读取失败时保留原文件；改名/搬迁时也必须先结束会话。新路径不能证明旧路径协议命令所有权，不得宽松删除。构建脚本不部署、不修改计划任务，旧启动器只需继续连接原 v2 管道。
-
-#### 注册表所有权与安全不变量
-
-维护时必须保留以下约束：
-
-1. 启用前必须读取两个协议的 `UserChoice` 和 `UserChoiceLatest`，同时兼容根值和 `ProgId\ProgId` 嵌套值。含非空 ProgId 时不能仅凭原始键决定：必须调用 `AssocQueryStringW`，以 `ASSOCF_IS_PROTOCOL | ASSOCF_VERIFY` 查询 `ASSOCSTR_COMMAND`。解析到其他有效命令时撤销自身回退并暂停注册，不能修改或伪造 Hash。若候选为 `MSEdge*`，还必须直接解析该 ProgID 的 `open` 命令；只有该选择没有 Hash 保护且命令不存在时，才可删除这个已卸载 Edge 的 `ProgId` 值；带 Hash 的选择（包括 Windows 自动恢复的失效 `MSEdgeHTM`）一律跳过。任何其他 ProgID 即使 `ERROR_NO_ASSOCIATION` 也不得删除。该冲突不是 Monitor 的致命错误：只要目标浏览器 仍运行，Monitor 必须继续常驻并周期重试。Windows 自动生成但不含 ProgId 的空壳选择键可直接忽略。
-2. 新会话只在 `HKLM\Software\Classes\http` 和 `https` 两个机器级根都不存在时取得所有权；任何预先存在的机器级根，即使只有空 `URL Protocol`，也拒绝覆盖。`HKCU` 协议树不再用于新会话，只保留 2.0.x 升级清理。
-3. 每次接管允许最多 5 秒的只读稳定窗口（100 ms 轮询）；先等待 `UserChoice`/`UserChoiceLatest` 的 ProgId 稳定为空，再检查机器级根不存在或仍是本会话可证明所有权的结构。窗口结束后 UserChoice 仍非空时只撤销机器级协议并记录错误，约两秒后重试；不得提前执行便携收尾。
-4. 每次注册、自愈和撤销协议后必须调用 `SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_DWORD | SHCNF_FLUSH, ...)` 并等待系统组件处理；随后以 `AssocQueryStringW(ASSOCF_IS_PROTOCOL | ASSOCF_VERIFY)` 分别解析 `http` 和 `https`。只有两个有效命令都与当前 handler 完全匹配才能设置 `ProtocolFallbackActive=true`，不能只凭注册表树存在宣称生效。
-5. 状态互斥体必须覆盖状态读取、状态原子写入、注册表写入和状态删除的完整临界区；管道处理、自愈和退出清理不得并发改变同一会话。
-6. 状态 JSON 缺失时，只允许清理能以合法 GUID、空 `URL Protocol`、唯一完整 `shell\open\command` 和当前 Bridge 的严格命令模板证明所有权的孤立用户级旧树或机器级新树；两个范围内已拥有的协议必须使用同一 GUID，其他结构继续拒绝。
-7. 机器级根键用 `FirefoxPortableSessionId` 标记会话所有权；完整活动状态必须同时具备空 `URL Protocol`、匹配 GUID、唯一 `shell\open\command`、精确 handler command 和 Windows API 的有效解析结果。
-8. 自愈只允许机器级根不存在或仍是本会话可证明安全的部分结构；出现第三方根值、额外子键、命令变化或所有权变化时停止覆盖。
-9. 清理逐层验证根值、`shell`、`open`、`command`；不能证明属于本会话的结构保留，状态文件也保留以便人工排查。清理开始前必须先把 `FallbackActive` 和 `ProtocolFallbackActive` 写为 false，使所有短命入口立即拒绝投递。
-10. Bridge 创建的机器级协议根在退出时连同空 `URL Protocol` 一起删除；2.0.x 状态记录为原先存在的用户级空标记仍按原样保留。
-11. 只接受单个、无控制字符、长度不超过 32768 的绝对 `http`/`https` URL；其他 scheme 返回拒绝码。
-12. WMI 进程查询失败属于未知状态，不能据此立即撤销或执行退出清理；只有查询成功且确认目标主进程不存在才进入退出路径。进程识别必须同时匹配规范化 EXE、浏览器适配器解析后的精确配置路径及首次观察到的 WMI CreationDate。Firefox 排除内容、无远程和 URL 辅助进程；Chrome 排除 `--type` 子进程，并按显式 `--user-data-dir` 和可选 `--profile-directory` 匹配。首次选择最早的匹配主进程，此后绑定其启动时间，不能被 URL 转交进程或未重新上报的重启实例刷新。
-13. Bridge 不创建 `OpenUrl.ps1`、`GH_BROWSER` 或其他应用专用旁路；所有标准 HTTP(S) 请求统一使用机器级会话协议命令。
-14. 常驻 Bridge 每 5 秒在没有状态文件时检查用户级旧树和机器级新树的孤立所有权。只有命令严格指向当前中心 Bridge、携带合法 GUID、所有已拥有树无第三方结构时才回收；机器级树回收后必须删除根键，便携目录里的 PowerShell handler 不再由独立脚本或 `cleanup` 模式处理。
-15. Procmon 已确认 Windows Terminal 中的 `gh.exe`、系统 `OpenWith.exe` 和 ChatGPT/Electron 的 `shell.openExternal` 会受 UCPD 影响：临时 `HKCU\Software\Classes` 命令可能被过滤为不存在。所有未显式指定浏览器的普通桌面应用和 GitHub CLI 统一走只在便携浏览器 活动期存在的机器级回退；该回退对整台机器可见，但每次 `open` 仍校验会话 GUID、状态、浏览器主进程、EXE 和 Profile。协议注册失败只能把 `ProtocolFallbackActive` 设为 false 并撤销机器级树，不能影响 `FallbackActive` 或便携维护。浏览器退出时清理协议入口；空闲时不保留可捕获其他浏览器启动的规则。
-16. 活动机器级协议命令不得按父进程或调用方名称分流、拒绝或设置白名单。所有合法 HTTP(S) URL 使用同一会话入口；`runtime-open.log` 的 `caller` 只用于区分请求是否到达 Bridge，不能参与路由。拒绝只能基于 URL、会话 GUID、状态、浏览器存活性、报告的 EXE/配置 或注册表所有权校验。
-
-#### 构建与验证
-
-```powershell
-cd PortableBridge
-.\build.ps1
-.\test.ps1
-.\build.ps1 -OutputPath '<自选目录>\PortableBridge.exe'
-```
-
-编译保留 `/target:winexe /platform:x64 /optimize+ /warnaserror+`、`/win32manifest:app.manifest`，引用 System.Management.dll 和 System.Runtime.Serialization.dll；PE Subsystem 必须为 2，清单必须为 asInvoker。默认 bin/ 被忽略；独立模块复制后仍能构建。部署由用户维护，更新前先结束会话。
-
-自动验证包含隔离系统副作用后的完整协调器切换流程（双向切换、退出回退、撤销失败、WMI 未知、收尾失败与恢复），以及真实命名管道的 v2/v3 调用。其他自动验证包括：Windows 参数引用及中文/空格路径；Firefox 内容/no-remote/URL 进程排除；Chrome type 子进程及其他 User Data 排除；可选子配置绑定；HTTP(S) 限制；pending 幂等；多会话原子存储；单 active 不变量；最新启动者选择及退出后的回退选择；旧 schema 拒绝；真实 WMI 识别与 URL 辅助进程不刷新优先级。测试以自身构建的 chrome.exe 作为临时进程替身，不启动真实用户浏览器，不修改系统关联。
-
-真实桌面集成验证应在目标便携环境进行：
-
-| 场景 | 预期 |
-|---|---|
-| 普通权限启动无参数 Monitor | 仅请求一次 UAC，成功提升才监听；已有 Monitor 则安静退出 |
-| 普通权限 open | 不弹 UAC；优先管道，Monitor 停止时可校验中心状态直接投递 |
-| 无公告、90 秒未启动、全部浏览器退出 | 持续常驻，最终无 runtime-session.json 和自有协议树 |
-| Firefox → Chrome → Chrome 退出 → Firefox 退出 | 依次进入 Firefox、Chrome、Firefox、空闲；每次 Windows 实际关联匹配唯一目标 |
-| Chrome → Firefox → Firefox 退出 | 最新 Firefox 接管，退出后恢复 Chrome |
-| 重复 v2/v3 上报或 Chrome 新标签页/短命 URL 辅助进程 | 不重置会话、基线或启动顺序 |
-| Firefox 被 Chrome 替换但仍运行 | Firefox 便携维护保持，直到主进程退出才收尾 |
-| 不同目录 EXE/配置/Bridge、普通 Firefox/Chrome 同时运行 | 只匹配已报告的完整路径与显式配置 |
-| 有效 UserChoice、第三方根值/子键/命令/空根 | 不覆盖；异常自愈失败保留状态，持续重试 |
-| Hash 保护的失效 MSEdge、无 Hash 的失效 MSEdge | 前者不动，后者仅删除可证明失效的 ProgId；不触发关联通知循环 |
-| 注册表命令或 URL Protocol 被删除 | 只有仍能证明自有的结构才自愈，并重新验证 Windows 的实际解析 |
-| WMI 失败或关键信息不可读 | 保持未知，不提前退出清理或切换 |
-| 切换时旧协议树被外部改动 | 先拒绝旧会话投递，保留无法证明所有权的树，不覆盖为新目标 |
-| Shell、Electron、GitHub CLI、OAuth 工具打开链接 | 所有标准关联调用到同一 active 浏览器/配置，不按调用者筛选 |
-| 强杀 Monitor/系统重启后恢复 | 用同路径 schema 2 状态恢复仍在运行的主进程或安全回收退出状态 |
-| Firefox 收尾失败 | 保留 cleaning 并重试；释放协议后不妨碍独立 Chrome 会话 |
-| Firefox 最终退出/启动前不存在主机 AppData | 回收自有 Launcher/基线痕迹；不保留本次新增的主机目录 |
-| 日志与环境残留 | 不记录 URL 路径/查询/片段；仅严格清除旧 Bridge gh-open 环境值，其他用户设置保持原样 |
-
-运行 `git diff --check`，确认新旧输出目录均保持 ignored。自动测试不等同于真实浏览器、UAC、机器级注册表和 Shell 端到端验证，交付时明确记录已完成范围。
-
----
-
-### 3.15 HeliumLanguagePatcher
-
-#### 文件与安装布局
-
-入口为 `HeliumLanguagePatcher/helium_language_patcher.py`，仅使用 Python 3.11+ 标准库。`zh-CN-overrides.json` 同时存放人工翻译与自动补全缓存；按英文原文匹配当前版本的资源 ID，不固定 Chromium ID。DataPack v5 读写保留原包头的编码字段，将别名展开为普通条目。
-
-| 文件 | 维护方式 |
-|---|---|
-| `helium_language_patcher.py` | CLI、安装定位、API 翻译和 DataPack 读写的单文件入口 |
-| `zh-CN-overrides.json` | 英文原文 → 简体中文，已有键不被自动翻译覆盖，可人工修订 |
-| `test_helium_language_patcher.py` | 标准库 unittest；模拟 API、临时安装目录及失败路径 |
-| `*.bak`、`*.bak-*`、`.*.tmp`、`__pycache__/` | 本地产物，保持 ignored |
-
-`resolve_helium_install` 解析平铺安装目录、包含 `Application` 的安装根目录、`Application` 本身或显式版本目录，分别返回入口程序、资源目录与语言包目录。全部用户版的 `chrome.exe` 位于 `Application`，`chrome.dll`、Helium 标识及 `Locales` 位于四段数字版本目录。通过 Windows 版本 API 读取入口的 **FileVersion** 选择对应版本；不能使用 **ProductVersion**，后者是 Chromium 版本。版本明确但资源缺失时报错；读不到版本时只允许唯一完整候选，多个候选要求用户传入版本目录。保留 Helium 标识校验，同时兼容 `Locales`/`locales`。权限错误提示退出浏览器及使用管理员终端，不修改安装目录 ACL、不自动提权。
-
-#### 翻译扫描与 API 配置
-
-带 `--apply` 时扫描英文包与目标包内容一致（或目标缺少 ID）、且翻译表尚未收录的文本；过滤常见字体、快捷键、标识符和搜索词表，跳过并报告 ICU plural/select 表达式。扫描不判断字符串是否实际出现在当前平台的 UI。已有翻译不会重新请求；模型保留原文的专有名词也缓存，避免每次重复请求。
-
-`TranslationClient.from_codex` 读取指定 `config.toml` 的 provider、model 及可选 profile，支持 Responses 和兼容 Chat Completions 的请求。认证支持直接 bearer token、环境变量 API key 和 HTTP headers；不读取 Codex 的会话认证文件，不运行外部凭据 helper。API key 不进入日志、异常文本、对象 repr 或缓存。远程地址要求 HTTPS，拒绝重定向，避免转发认证信息；暂不支持 provider 的 query_params。
-
-配置默认位于 `%CODEX_HOME%/config.toml`，未设置时为用户主目录下 `.codex/config.toml`。支持 `experimental_bearer_token`、`env_key`、`http_headers`、`env_http_headers`；provider 的 `wire_api` 为 `responses` 或兼容模式 `chat`。只有存在待翻译项且带 `--apply`、未带 `--offline` 时才读取认证并调用 API。文档和测试只使用通用字段名或虚构测试值，真实服务地址与认证值保留在仓库外的本机配置。
-
-#### 写入、备份与失败行为
-
-每批翻译须覆盖全部输入 key，且译文非空、HTML 标签顺序和属性未变、占位符/URL/实体数量一致。通过后原子保存翻译表；本轮首次覆盖已有表之前备份，之后逐批保存。翻译表与语言包共用 `backup_existing`，固定覆盖 `<原文件名>.bak`，各保留一份，成功创建后仅清理匹配旧版时间戳格式的备份。备份对应最近一次修改前的内容，不是永久原始副本。
-
-翻译失败停止本次 `.pak` 应用，已保存批次可供重试复用。翻译成功但语言包因权限或占用写入失败时，翻译表同样保留；无变化时不重写语言包或覆盖其备份。`--offline` 使用缓存；不带 `--apply` 的预览不调用 API、不写入翻译表或语言包。`en-US` 在安装校验后直接返回，不承担恢复功能。
-
-#### 维护验证
-
-```powershell
-python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py
-python.exe -B .\HeliumLanguagePatcher\helium_language_patcher.py --help
-```
-
-测试使用临时安装目录和模拟 API，覆盖双协议、配置认证、漏译过滤、结构校验、HTTP 错误脱敏、批次失败后的缓存恢复、原子保存失败、预览只读、应用及离线重应用。安装布局测试覆盖根目录与显式版本、多版本选择及歧义拒绝、非 Helium 目录拒绝、仅修改选中版本及就地 `.bak` 备份。真实 API 验证只发送少量公开界面文案，避免将本机配置或认证信息作为调试输出。
-
-### 3.16 Zen（中文补全与默认应用重复项）
-
-#### 范围与源码边界
-
-`Firefox/Zen/` 为 Windows 版 Zen 1.23.2b / Gecko 157.0.1、Build ID `20261009073723` 提供离线本地补丁；清理「设置 > 默认应用」重复项的注册表脚本位于 `Firefox/` 根目录，Firefox 与 Zen 共用。原始资源来自 `zen-browser/desktop` 提交 `185e856f68a451dc71988e988bc080c56452ea66` 对应的安装包。补丁不保存固定的原版哈希基线：每次构建都从输入目录的 `application.ini` 读取版本信息、现算两个资源包的 SHA-256，写进 `build/manifest.json`；版本兼容性由各修改点的精确匹配断言保证，目标结构变化时直接报错。
-
-| 文件 | 职责 |
-|---|---|
-| `translations.ftl` | `# @file` 指定资源包与资源路径；追加 328 个缺失中文消息和 1 个新增“未设置”中文消息，并提供该新增消息的英文回退；新版新增条目由 `build` 自动翻译后写回本文件 |
-| `patch_zen.py` | 补全入口，子命令 `help/detect/build/validate/install/verify/restore`；安装与配置定位、从任一新版原包生成资源包、缺少中文时按本机 Codex 配置自动翻译并写回、修改快捷键显示、Fluent 校验、备份与替换 |
-| `test_discovery.py` | 标准库 unittest；临时配置、真实 Windows 锁、可复现构建、部署与还原测试 |
-| `test_translate.py` | 标准库 unittest；Fluent 消息切分与结构校验、缺项识别、`translations.ftl` 写回、Codex 配置读取与翻译请求，用本地假服务，不联网 |
-
-原有中文消息保持不变，沿用“工作区”“活动文件夹”等术语。翻译追加到 `omni.ja` 与 `browser/omni.ja` 内的指定资源，保留其他资源的内容、ZIP 条目元数据与包注释；新建的翻译文件沿用原包条目时间戳，同一输入重复构建必须得到相同的资源包哈希。`build/resources/` 提供合并后的可读文件；资源包、清单、部署日志、备份、分发 ZIP 和生成的验证报告均为 ignored 本地产物。
-
-CLI 使用中文帮助，支持 `-h`、`--help`、`help` 和不传命令；这些入口必须在自动发现和写入前返回，不依赖本机安装或 AppData 环境。帮助须说明命令用途、安装/还原的权限与退出要求、默认配置选择和版本限制；修改参数时同步维护示例。
-
-#### 快捷键显示
-
-`zen-settings.js` 为 `key_reload2`、`key_reload_skip_cache2`、`key_stop` 引用已有翻译，并将三处显示用 `Not set` 赋值改成 Fluent 文案。`ZenKeyboardShortcuts.mjs` 只修改显示函数：F1–F24 大写，Shift 等修饰键和方向键用文本，Home、End、Delete、PageUp 等采用规范名称。已有绑定和编辑预览共用格式化函数；不得修改实际按键匹配、动作 ID、保存格式或用户键位。
-
-#### 自动定位与写入边界
-
-安装路径优先来自正在运行的 `zen.exe`，否则汇总注册表 App Paths / 卸载信息、配置的 `LastPlatformDir` 和常见路径；只接受唯一完整安装。读取当前用户 `%APPDATA%\zen` 下的 `profiles.ini` 和 `installs.ini`，支持相对及绝对路径。运行配置通过真实 Windows 共享冲突判断，不能仅检查 `parent.lock` 是否存在；关闭浏览器后按安装默认配置、配置默认项和唯一候选选择，同优先级歧义必须要求显式参数，不按时间戳猜测。临时 `-P` / `-profile` 启动的非默认或未注册配置不保证自动识别，应传完整 `--profile` 路径。
-
-普通配置将相对路径映射到 `%LOCALAPPDATA%\zen`；绝对路径配置使用自身目录。自定义 `--profiles-root` 默认兼作本地缓存根，可用 `--local-root` 覆盖。仅允许删除所选配置中的确切 `startupCache` 目录，先验证全部候选，再在删除前复查，拒绝缓存符号链接或 junction。不得更改 prefs.js、user.js、firefox.cfg、扩展、登录状态、书签或标签页数据。
-
-安装与还原要求所有 Zen 进程退出。首次安装缺少构建清单时从目标电脑的原包生成补丁，再校验全部输入、备份原件、在目标目录暂存文件并逐个原子替换。这不是跨两个资源包的文件系统事务；异常时用本次修改前的精确副本回滚已替换文件。资源替换完成后的缓存清理若失败，命令仍报错，资源包可能已生效，应检查 `verify` 并处理缓存权限后重试。既有补丁可幂等安装；安装前按清单记录的哈希判断目标资源是否属于已知构建，未知（如刚升级完的未修改原包）就先重建清单，不拒绝新版资源。
-
-只拷贝源码即可在另一台电脑生成补丁，不依赖本机用户名或配置文件名。所有写入权限由 Windows 决定；用当前用户的管理员终端操作，避免切换账户后识别错用户配置。升级 Zen 后无需任何手工准备：直接运行 `install`，检测到未知资源就按新版原包重建补丁，再用新原版覆盖备份并重新比对翻译及 JavaScript 修改点。新版若新增英文消息，重建会先自动翻译、写回 `translations.ftl` 并停止，要求复核后重跑（详见下节）；目标电脑没有 Codex/API 配置时改用 `--no-translate` 只列缺项，手工补全后再构建。构建输入目录已带本补丁标记时拒绝构建（应指向未修改的安装目录或 `backups/<Build ID>/`）；`backups/` 不保留 `application.ini` 时版本信息改用已识别安装目录。`keyToDisplayString` 是唯一整体改写、不校验原文的函数，每次构建将其原实现另存到 `build/replaced/ZenKeyboardShortcuts.keyToDisplayString.mjs`，与上次构建不同时输出提示，以便人工确认没有丢掉上游修复。
+### 3.12 Firefox 默认应用重复项清理
 
 #### 默认应用重复项
 
@@ -1346,40 +1083,20 @@ Firefox 与 Zen 都用 `Firefox-<hash>` 形式的客户端键，因此按可执�
 
 系统自带的 App Installer 与 Windows 小组件在默认应用里的两行来自同一个 MSIX 包的两组 capability，不属于本脚本处理范围。
 
-#### 翻译自动补全
-
-`build` 在生成资源包前先比对原版 `localization/en-US/**` 与当前中文（`translations.ftl` 内容加上已安装的中文资源），列出缺少的条目。存在缺项时默认用本机 Codex 配置（与 HeliumLanguagePatcher 相同：`%CODEX_HOME%\config.toml` 或 `~/.codex/config.toml` 中的 `model_provider`、`model_providers.<provider>.base_url`、`model`，密钥只从环境变量或请求头读取，不读取登录态）逐条翻译，逐条按结构校验后写回 `translations.ftl` 对应的 `# @file` 段落，然后以退出码 1 结束并要求人工复核；本次不生成资源包，也不改动安装目录。复核后重新运行 `build` 才会产出补丁，因此资源包哈希仍只由已复核的输入决定，同一输入重复构建得到相同哈希不变。
-
-无网络或无 API 配置时用 `--no-translate`：只列缺项并停止，不联网、不写文件；`install` 重建时同样接受该参数。`--codex-config` 指定配置文件，`--codex-profile` 指定其中的 profile 名。自动校验只比较消息 ID、值/属性结构、`{$变量}`、`{-term}`、select 分支键、`data-l10n-name` 与 HTML 标签是否与英文一致，不评判译文质量，也不能替代人工审阅；`validate` 的 Fluent 检查仍是最终依据。缺项检测用正则实现，因此除 `validate` 外的命令仍只依赖标准库。
-
-#### 构建与验证
+#### 验证
 
 在仓库根目录运行：
 
 ```powershell
 python -B -m unittest discover -s Firefox -p test_duplicate.py -v
-python -B -m unittest discover -s Firefox/Zen -p test_*.py -v
-python -B Firefox/Zen/patch_zen.py detect
 python -B Firefox/fix_duplicate.py detect
-python -B Firefox/Zen/patch_zen.py verify
-# 从原版备份重新构建；升级后也可直接指向新版原版安装目录
-python -B Firefox/Zen/patch_zen.py build --install-dir Firefox/Zen/backups/20261009073723
-# 新版新增英文条目时会自动翻译并写回 translations.ftl，然后以退出码 1 停止；复核后重跑
-# 无法联网或没有 API 配置时先列缺项：
-python -B Firefox/Zen/patch_zen.py build --install-dir Firefox/Zen/backups/20261009073723 --no-translate
-python -m pip install fluent.syntax
-python -B Firefox/Zen/patch_zen.py validate --original-dir Firefox/Zen/backups/20261009073723
-node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/preferences/zen-settings.js
-node --check Firefox/Zen/build/resources/browser/chrome/browser/content/browser/zen-components/ZenKeyboardShortcuts.mjs
 ```
 
-验证资源时必须使用原版安装或备份作参照，不能把已打补丁的安装当原包。`validate` 省略 `--original-dir` 时按清单记录的来源目录取原版资源，其哈希与清单不符时退到 `backups/<Build ID>`，避免误把已打补丁的安装当参照。Fluent 校验检查语法、重复 ID、中文消息/值/属性缺项、变量及引用、命名链接占位符，并比较非目标资源内容。unittest 覆盖相对/绝对配置、默认项、活动配置优先、残留锁与真实锁、多候选拒绝、其他安装排除、自定义缓存路径、首次自动构建、构建产物一致且可复现、清单记录来源元数据与哈希、缺少与回退版本信息、拒绝已打补丁的来源、保存被替换的原函数体并提示上游变化、升级后判定需要重建与安装时自动重建、原版参照的选择与报错，以及安装/还原不改动配置数据；`Firefox/test_duplicate.py` 另覆盖可执行文件解析、卷在线判定、两种浏览器各自的重复项分类、跨浏览器互不干扰，以及假注册表下只认 `firefox.exe` 与 `zen.exe` 的检测过滤，不访问注册表。
+`Firefox/test_duplicate.py` 覆盖可执行文件解析、卷在线判定、两种浏览器各自的重复项分类、跨浏览器互不干扰，以及假注册表下只认 `firefox.exe` 与 `zen.exe` 的检测过滤，不访问注册表。
 
-本机验证结果：`validate` 比较 252 个英文 Fluent 文件、新增中文消息 329 个、缺失消息与冗余条目均为 0，Fluent 语法、变量引用和 `data-l10n-name` 占位符一致；两份构建后的 JavaScript 通过 `node --check`；`test_discovery.py` 24 项、`test_translate.py` 10 项与 `Firefox/test_duplicate.py` 24 项 unittest 通过；用本地假服务实测缺项时 build 退出码 1、写回译文且不产包，复核后重跑构建成功、`validate` 无缺项，`--no-translate` 不联网也不写文件；`patch_zen.py detect` 正常识别本机安装与配置。**真实启动验证尚未进行**：须用独立测试配置启动 Zen，确认资料库（历史记录、下载、Boost、媒体、工作区）、同步、分享、欢迎页、活动文件夹与工作区提示由 Fluent 正确加载，快捷键设置显示 `F5`、`Ctrl+F5`、`Shift+F5`、`Alt+Home`、`Delete`，命名键预览正确显示 Home、End、PageUp 等。
+本机验证结果：`Firefox/test_duplicate.py` 24 项 unittest 通过。
 
-后续改动界面资源仍需使用独立测试配置做真实启动验证。静态消息覆盖不代表审查了所有硬编码英文，也不涉及第三方扩展或网页翻译；不要宣称所有界面已完整汉化。打包时只包含源码、翻译数据和用户说明，排除本机配置、备份、日志及测试浏览器副本。
-
-### 3.17 Sub-Store（Cloudflare Workers）
+### 3.13 Sub-Store（Cloudflare Workers）
 
 把上游 [Sub-Store](https://github.com/sub-store-org/Sub-Store) 后端与 [Sub-Store-Front-End](https://github.com/sub-store-org/Sub-Store-Front-End) 部署到两个 Cloudflare Worker（`sub-store`、`sub-store-front-end`）。上游源码不入库，构建期按 release tag 拉取；`.github/workflows/deploy-sub-store.yml` 每天北京时间 05:00 自动重部署，也可手动触发。**本节是维护规范，用户使用见根 [README.md 的 Sub-Store 小节](./README.md#sub-store)。**
 
@@ -1516,7 +1233,7 @@ npm run build          # 下载上游 release dist.zip 并解压到 dist/
 
 用户说明在根 `README.md` 的 Sub-Store 小节（含 `sub-store 后端` 与 `sub-store-front-end 前端` 两个子小节）。改动补丁清单、鉴权方式、存储结构、部署顺序或免费额度取舍时，同一提交更新本节。
 
-### 3.18 bwh-traffic（BandwagonHost 流量订阅头）
+### 3.14 bwh-traffic（BandwagonHost 流量订阅头）
 
 `bwh-traffic/worker.js` 是一个单文件 Cloudflare Worker：请求 KiwiVM 的 `getServiceInfo`，把流量同时写进响应头 `subscription-userinfo` 和响应正文，不含节点。浏览器（`Accept` 含 `text/html`）拿到一张自包含的用量面板，其余客户端（Sub-Store、curl）拿到纯文本 userinfo。用户说明见根 [README.md 的 bwh-traffic 小节](./README.md#bwh-trafficbandwagonhost-流量)。
 
@@ -1565,7 +1282,7 @@ cd bwh-traffic; npx wrangler deploy --dry-run
 
 线上验收：`curl.exe "https://<worker>/<ACCESS_TOKEN>?debug=1"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<下一年 1 月 1 日>`；浏览器打开同一地址（去掉 `debug=1`）应看到用量面板。若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <ACCESS_TOKEN>" "https://bwh-traffic.ddtwstudio.com/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
 
-### 3.19 Firefox（界面翻译补全）
+### 3.15 Firefox（界面翻译补全）
 
 `Firefox/patch_firefox.py` 补全已安装 Firefox **当前使用语言** 的界面文案：先判定安装包自带哪些语言、Firefox 正在用哪一种，再找出英文有、该语言没有的 Fluent 消息，调用本机 magpie 的 OpenAI 兼容接口翻译，生成可还原的 `omni.ja` / `browser/omni.ja` 补丁。**本节是维护规范，用户使用见 [`README.md`](./README.md#firefox-界面翻译补全) 的 Firefox 小节。**
 
@@ -1631,17 +1348,13 @@ python -B Firefox/patch_firefox.py restore
 
 | 模块 | 需要的环境 | 主要命令 |
 |---|---|---|
-| SizerAHK | AutoHotkey v2 | `AutoHotkey64.exe AutoHotkey\SizerAHK\SizerAHK.ahk` |
 | SizerWin | VS Build Tools / Windows SDK `cl.exe`+`rc.exe`，可选 CMake | `cd SizerWin; .\build.ps1` |
 | SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; swift build -c release` |
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
 | Dox Reader | Node.js 24+ | 网页端和后端各自目录 `npm ci` + `npm run check` |
-| Firefox AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/AutoSortBookmarks/tests/sorter.test.js` |
-| Zen（中文补全与默认应用重复项） | Windows；Python 3.11+；Fluent 验证另需 fluent.syntax，JS 校验需 Node.js；新版自动翻译需要本机 Codex/API 配置 | `python -B -m unittest discover -s Firefox/Zen -p test_*.py -v`；`python -B -m unittest discover -s Firefox -p test_duplicate.py -v`；`python -B Firefox/fix_duplicate.py detect`；使用见 [README](./README.md#zen中文补全与默认应用重复项) |
-| Firefox（界面翻译补全） | Windows；Python 3.11+；`validate` 另需 fluent.syntax；`build` 需要本机 magpie 在运行 | `python -B -m unittest discover -s Firefox -p 'test_firefox_*.py' -v`；`python -B Firefox/patch_firefox.py scan`；`python -B Firefox/patch_firefox.py build`；`python -B Firefox/patch_firefox.py validate`；使用见 [README](./README.md#firefox-界面翻译补全) |
-| PortableBridge | Windows；.NET Framework 4.x | `cd PortableBridge; .\build.ps1; .\test.ps1` |
+| Firefox/Add-Ons/AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js` |
+| Firefox（界面翻译补全、默认应用重复项清理） | Windows；Python 3.11+；`validate` 另需 fluent.syntax；`build` 需要本机 magpie 在运行 | `python -B -m unittest discover -s Firefox -p test_duplicate.py -v`；`python -B Firefox/fix_duplicate.py detect`；`python -B -m unittest discover -s Firefox -p 'test_firefox_*.py' -v`；`python -B Firefox/patch_firefox.py scan`；`python -B Firefox/patch_firefox.py build`；`python -B Firefox/patch_firefox.py validate`；使用见 [README](./README.md#firefox-界面翻译补全) |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
-| HeliumLanguagePatcher | Windows；Python 3.11+；自动翻译需要本机 API 配置 | `python.exe -B -m unittest discover -s HeliumLanguagePatcher -p test_*.py`；使用命令见 [README](./README.md#helium-语言补丁) |
 | Sub-Store（Cloudflare Workers） | Node.js 24+；Cloudflare 账号与 API Token | `cd sub-store; npm ci; npm run check`；`cd sub-store-front-end; npm ci; npm run build` |
 | bwh-traffic | Node.js 24+；Cloudflare 账号；非 Cloudflare 中转 | `node --test bwh-traffic/worker.test.js`；`cd bwh-traffic; npx wrangler deploy` |
 | Userscript | Tampermonkey / Greasemonkey | 浏览器安装脚本 |
@@ -1649,7 +1362,7 @@ python -B Firefox/patch_firefox.py restore
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
 | Scripts（Edge 清理） | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
 | Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\InstallFFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
-| Android ApkRename | PowerShell，apktool/Java 等工具 | `.\rename-apk.ps1 [-SetupTools]` |
+| ApkRename（APK 改名脚本） | PowerShell，apktool/Java 等工具 | `.\Scripts\rename-apk.ps1 [-SetupTools]` |
 
 ---
 

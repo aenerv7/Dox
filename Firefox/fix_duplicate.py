@@ -257,7 +257,7 @@ def main():
   python -B .\fix_duplicate.py detect
   python -B .\fix_duplicate.py fix
 
-相关说明见仓库根 README.md 的 Zen 小节。''')
+相关说明见仓库根 README.md 的「Firefox 默认应用重复项清理」小节。''')
     parser.add_argument('-h', '--help', action='help', help='显示中文使用指南并退出')
     parser.add_argument('command', nargs='?', default='help', choices=('help', 'detect', 'fix'),
                         help='要执行的命令，默认只显示帮助')
