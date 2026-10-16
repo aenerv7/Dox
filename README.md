@@ -28,7 +28,7 @@
 | [`DeepSeek Harness/Launcher`](#deepseek-harness-launcher) | Windows 托盘监督器，负责启动、停止和重启本地 DeepSeek Harness |
 | [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
 | [`CSS`](./CSS) | 中文字体映射 CSS |
-| [`Userscript`](./Userscript) | Tampermonkey/Greasemonkey 用户脚本 |
+| [`Scripts/Userscripts`](./Scripts/Userscripts) | Tampermonkey/Greasemonkey 用户脚本 |
 | [`Scripts/rename-apk.ps1`](./Scripts/rename-apk.ps1) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
 | [`Scripts/Flatten.bat`](./Scripts/Flatten.bat) | Windows 目录展平工具 |
 | [`Scripts/RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
@@ -42,7 +42,7 @@
 以下两个文件共享同一套映射规则，修改时需同步维护：
 
 - [`CSS/font-face.css`](./CSS/font-face.css) — 可独立引用的 CSS
-- [`Userscript/中文字体优化.user.js`](./Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — Tampermonkey 用户脚本版本
+- [`Scripts/Userscripts/中文字体优化.user.js`](./Scripts/Userscripts/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — Tampermonkey 用户脚本版本
 
 ### 目标字体
 
@@ -594,10 +594,10 @@ Windows 11 Taskbar Styler 和 Windows 11 File Explorer Styler。Taskbar Styler
 
 将脚本安装到 Tampermonkey 或 Greasemonkey 后按目标网站使用：
 
-- [`中文字体优化.user.js`](./Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — 全站中文字体优化，与 `CSS/font-face.css` 共用映射规则
-- [`EmuParadise Download Workaround.user.js`](./Userscript/EmuParadise%20Download%20Workaround.user.js) — 在 EmuParadise 页面补充可用下载链接，依赖脚本元数据中的 jQuery
-- [`Re-add Download Button Vimm's Lair.user.js`](./Userscript/Re-add%20Download%20Button%20Vimm's%20Lair.user.js) — 在 Vimm's Lair 下载按钮被移除时恢复提交按钮
-- [`VGMdb Tracklist Copy Button.user.js`](./Userscript/VGMdb%20Tracklist%20Copy%20Button.user.js) — 在 VGMdb 专辑页曲目列表的序号与标题之间插入复制按钮，点击复制该曲名；多语言 tracklist 的每个语言块都有按钮
+- [`中文字体优化.user.js`](./Scripts/Userscripts/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — 全站中文字体优化，与 `CSS/font-face.css` 共用映射规则
+- [`EmuParadise Download Workaround.user.js`](./Scripts/Userscripts/EmuParadise%20Download%20Workaround.user.js) — 在 EmuParadise 页面补充可用下载链接，依赖脚本元数据中的 jQuery
+- [`Re-add Download Button Vimm's Lair.user.js`](./Scripts/Userscripts/Re-add%20Download%20Button%20Vimm's%20Lair.user.js) — 在 Vimm's Lair 下载按钮被移除时恢复提交按钮
+- [`VGMdb Tracklist Copy Button.user.js`](./Scripts/Userscripts/VGMdb%20Tracklist%20Copy%20Button.user.js) — 在 VGMdb 专辑页曲目列表的序号与标题之间插入复制按钮，点击复制该曲名；多语言 tracklist 的每个语言块都有按钮
 
 ## ApkRename（APK 改名）
 

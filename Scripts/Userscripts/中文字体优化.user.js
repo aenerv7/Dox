@@ -3,14 +3,14 @@
 // @namespace https://github.com/aenerv7/Dox
 // @version 5.11
 // @description 优化中文字体的显示
-// @icon https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.png
+// @icon https://github.com/aenerv7/Dox/raw/refs/heads/main/Scripts/Userscripts/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.png
 // @author AENERV7
 // @license CC-BY-NC-ND-4.0
 // @grant GM_addStyle
 // @run-at document-start
 // @match *://*/*
-// @downloadURL https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js
-// @updateURL https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js
+// @downloadURL https://github.com/aenerv7/Dox/raw/refs/heads/main/Scripts/Userscripts/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js
+// @updateURL https://github.com/aenerv7/Dox/raw/refs/heads/main/Scripts/Userscripts/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js
 // ==/UserScript==
 
 (function () {

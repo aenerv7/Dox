@@ -7,8 +7,8 @@
 // @match        https://vgmdb.net/album/*
 // @grant        none
 // @run-at       document-idle
-// @downloadURL  https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/VGMdb%20Tracklist%20Copy%20Button.user.js
-// @updateURL    https://github.com/aenerv7/Dox/raw/refs/heads/main/Userscript/VGMdb%20Tracklist%20Copy%20Button.user.js
+// @downloadURL  https://github.com/aenerv7/Dox/raw/refs/heads/main/Scripts/Userscripts/VGMdb%20Tracklist%20Copy%20Button.user.js
+// @updateURL    https://github.com/aenerv7/Dox/raw/refs/heads/main/Scripts/Userscripts/VGMdb%20Tracklist%20Copy%20Button.user.js
 // ==/UserScript==
 
 (function () {

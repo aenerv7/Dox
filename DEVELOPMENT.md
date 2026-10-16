@@ -47,7 +47,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
-| JavaScript | `Userscript/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/` | 浏览器用户脚本、Manifest V3 扩展 |
+| JavaScript | `Scripts/Userscripts/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/` | 浏览器用户脚本、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射 |
 | 批处理 / PowerShell | `Scripts/*.bat`、`Scripts/*.ps1` | Edge 清理脚本和 FFmpeg 安装脚本 |
 
@@ -63,7 +63,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `Firefox/`（根目录） | 活跃 | Firefox 界面翻译补全（按当前语言扫描缺项、magpie 翻译、可还原补丁），以及 Firefox / Zen 共用的默认应用重复项清理 |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `CSS/` | 活跃 | 中文字体映射 CSS |
-| `Userscript/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
+| `Scripts/Userscripts/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
 | `Scripts/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版）、Flatten 和 FFmpeg 安装脚本 |
 | `Scripts/rename-apk.ps1` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
 | `sub-store/` | 活跃 | Sub-Store 后端在 Cloudflare Workers 上的适配（D1 持久化、路径口令鉴权） |
@@ -99,7 +99,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
 - `Firefox/patch_firefox.py`、`Firefox/translations.<语言>.ftl`、`Firefox/test_firefox_patch.py`、`Firefox/test_firefox_translate.py`
-- `Userscript/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
+- `Scripts/Userscripts/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
 - `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`、`Scripts/rename-apk.ps1`
 - `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
@@ -113,7 +113,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 |---|---|
 | `SizerWin/logo.ico` | Windows 图标 |
 | `SizerSwift/AppIcon.icns` | macOS 菜单栏/Bundle 图标 |
-| `Userscript/中文字体优化.png` | 512×512 Userscript 图标 |
+| `Scripts/Userscripts/中文字体优化.png` | 512×512 Userscript 图标 |
 
 图标更新时要检查所有平台的引用，不要只替换单一文件。
 
@@ -134,7 +134,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 ### 2.2 资源与图标
 
 - `SizerSwift/AppIcon.icns` 是 macOS 资源，不能直接用 PNG 替代。
-- `Userscript/中文字体优化.png` 被 Userscript 元数据 `@icon` 引用，移动或改名时必须更新 URL。
+- `Scripts/Userscripts/中文字体优化.png` 被 Userscript 元数据 `@icon` 引用，移动或改名时必须更新 URL。
 - `DeepSeek Harness/Launcher/src/Launcher.ico` 由 `scripts\make-icon.ps1` 从官方 SVG 生成，不要手工编辑二进制 ICO。
 
 ### 2.3 生成产物
@@ -170,7 +170,7 @@ rg -n "TODO|FIXME|BUG" -g "!**/.git/**" -g "!**/*.exe" -g "!**/*.ico" -g "!**/*.
 | 文件 | 角色 |
 |---|---|
 | `CSS/font-face.css` | 独立样式表，可被其他工具直接引用 |
-| `Userscript/中文字体优化.user.js` | Tampermonkey/Greasemonkey 用户脚本；元数据头后把同一套 CSS 放进模板字符串注入页面 |
+| `Scripts/Userscripts/中文字体优化.user.js` | Tampermonkey/Greasemonkey 用户脚本；元数据头后把同一套 CSS 放进模板字符串注入页面 |
 
 两个主文件当前各含 **70 条** `@font-face`，其中带 **`unicode-range`** 的 **21 条**。任一改动必须同步到另一文件，并递增脚本 `@version`。
 
@@ -235,8 +235,8 @@ U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B739, U+2B740-2B81D, U+2B820-2
 
 #### 维护红线与修改流程
 
-1. 同步修改 `CSS/font-face.css` 和 `Userscript/中文字体优化.user.js` 中的同一处 `@font-face` 规则。
-2. 递增 `Userscript/中文字体优化.user.js` 顶部 `@version`。
+1. 同步修改 `CSS/font-face.css` 和 `Scripts/Userscripts/中文字体优化.user.js` 中的同一处 `@font-face` 规则。
+2. 递增 `Scripts/Userscripts/中文字体优化.user.js` 顶部 `@version`。
 3. 保持所有实际 `unicode-range` 使用同一个 CJK 范围。
 4. 字体名大小写变体成对出现（如 `Helvetica Neue`/`helvetica neue`、`monospace`/`Monospace`），因为浏览器对 `font-family` 大小写敏感性不一致。
 5. 保持双规则模式：无 `unicode-range` 的规则做全量回退保底，带 `unicode-range` 的规则只处理 CJK 范围，避免英文字符被替换。
@@ -247,7 +247,7 @@ U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B739, U+2B740-2B81D, U+2B820-2
 
 ```powershell
 $css = Get-Content -Raw -LiteralPath 'CSS\font-face.css'
-$usr = Get-Content -Raw -LiteralPath 'Userscript\中文字体优化.user.js'
+$usr = Get-Content -Raw -LiteralPath 'Scripts\Userscripts\中文字体优化.user.js'
 $cssNoComments = [regex]::Replace($css, '/\*[\s\S]*?\*/', '')
 [PSCustomObject]@{
   CssFontFace = ([regex]::Matches($cssNoComments, '@font-face')).Count
@@ -720,7 +720,7 @@ node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 
 ### 3.7 Userscript 小脚本
 
-涉及 `Userscript/` 下四个脚本。中文字体优化脚本的小节见 [3.1](#31-中文字体优化cjk-字体映射)。
+涉及 `Scripts/Userscripts/` 下四个脚本。中文字体优化脚本的小节见 [3.1](#31-中文字体优化cjk-字体映射)。
 
 - `EmuParadise Download Workaround.user.js`：从 URL 第 6 段取 `gid`，在 `.download-link` 前插入下载链接，依赖 `@require` jQuery。
 - `Re-add Download Button Vimm's Lair.user.js`：查找 `#dl_form`，无目标 submit 按钮则追加按钮。
