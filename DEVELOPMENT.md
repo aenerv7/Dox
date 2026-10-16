@@ -15,7 +15,7 @@
    - 3.2 [SizerWin](#32-sizerwin)
    - 3.3 [SizerSwift](#33-sizerswift)
    - 3.4 [CapsLockOSD](#34-capslockosd)
-   - 3.5 [Dox Reader](#35-dox-readercloudflare-workers--backend)
+   - 3.5 [Dox Reader（已下线）](#35-dox-reader)
    - 3.6 [Firefox Auto Sort Bookmarks](#36-firefox-auto-sort-bookmarks)
    - 3.7 [Userscript 小脚本](#37-userscript-小脚本)
    - 3.8 [AdGuard（magi.txt）](#38-adguardmagitxt)
@@ -45,7 +45,6 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | C++20 / Win32 API | `DeepSeek Harness/Launcher/` | DeepSeek Harness 本地托盘监督器 |
 | Python 3.11+ / 标准库、PowerShell、HTTP | `Firefox/` | Firefox 界面翻译补全（按当前语言调用本机 magpie 翻译）、Firefox / Zen 默认应用重复项清理 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
-| TypeScript / Preact | `Dox Reader/` | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
 | JavaScript | `Scripts/Userscripts/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/` | 浏览器用户脚本、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射 |
@@ -58,7 +57,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `SizerWin/` | 活跃 | 纯 C + Win32 API 版窗口调整工具 |
 | `SizerSwift/` | 活跃 | macOS 原生菜单栏窗口调整工具，Swift Package Manager 项目 |
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
-| `Dox Reader/` | 活跃 | local-first RSS 阅读器（Cloudflare Workers 网页版 + 个人后端） |
+| `Dox Reader/` | 已移除 | 历史 RSS 阅读器，源码与 Cloudflare 部署均已删除 |
 | `Firefox/Add-Ons/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
 | `Firefox/`（根目录） | 活跃 | Firefox 界面翻译补全（按当前语言扫描缺项、magpie 翻译、可还原补丁），以及 Firefox / Zen 共用的默认应用重复项清理 |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
@@ -101,7 +100,6 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/patch_firefox.py`、`Firefox/translations.<语言>.ftl`、`Firefox/test_firefox_patch.py`、`Firefox/test_firefox_translate.py`
 - `Scripts/Userscripts/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
 - `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`、`Scripts/rename-apk.ps1`
-- `Dox Reader/`（`src/`、`worker/`、`public/` 等源码文件）
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
 - `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
 - `bwh-traffic/worker.js`、`bwh-traffic/wrangler.jsonc`
@@ -144,8 +142,8 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 忽略规则只写在仓库根 `.gitignore`，不分散到模块目录：
 
 - 模块目录下不新建各自的 `.gitignore`；已有的并入根文件后删除。
-- 忽略项按模块分组、加注释，路径从仓库根写起（`Firefox/build/`、`Dox Reader/Backend/.env*`），不要沿用只在该模块目录内生效的相对模式（如裸 `build/` 会波及全仓库）。
-- 保持原匹配范围：模块 `.gitignore` 里未加斜杠的 `build/`、`__pycache__/`、`*.log` 在该模块下任意深度都生效，并入根文件要写成 `sub-store/**/build/`、`Dox Reader/Cloudflare Workers/**/*.log`（`**/` 匹配零层或多层目录）；只锚定直接子目录会漏掉嵌套产物。
+- 忽略项按模块分组、加注释，路径从仓库根写起（`Firefox/build/`、`bwh-traffic/**/.wrangler/`），不要沿用只在该模块目录内生效的相对模式（如裸 `build/` 会波及全仓库）。
+- 保持原匹配范围：模块 `.gitignore` 里未加斜杠的 `build/`、`__pycache__/`、`*.log` 在该模块下任意深度都生效，并入根文件要写成 `sub-store/**/build/`、`bwh-traffic/**/node_modules/`（`**/` 匹配零层或多层目录）；只锚定直接子目录会漏掉嵌套产物。
 - 调整忽略项后确认判定未变：`git check-ignore -v --no-index <路径>`（可指向不存在的路径），并用 `git status --porcelain --ignored=matching` 对比改动前后的忽略清单。
 - 例外两处，不再并入根文件：git 子模块 `Windhawk/windhawk-mods/`，以及被忽略的上游源码目录 `sub-store/.upstream/`，其 `.gitignore` 属于上游内容。
 
@@ -556,126 +554,8 @@ cd CapsLockOSD
 | 修改 ini 越界值 | 下次启动生效且被 clamp |
 | `taskkill /IM CapsLockOSD.exe /F` | 进程结束，无残留托盘或前台效果 |
 
-### 3.5 Dox Reader（Cloudflare Workers + Backend）
-
-local-first RSS/Atom 阅读器，仅维护 Cloudflare Workers 网页版（`Dox Reader/Cloudflare Workers/`）和可选个人后端（`Dox Reader/Backend/`）。**本节是唯一开发规范；安装、发布入口和两种数据模式的使用说明在根 [README.md 的 Dox Reader 小节](./README.md#dox-reader)。**
-
-#### 产品摘要与边界
-
-能力：解析 RSS/Atom/RDF，最多并发刷新 4 源；全部/未读/收藏/单源视图，标题/作者/摘要搜索；订阅增删改刷、全局或单订阅批量已读；文章已读/未读、收藏、正文、跳转原文；OPML 导入导出；三栏/移动分层布局；多主题配色与自定义强调色；经用户自己的 HTTPS WebDAV 同步订阅、阅读状态和部分偏好。
-
-模式边界：默认本地模式保持原有 IndexedDB/WebDAV 行为。用户显式选后端模式时，连接自己部署的 Dox Reader Backend，订阅、文章、已读/收藏保存在个人后端；WebDAV 不参与此模式。后端凭据只存本机，按后端根地址分隔缓存；切换模式不合并、不上传或删除原有本地数据。网页版 Worker 本身仍只负责静态资源和受限代理，持久后端独立部署；应用不使用共享开发者服务、广告、分析或远程可执行代码。
-
-#### 运行架构
-
-| 模块 | 目录 | 网络方式 | 设置存储 | 发布形态 |
-|---|---|---|---|---|
-| Cloudflare Workers 网页版 | `Cloudflare Workers/` | 请求同源 `/api/feed`、`/api/webdav`，Worker 再访问上游 | `localStorage` | Workers Static Assets + Worker |
-| 可选个人后端 | `Backend/` | HTTPS API 与定时 RSS 抓取 | SQLite Durable Object；访问令牌用 Worker Secret | Worker + SQLite Durable Object |
-
-网页端数据流：`Preact UI → Dexie/IndexedDB（订阅、文章缓存、状态、同步元数据）`，本地设置存凭据/外观/布局，RSS 经 Worker 代理，WebDAV 合并 `Dox Reader/state.json` 后条件写回。网页 Worker 不使用 KV、D1、R2、Durable Objects、Queues 或 Workers AI。
-
-#### 代码所有权
-
-网页端和后端是独立 npm 工程。网页端 UI、IndexedDB 与同步代码位于 `Cloudflare Workers/src/`，代理位于 `Cloudflare Workers/worker/`。
-
-`Backend/src/shared/` 中 `feed-parser.ts`、`html-entities.ts` 和 `model.ts` 镜像网页端对应文件；修改解析规则时同步维护。
-
-#### 本地数据模型
-
-IndexedDB 库名 `dox-rss-reader`（Dexie 管理）：
-
-| 表 | 内容 | 是否进入 WebDAV |
-|---|---|---|
-| `feeds` | 订阅 URL、标题、自定义名称、站点地址、删除墓碑和版本 | 是，排除本机抓取错误与时间 |
-| `items` | 文章标题、作者、URL、正文、摘要及本机展示状态 | 否 |
-| `itemStates` | 每篇文章独立的已读和收藏寄存器 | 是 |
-| `meta` | 设备 actor、Lamport clock、全量刷新时间、同步偏好和迁移标记 | 部分 |
-
-本机设置：WebDAV URL/用户名/应用密码、三栏宽度/布局锁定只存本机；主题/配色/强调色、摘要开关同步。
-
-删除订阅用墓碑传播；文章状态即使没有正文缓存也必须保留。文章列表一次最多读 2000 篇渲染，侧栏计数用独立查询，不受列表上限影响。
-
-#### WebDAV 同步协议
-
-固定路径 `Dox Reader/state.json`，只接受 HTTPS。目录用 `PROPFIND`/`MKCOL`，同步文件用 `GET`/`PUT`，凭据经 Basic Authentication 但不进 state.json。
-
-schema v1 合并规则：每设备随机 `actor`，Lamport 版本 `[counter, actor]`；订阅整条 LWW，版本相同以 actor 稳定决胜；已读/收藏是独立 LWW 寄存器；主题/配色/强调色/摘要开关分别合并；`lastRefreshAllAt` 取最大值；写回用 ETag + `If-Match`（新文件 `If-None-Match: *`）；HTTP 412 重新读合并写，最多 4 次；未知 schema 明确报错，不静默覆盖。
-
-首次同步约束：本地无订阅/文章/状态而远端同步出有效订阅时，立即刷新全部订阅并回写。该判断不受远端 `lastRefreshAllAt` 影响。启动时已配置 WebDAV 先静默同步；本地修改走约 1.4 秒防抖队列；距最近全量刷新 24 小时则自动刷新。
-
-#### 界面与交互约束（已确认，回归需保留）
-
-- 启动时默认进入全部订阅的“未读”视图；资料库导航按“未读、全部文章、收藏”排列。
-- 本地和后端模式的订阅列表共用 `feed-order.ts`，按自定义名称（为空则标题）以 `zh-CN` 排序；重命名后立即重排，不能依赖后端返回或 IndexedDB 主键顺序。
-- “全部文章”/“未读”来源显示“订阅源名称 - 文章域名”，单源/收藏只显示文章域名。
-- “未读”视图点开文章立即写已读并排队同步，但保留在本会话，切换视图后结束会话。
-- 未读圆点在标题前方；单订阅批量已读两处入口用相同图标，全局/单订阅/单篇三种语义用不同图标。
-- 工具栏包含批量已读/刷新/重命名/删除；单篇工具栏含已读/收藏/打开原文。
-- “测试连接”和“立即同步”至少显示 400 ms 加载状态。
-- 同步与已读操作显示加载状态并阻止重复写入；单订阅批量已读按订阅源保留进行中的状态，切换订阅源后仍可见。
-- 顶栏“同步”按钮仅在本地模式显示，用于 WebDAV；后端模式隐藏该入口，保留自动读取后端状态和手动刷新订阅。
-- 数据模式切换铺满可用宽度、两个等宽选项显示“本地 / Dox Reader Backend”；后端地址标签为“地址”，访问令牌使用与 WebDAV 密码相同的显示/隐藏按钮；不在后端连接区底部显示说明段落。
-- 数据模式选项“Dox Reader Backend”文字右侧提供独立的问号图标按钮（悬停提示“Cloudflare 部署说明”），点击说明不切换数据模式，在新标签页打开 GitHub 上根 `README.md` 的 [`#dox-reader-backend`](https://github.com/aenerv7/Dox/blob/main/README.md#dox-reader-backend) 部署章节，未填写地址或令牌时仍可使用。
-- 后端模式打开设置时自动读取配置；地址/令牌变化后防抖重连，过期响应不得覆盖新连接。抓取间隔和保留篇数字段始终显示，读取前/失败时禁用，成功后使用远端真实值，不用客户端默认值覆盖后端。
-- 本地模式打开设置或修改 WebDAV 地址/用户名/密码后自动测试连接；无地址不请求，防抖且忽略旧响应，保留手动重试。自动测试沿用原有目录检查/创建行为，不触发阅读状态同步。
-- 外观/阅读偏好实时预览；取消恢复已保存值。
-- 刷新全部订阅时显示高对比度状态面板，持续更新已完成数量和进度条；本地模式额外显示当前并发检查的订阅源，后端模式不显示订阅详情或“正在连接订阅源”占位状态。
-- 后端模式刷新面板的完成计数与进度条之间保留 16px 垂直间距，避免进度条贴近小字。
-- 后端模式启动必须先用本机缓存渲染（`loadCached`）再后台同步：首屏不得等后端拉取，全量快照最多 `1 + N/200` 次串行往返，等它会把打开应用变成几分钟空白。
-- 配色含经典与东方传统色，Material 3 用中性黑灰强调色；自定义强调色自动算可读前景色。
-- 桌面三栏保持正文最小宽度；移动端分层导航不能重叠或横向溢出。
-- 改图标/工具栏必须检查 `title`/可访问名称、禁用态、稳定尺寸和窄屏容纳。
-
-#### Cloudflare Worker 边界
-
-Worker 只处理两个 API，其余交给 Static Assets + SPA fallback：
-
-| API | 允许方法 | 上游协议 | 限制 |
-|---|---|---|---|
-| `/api/feed` | `GET` | HTTP/HTTPS | 响应最多 5 MiB，最多 5 次校验重定向 |
-| `/api/webdav` | `GET`、`PROPFIND`、`MKCOL`、`PUT` | 仅 HTTPS | 请求/响应最多 4 MiB，不跟随重定向，只允许 Dox Reader 固定路径 |
-
-RSS 上游超时 90 秒，WebDAV 上游保持 20 秒。RSS 上游使用固定、非个人化的 Dox Reader `User-Agent`，不转发浏览器标识；其余防护：客户端标记 + `Origin`/`Sec-Fetch-Site` 同源校验；拒绝内嵌凭据、私有/保留 IP、localhost 类域名、IPv6 字面量、非标准端口；只转发白名单请求/响应头，不记录 Authorization；RSS 每跳重校验，WebDAV 重定向报错；API 错误 JSON 且 `no-store`。扩大代理/新持久化绑定前必须先补安全测试、更新 `PRIVACY.md` 并重估额度。
-
-#### 开发流程
-
-要求 Node.js 24+。网页端和后端各有独立 `package-lock.json`，检出/锁文件变化后分别 `npm ci`。
-
-Cloudflare Workers：
-
-```powershell
-cd "Dox Reader/Cloudflare Workers"
-npm ci
-npm run dev:ui    # 仅调试界面，不提供代理
-npm run dev       # 构建后启动完整 Worker + Static Assets
-npm run check     # Vitest + Worker 类型检查 + TypeScript + 生产构建
-npx wrangler deploy --dry-run
-```
-
-`npm run dev` 会先生产构建，不是 Vite 热更新入口。
-
-核心修改完成标准：相关工程 `npm run check` → 网页端 `npx wrangler deploy --dry-run` → 交互/响应式检查桌面与移动视口 → WebDAV 改覆盖空远端/已有远端/并发 412/错误凭据/首次同步 → 数据结构/权限/网络/收集行为改检查 schema 和 `PRIVACY.md`。
-
-#### 发布流程
-
-网页端代码修改并验证后，默认直接部署：`npm run deploy`；一键部署 `pwsh -File deploy-cloudflare.ps1 [-DryRun] [-SkipInstall]`（脚本不含账号密钥，Wrangler 首跑登录部署者账号）。发布后从公网请求首页和新资源验证。
-
-#### Dox Reader Backend（1.1.0 前端可选）
-
-独立 npm 工程 Dox Reader/Backend。SQLite Durable Object 每账号个人库使用固定 personal-library 名称；不是跨用户共享服务。Worker 只接受带 Bearer token 的 POST /api/v1 命令，CORS 不带 Cookie；BACKEND_TOKEN 至少 32 字符，默认无令牌拒绝请求。API 返回订阅、分页文章元数据、单篇正文、状态、配置和抓取进度。客户端在独立 Dexie 缓存中读列表，按需缓存正文；连接失败只读缓存，写操作失败不得乐观修改已读/收藏。本地库 dox-rss-reader 保持不变。外观在后端模式保留本机。后端参数先读取再修改，不因客户端默认值覆盖远端配置。
-
-默认 intervalMinutes=60、maxArticles=10000；允许 30–10080 分钟、100–10000 篇。额度档由 wrangler.jsonc 的 vars.PLAN（"free" 默认 / "paid"）在部署时选定，src/policy.ts 的 FREE_LIMITS/PAID_LIMITS 是唯一事实来源，status 命令把 plan 与生效 limits 下发给前端，前端不得写死区间。付费档（账号自购 Workers Paid，$5/月起步）为默认 60/50000，允许 5–10080 分钟、100–100000 篇，最多 300 个源，正文上限 256 KiB，RSS/Atom 最大 10 MiB，正文与元数据总预算 4 GiB，每日 UTC 最多 48000 次抓取、100000 写入单位；SQLite 存储含 5 GB-month，超出 $0.20/GB-month，单 DO 存储上限 10 GB。免费档为最多 100 个源，正文上限约 48 KiB，RSS/Atom 最大 5 MiB，总预算 600 MiB，每日 UTC 最多 4800 次抓取、10000 写入单位。上限是全库按 publishedAt DESC,id DESC 保留最新 N 篇，包含收藏和未读，不是每源 N 篇；抓取淘汰只删未收藏文章，收藏占满上限或字节预算后停止收录新文章（不写条件请求验证头，抓取顺延且不消耗每日抓取预算），status 下发 retention（articles/starred/limit/blocked）供前端提示与保存前确认，旧版本后端不上报时按未满处理。上限调到收藏数以下时必须带 confirmStarred：缺参数一律报错拒绝，确认后按由旧到新连收藏一起裁剪到新上限（至少删 starred−limit 篇收藏）；档位 clamp 收紧上限没有确认步骤，由 reconcileLimit 在唤醒时按同一规则收敛，保证总数始终不超上限。调低上限立即在事务内清理。降级回 free 时 configure 取值按档位 clamp，prune 在下次唤醒按免费档预算裁剪。达到预算顺延次日，未完全归档的响应不保存条件请求验证头。额度共享风险必须在部署说明中披露，应用不能自动升级付费套餐。
-
-抓取由持久 Alarm 驱动，一次处理一个到期源，90 秒总超时，最多 5 跳重定向且每跳检查公开 HTTP(S) 地址，拒绝私有/保留 IP、凭据、非常规端口和 XML DTD/ENTITY。RSS 请求使用固定、非个人化的 Dox Reader `User-Agent` 并兼容常见 XML MIME。先保存恢复 Alarm 再做网络 I/O；恢复租约比抓取超时多 30 秒，finally 重新调度。每小时 Cron 只修复缺失 Alarm。失败指数退避。客户端全量/单源刷新创建持久队列，已有手动任务时合并请求，最短 1 分钟；轮询最多 2 分钟，关闭客户端不取消任务。删除排队/抓取中的源必须清理任务并防止复活。保留策略误删后重新归档用 `refresh` 带 `full: true`：先清掉所选订阅源的 `etag`/`modified` 再排队，强制源返回完整体；写入受每日预算限制，未收完的源不保存验证头，后续唤醒与次日预算自动补齐。
-
-SQL 使用绑定参数，插入去重并保留已有 read/starred；全量快照以 revision 验证一致性，按发布时间/ID 游标分页避免 OFFSET 扫描开销，缓存快照完整收齐后原子替换，不得部分失败覆盖已缓存数据。后端列表按 200 篇渐进展示。增量同步走 `changes` 变更日志（`item`/`state`/`remove`/`feed` 四类，seq 单调递增，最多保留 `MAX_CHANGES` 条）：`status` 下发 `minSeq`/`maxSeq`，客户端在 `meta.seq` 保存水位，`delta` 按页补插入、删除和阅读状态，订阅列表随增量首页整体下发（客户端据此丢弃已删订阅的文章）。阅读状态只进日志、不再 bump `revision`，因此标已读不会让客户端重下整个库。水位落在保留窗口之外（首次同步、日志被裁剪、后端被重置）必须回退全量快照，不能只信任增量；全量快照写完再落水位，水位取快照前的 `maxSeq`，宁可重复同步也不能漏。
-
-后端 npm run check 使用本地 Workers runtime 集成测试，验证鉴权、Alarm、条件抓取、全库裁剪、收藏豁免淘汰、满库停收、调低上限确认与收藏裁剪、竞态删除、预算顺延和手动抓取；免费档用例在 test/backend.test.ts，付费档在 test/paid.test.ts，由 vitest.config.ts 的两个 project 分别用 PLAN 绑定运行。部署前 npx wrangler deploy --dry-run；默认创建 dox-reader-backend，令牌经 wrangler secret bulk/put 配置。生产验证添加临时测试源、确认无人在线抓取与手动刷新、清理测试源，不能遗留测试用户数据。前端新增模式时同步修改网页端和后端的隐私说明。
-
-#### 文档维护
-
-网页端和后端的 `PRIVACY.md` 必须与实际数据流一致。修改默认设置、配色枚举、同步字段、Worker 限制、最低运行版本或发布命令时，同一提交更新本模块小节。
+### 3.5 Dox Reader
+：源码与 Cloudflare 上的 `dox-reader`、`dox-reader-backend` Worker 均已删除。保留编号以免后续章节重排。
 
 ### 3.6 Firefox Auto Sort Bookmarks
 
@@ -746,7 +626,7 @@ node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 - 成功后图标换成 ✓ 并转绿，1.2s 后复原。
 - `MutationObserver`（`requestAnimationFrame` 去抖）负责补注入；已有按钮的格子直接跳过，因此重入不会产生重复按钮；页面没有 `#tracklist` 时静默返回。
 
-**验证方式**：仓库 `Dox Reader/Cloudflare Workers/node_modules` 里已有 happy-dom，可用它在 Node 里加载 Wayback 存档的专辑页做无浏览器断言（行数=按钮数、每个 `span.tl` 块内行数=按钮数、逐条点击后复制内容与干净 DOM 的标题文本比对、MutationObserver 重入不重复注入、无 tracklist 页面不抛错）。**不要为此新增依赖**。
+**验证方式**：在仓库外临时目录装 happy-dom，在 Node 里加载 Wayback 存档的专辑页做无浏览器断言（行数=按钮数、每个 `span.tl` 块内行数=按钮数、逐条点击后复制内容与干净 DOM 的标题文本比对、MutationObserver 重入不重复注入、无 tracklist 页面不抛错）。**不要把依赖加进仓库**。
 
 **维护约束**：站点为深色主题，按钮颜色用 `currentColor` 继承，只有成功态写死绿色；无 `@require`、`@grant none`；若改版导致失效，优先怀疑 `tr.rolebit`、`span.label`、`span.tl` 三个选择器。
 
@@ -1352,7 +1232,6 @@ python -B Firefox/patch_firefox.py restore
 | SizerWin | VS Build Tools / Windows SDK `cl.exe`+`rc.exe`，可选 CMake | `cd SizerWin; .\build.ps1` |
 | SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; swift build -c release` |
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
-| Dox Reader | Node.js 24+ | 网页端和后端各自目录 `npm ci` + `npm run check` |
 | Firefox/Add-Ons/AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js` |
 | Firefox（界面翻译补全、默认应用重复项清理） | Windows；Python 3.11+；`validate` 另需 fluent.syntax；`build` 需要本机 magpie 在运行 | `python -B -m unittest discover -s Firefox -p test_duplicate.py -v`；`python -B Firefox/fix_duplicate.py detect`；`python -B -m unittest discover -s Firefox -p 'test_firefox_*.py' -v`；`python -B Firefox/patch_firefox.py scan`；`python -B Firefox/patch_firefox.py build`；`python -B Firefox/patch_firefox.py validate`；使用见 [README](./README.md#firefox-界面翻译补全) |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |

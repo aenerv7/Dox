@@ -43,17 +43,6 @@ Scripts/tools/
 # Codex temporary workspace files
 .codex-tmp/
 
-# Dox Reader 网页版与后端（依赖、构建产物与本机凭据）
-Dox Reader/Cloudflare Workers/**/node_modules/
-Dox Reader/Cloudflare Workers/**/dist/
-Dox Reader/Cloudflare Workers/**/.wrangler/
-Dox Reader/Cloudflare Workers/**/*.log
-Dox Reader/Backend/**/node_modules/
-Dox Reader/Backend/**/dist/
-Dox Reader/Backend/**/.wrangler/
-Dox Reader/Backend/**/.dev.vars
-Dox Reader/Backend/**/.env*
-
 # Sub-Store 部署产物与本地上游源码
 sub-store/**/.upstream/
 sub-store/**/build/

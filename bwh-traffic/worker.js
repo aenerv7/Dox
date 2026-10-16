@@ -242,8 +242,8 @@ function page(info) {
     font: 15px/1.5 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   .card {
-    width: min(92vw, 420px);
-    padding: 24px;
+    width: min(94vw, 520px);
+    padding: 28px;
     border: 1px solid #2c343e;
     border-radius: 18px;
     background: #1d232b;
@@ -261,7 +261,7 @@ function page(info) {
   dt { font-size: 12px; color: #8b949e; }
   dd { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
   .expire { margin: 20px 0 0; font-size: 13px; color: #8b949e; }
-  footer { margin-top: 14px; padding-top: 14px; border-top: 1px solid #2c343e; font-size: 12px; color: #6e7681; }
+  footer { margin-top: 16px; padding-top: 16px; border-top: 1px solid #2c343e; font-size: 12px; line-height: 1.6; color: #6e7681; word-spacing: 0.1em; }
 </style>
 </head>
 <body>
