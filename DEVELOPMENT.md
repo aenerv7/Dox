@@ -26,6 +26,9 @@
    - 3.13 [Sub-Store（Cloudflare Workers）](#313-sub-storecloudflare-workers)
    - 3.14 [bwh-traffic（BandwagonHost 流量订阅头）](#314-bwh-trafficbandwagonhost-流量订阅头)
    - 3.15 [Firefox（界面翻译补全）](#315-firefox界面翻译补全)
+   - 3.16 [Thunderbird（用户层配置）](#316-thunderbird用户层配置)
+   - 3.17 [strelaysrv（VPS 私有中继状态页）](#317-strelaysrvvps-私有中继状态页)
+   - 3.18 [Firefox（用户层配置）](#318-firefox用户层配置)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -59,7 +62,8 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
 | `Dox Reader/` | 已移除 | 历史 RSS 阅读器，源码与 Cloudflare 部署均已删除 |
 | `Firefox/Add-Ons/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
-| `Firefox/`（根目录） | 活跃 | Firefox 界面翻译补全（按当前语言扫描缺项、magpie 翻译、可还原补丁），以及 Firefox / Zen 共用的默认应用重复项清理 |
+| `Firefox/`（根目录） | 活跃 | Firefox 用户层偏好配置、界面翻译补全（按当前语言扫描缺项、magpie 翻译、可还原补丁），以及 Firefox / Zen 共用的默认应用重复项清理 |
+| `Thunderbird/` | 活跃 | 从 Firefox 偏好设置筛选并适配的 Thunderbird 用户层 user.js |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `CSS/` | 活跃 | 中文字体映射 CSS |
 | `Scripts/Userscripts/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
@@ -96,6 +100,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `CapsLockOSD/`（C++ 源与资源脚本）
 - `CSS/font-face.css`
 - `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
+- `Firefox/user.js`、`Thunderbird/user.js`（个人配置目录偏好文件）
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
 - `Firefox/patch_firefox.py`、`Firefox/translations.<语言>.ftl`、`Firefox/test_firefox_patch.py`、`Firefox/test_firefox_translate.py`
 - `Scripts/Userscripts/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
@@ -1224,6 +1229,71 @@ python -B Firefox/patch_firefox.py restore
 本机验证结果（Firefox Developer Edition 159.0 / Build ID `20261012090602`，自带 `en-US` + `zh-CN`，配置未设语言，按「唯一的非英文语言」判定为 `zh-CN`）：`detect` 自动识别安装目录、运行中的配置（`dev-edition-default`）、启动缓存与语言判定依据；`scan` 列出 277 条缺项、43 个资源；`build` 经本机 magpie（`opencode-go/deepseek-v4.1-flash`）分 18 批自动翻译并生成两个归档，重复构建字节一致（`omni.ja` `fafcd557…`、`browser/omni.ja` `7980db80…`）；`validate` 比较 241 个 Fluent 文件、新增 277 条、缺项 0，语法、变量引用与命名链接一致，非目标资源未变；`test_firefox_patch.py` 与 `test_firefox_translate.py` 共 54 项 unittest 通过（含语言判定、英文安装空操作、非中文目标语言构建、清单语言冲突用例）。**真实启动验证尚未进行**：还需把补丁安装到实际安装目录后启动 Firefox，确认缺项对应的界面（新标签页、IP 保护、DevTools 工具箱选项等）显示目标语言。
 
 打包时只包含 `patch_firefox.py`、`translations.<语言>.ftl` 与用户说明；排除 `build/`、`backups/`、`validation.json` 与本机配置。
+
+### 3.16 Thunderbird（用户层配置）
+
+用户部署、效果、卸载和旧版迁移见根 [README.md 的 Thunderbird 配置小节](./README.md#thunderbird-配置)。源码为 `Thunderbird/user.js`，无需构建；已从安装级 AutoConfig 改为个人配置目录中的声明式 `user_pref()`，移除本模块旧 `.cfg` 和加载器，不操作应用包。
+
+#### 迁移边界
+
+- `font.name-list.*`：完整保留 `Firefox/user.js` 的 116 条字体键值（四类 × 29 个语言组），不在本次迁移中调整原有日/韩字体映射，也不新增强制字体覆盖。
+- 原样复用 Gecko/Toolkit 的 `general.smoothScroll`、`intl.accept_languages`、`layout.spellcheckDefault`、`toolkit.legacyUserProfileCustomizations.stylesheets` 和 `ui.key.menuAccessKeyFocuses`。
+- `layout.spellcheckDefault=0` 不能代替 Thunderbird 撰写设置，因此补充 `mail.spellcheck.inline=false` 和 `mail.SpellCheckBeforeSend=false`，共 123 条活动偏好设置。此次改用用户层文件只改变加载方式，不改变这些键和值。
+- 不迁移 `browser.*`（包括 Firefox 自动提交崩溃报告）、`sidebar.*`、`extensions.formautofill.*`、`services.sync.*`、`media.peerconnection.*` 或 `signon.*`；不要因前缀看似通用就保留。密码管理服务也用于邮箱凭据，不能机械照搬 `signon.rememberSignons=false`。
+- `privacy.clearOnShutdown_v2.*` / `privacy.sanitize.*` 属于 Firefox 的清理方案，不能直接当作 Thunderbird 的清理设置；本模块不启用任何退出清理。
+
+#### 维护与验证
+
+- 文件仅包含注释和字面量 `user_pref("key", value);` 声明，不使用 AutoConfig API、`lockPref()`、循环或导入。`user.js` 由 Gecko 偏好解析器读取，不是任意 JavaScript 执行入口。
+- 更新 Firefox 来源后只同步已确认适用的键；不要整文件复制。Thunderbird 升级后按该版本的 Gecko 偏好消费者和 Thunderbird `mailnews` / `mail` 源码复核支持情况；配置编辑器能显示自定义键不等于应用实际使用它。
+- 静态检查：`git diff --check`；逐行检查声明格式、键唯一性和值类型，确认总计 123 项、116 条字体键值与来源一致，新增项只有上述两个 `mail.*` 开关。可在 Node.js 中用只记录参数的 `user_pref` stub 和 `vm` 执行来辅助核对语法与键值；此检查不能替代 Gecko 解析和实际效果验证。
+- 运行验证使用临时个人配置，不修改安装目录：确认启动读取成功；核对 123 项值；用中英文纯文本/HTML 邮件检查字体回退与平滑滚动；撰写及发送前不触发拼写检查；已有账号收发信、密码保存、OAuth 登录及附件打开不应被影响；Windows/Linux 检查单独 Alt 不聚焦菜单、原有快捷键仍可用。
+- 检查重启重新应用值、移除文件后值仍保留、重置偏好可恢复默认。macOS 验证部署前后应用包签名检查结果不变。当前仅做静态校验，未进行 Thunderbird 真实启动或 macOS 签名测试。
+
+### 3.17 strelaysrv（VPS 私有中继状态页）
+
+用户入口见根 [README.md 的 strelaysrv 小节](./README.md#strelaysrvvps-私有中继状态页)。这是 VPS 上已有服务的部署记录，仓库不保存其私钥、环境凭据或网页副本，也不创建 Cloudflare Worker。
+
+#### 线上布局
+
+主机沿用第 3.14 节的 `magi-bandwagonhost`，通过本机 Windows OpenSSH 与 ssh-agent 登录。各路径职责独立，但可执行文件与网页均归于 `/usr/local` 安装前缀：
+
+| 路径 | 用途 |
+|---|---|
+| `/usr/local/bin/strelaysrv` | 中继程序；实测版本 `v2.1.6`，不是符号链接 |
+| `/etc/systemd/system/strelaysrv.service` | systemd 单元，以 `strelaysrv` 用户/组运行 |
+| `/etc/strelaysrv/` | 中继证书、私钥、`env` 凭据；不能作为 Web 根目录或放入仓库 |
+| `/usr/local/share/strelaysrv/www/` | 网页 `index.html` 与 `favicon.png`；目录 `root:root` 755，文件 644 |
+| `/etc/caddy/Caddyfile` | `strelaysrv.ddtwstudio.com` 站点；继续使用现有通配证书 |
+| `/var/backups/strelaysrv/20261017T070104Z/` | 此次迁移备份：原 `Caddyfile`、完整 `relay-status.tar.gz`、校验清单 `manifest.json`；备份父目录仅 root 可访问 |
+
+Caddy 的 `handle /status*` 仍反代到 `127.0.0.1:16090`，其余请求使用 `root * /usr/local/share/strelaysrv/www` 和 `file_server`。页面继续同域读取 `/status`，不用 CORS。中继仍监听 TCP `22000`，状态接口仍只监听回环地址；本次未更改启动参数、密钥、token、DNS 或证书。
+
+#### 迁移与维护约束
+
+- 原网页位于 `/srv/relay-status/`。迁移时对网页和图标逐字节校验，完整归档旧目录（包括历史 `.bak` 文件），验证归档中每个文件的 SHA-256；新 Web 根目录只部署两个活动资源，不公开旧备份。
+- Caddyfile 只改该站点的静态根路径；保持 `root:caddy` 640，先校验再 reload。未重启中继，迁移前后 `MainPID=906` 一致，当时的活跃会话仍在。
+- 经回环直连和公网域名分别验证 HTML、图标与原文件一致，`/status` 返回有效 JSON；清理旧目录后再次验证三者正常。Caddy 与 strelaysrv 均 active，bwh-traffic 未鉴权仍返回预期 403，且对照备份确认 Caddyfile 仅有上述根路径差异。
+- 已删除的仅为迁移完成的 `/srv/relay-status/`，未改动 `/srv/` 中其他存储；今后不要把网页或备份重新部署进 `/srv/`，也不要为了服务静态页而放宽 `/etc/strelaysrv/` 的访问权限。
+- 更新网页只需替换 `/usr/local/share/strelaysrv/www/` 内资源，无需重启中继。调整 Caddy 时先备份并执行 `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile`，成功后 `systemctl reload caddy`；检查网页、图标、`/status` 和 relay 进程状态。
+- 需要撤销页面内容更新时，可从归档选择性恢复 `index.html` / `favicon.png` 到当前 Web 根目录；不要整包解压进公开目录。若必须回滚本次目录迁移，应先将归档恢复到旧路径，确认 Caddy 可读，再恢复备份 Caddyfile（所有者 `root:caddy`、权限 640），校验并 reload；此操作会重新占用 `/srv/`，须先得到用户同意。
+
+### 3.18 Firefox（用户层配置）
+
+源码为 `Firefox/user.js`，用户说明见根 [README.md 的 Firefox 用户层配置小节](./README.md#firefox-用户层配置)。与界面翻译补丁是独立入口，无需构建、翻译服务或修改应用资源。`Firefox/firefox.cfg` 与 `Firefox/defaults/` 保留为旧方案，此次不删除、不扩展。
+
+#### 维护约束
+
+- 只写注释及字面量 `user_pref("key", value);`，不依赖 AutoConfig 的执行上下文；首行不再有 `.cfg` 跳过规则，不需要加载器。不要将本文件当作 Tampermonkey 脚本。
+- 优先维护用户层文件，不要求将来所有新项同步到旧 `.cfg`。涉及 Thunderbird 共用字体时，核对两份用户层配置，确认哪些修改需要同步，避免将浏览器专用项带入邮件客户端。
+- 涉及密码、自动填充、退出清理、Sync、崩溃报告或隐私窗口搜索建议的键发生改变时，同步核对根 README 的行为说明；注释项与活动项分开检查。不要把“设置了值”描述成跨版本的功能保证。
+- 禁止通过重新签名、关闭 Gatekeeper 或修改应用目录来部署用户偏好。真实配置、`prefs.js`、账户资料、备份和密码数据库不进入仓库。
+
+#### 验证
+
+- `git diff --check`；逐行验证活动声明的格式、字面量类型、重复键及语法。可用 Node.js `vm` 配合记录用 `user_pref` stub 辅助校验，但不代表 Gecko 一定支持对应键。
+- 用临时 Firefox 配置实测：启动后通过 `about:config` 核对代表项；验证字体回退、垂直标签页、悬停侧栏和拼写检查；对照设置页检查密码、表单、Sync 与退出清理选项，不在真实用户数据上测试清理。
+- 验证重启覆盖和卸载后重置流程；macOS 核对部署前后应用包签名检查结果不变。当前未执行 Firefox 真实启动或 macOS 签名验证。
 
 ## 4. 开发环境与构建命令速查
 

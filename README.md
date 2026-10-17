@@ -20,6 +20,8 @@
 | [`sub-store`](./sub-store) | Sub-Store 后端的 Cloudflare Workers 部署（D1 持久化、路径口令鉴权、每日自动更新） |
 | [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
 | [`bwh-traffic`](./bwh-traffic) | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
+| [`Firefox/user.js`](./Firefox/user.js) | Firefox 用户层偏好配置（字体、侧栏、表单与隐私选项；不修改应用包） |
+| [`Thunderbird`](./Thunderbird) | 从 Firefox 配置筛选并适配的 Thunderbird 用户层 user.js（字体、语言、滚动和拼写检查） |
 | [`Firefox/Add-Ons/AutoSortBookmarks`](./Firefox/Add-Ons/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py) | 清理让「设置 > 默认应用」重复显示 Firefox 或 Zen 的注册表项 |
 | [`Firefox/patch_firefox.py`](./Firefox/patch_firefox.py) | Firefox 界面翻译补全：按当前语言扫描缺项、调用本机 magpie 自动翻译并生成可还原的资源补丁 |
@@ -234,6 +236,76 @@ swift build -c release
 ```
 
 手动打包为 `.app` 后部署到 `/Applications`，需执行 `xattr -cr` 清除隔离属性。当前不使用 codesign 签名，以避免辅助功能权限因重新签名而失效。
+
+## Firefox 用户层配置
+
+[`Firefox/user.js`](./Firefox/user.js) 使用 `user_pref()`，在 Firefox 每次启动时应用到当前个人配置，**不需要修改安装目录或 macOS 的 `Firefox.app`**。这是偏好配置文件，不是 Tampermonkey 用户脚本，不应导入用户脚本管理器。
+
+### 配置内容与注意事项
+
+- 四类字体候选、平滑滚动、首选内容语言、关闭拼写检查，以及加载个人配置目录 `chrome/` 下的 `userChrome.css` / `userContent.css`；字体需预先安装，缺失时由系统回退。字体候选不会强制覆盖网页自带字体，语言列表不是界面语言。
+- 侧栏使用垂直标签页与悬停展开；关闭部分 AI、推荐和赞助内容、翻译自动弹窗等。部分键受 Firefox 版本或平台影响，配置编辑器显示键值不等于该版本实际使用它。
+- **关闭保存新密码、密码自动填充与生成，并关闭地址/信用卡自动填充和表单历史填充**；不会因此删除已有密码。Sync 的地址和信用卡同步开关仍为开启，关闭自动填充不等于停止同步；应用前按需调整。
+- **开启退出时清理，清理项包括表单数据；保留历史与下载记录、Cookie 和站点存储**。实际清理行为还取决于版本和其他已有设置，应用前请核对 Firefox「隐私与安全」中的退出清理选项。
+- **自动提交待发送的崩溃报告**，并允许隐私窗口中的搜索建议；这不是关闭所有遥测或所有联网请求的加固方案。WebRTC 项仅约束部分 ICE 地址候选，不是禁用 WebRTC，也不保证隐藏所有地址。
+- 文件末尾以 `//` 注释的可选项不生效，包括自动更新开关；本配置没有禁用自动更新。不要将整个 Firefox 文件复制给 Thunderbird，后者使用单独筛选过的版本。
+
+### 安装、修改与卸载
+
+1. 在 Firefox 地址栏打开 `about:support`，找到「配置文件夹」并打开目录（macOS 通常为「在访达中显示」）。以这个目录为准，不要误用浏览器安装目录。
+2. **完全退出 Firefox**，备份该个人配置，尤其是已有的 `user.js` 和 `prefs.js`。
+3. 把 [`Firefox/user.js`](./Firefox/user.js) 复制为配置目录里的 `user.js`，与 `prefs.js` 同级。已有 `user.js` 时先合并并处理重复键，不要直接覆盖；不要改写 `prefs.js`。
+4. 重启后在 `about:config` 核对所需项，并在设置页和实际浏览中确认效果。多个个人配置需分别安装。
+
+常见个人配置路径（以 `about:support` 显示的实际路径为准）：
+
+| 系统 | 路径示例 |
+|---|---|
+| macOS | `~/Library/Application Support/Firefox/Profiles/<配置名>/user.js` |
+| Windows | `%APPDATA%\Mozilla\Firefox\Profiles\<配置名>\user.js` |
+| Linux | `~/.mozilla/firefox/<配置名>/user.js`；Snap/Flatpak 等打包版本可能不同 |
+
+`user.js` 不锁定偏好，但每次启动都会重新应用其中的值。希望长期修改时，应同时修改该文件；只改界面选项可能在下次启动时被覆盖。文件只写声明式 `user_pref()`，不要加入循环、导入等普通 JavaScript 逻辑。
+
+卸载时先退出 Firefox，再删除该 `user.js`（合并安装时只移除本配置的项），重启后在 `about:config` 重置需要恢复的值。**删文件或注释某行并不会撤销已保存到 `prefs.js` 的值**；不要为了卸载配置而删除整个 `prefs.js`。
+
+### 与旧 AutoConfig 的关系
+
+仓库中的 `Firefox/firefox.cfg` 和 `Firefox/defaults/` 是旧的安装级 AutoConfig 方案；这里推荐使用 `user.js`，不要再把旧方案安装进应用目录。本文未删除 Firefox 旧文件，也未修改你的本机 Firefox 配置。
+
+如果已部署旧方案，先备份个人配置并退出 Firefox，在 Windows/Linux 只移除自己添加的旧 `.cfg` 和对应加载器，或恢复部署前的文件；不要删除组织管理的配置。macOS 如果曾修改 `Firefox.app` 内部，建议用官方原版应用包替换整个已修改的应用，以恢复签名完整性，保留并备份独立的个人配置目录；不要通过临时重签名或关闭系统安全检查处理。随后按上述方式部署 `user.js`，避免新旧入口同时生效。此方案只管理偏好，不会恢复其他工具已修改过的应用资源。
+
+## Thunderbird 配置
+
+[`Thunderbird/user.js`](./Thunderbird/user.js) 与 `Firefox/user.js` 一样使用用户层 `user_pref()`：放在个人配置目录，每次启动时应用，**不修改安装目录或 macOS 的 `Thunderbird.app`，不影响应用包签名**。配置保留四类字体候选、平滑滚动、首选内容语言、关闭通用拼写检查、加载自定义 CSS 和 Alt 菜单焦点设置；另用 Thunderbird 的两个独立开关关闭撰写时及发送前的拼写检查，共 123 项。
+
+不包含 Firefox 的侧栏、垂直标签页、地址栏、新标签页、AI、自动填表、Sync、Relay 和 WebRTC 设置；不照搬退出清理或禁用密码保存，避免影响邮箱凭据与登录状态。不改变账户、服务器、邮件存储、远程内容安全策略或自动更新。
+
+### 安装
+
+1. 在 Thunderbird「帮助 → 故障排除信息」中找到「配置文件夹」，打开当前使用的个人配置目录（macOS 的按钮通常为「在访达中显示」）。
+2. **完全退出 Thunderbird**，备份该配置目录，尤其是已有的 `user.js` 和 `prefs.js`。
+3. 将 [`Thunderbird/user.js`](./Thunderbird/user.js) 复制到该目录，与 `prefs.js` 同级。已有 `user.js` 时请合并、处理重复键，不要直接覆盖；**不要覆盖或手工追加到 `prefs.js`**。
+4. 启动后在「设置 → 常规 → 配置编辑器」核对值，并实际检查邮件显示、滚动和撰写窗口拼写检查。
+
+常见个人配置目录（以 Thunderbird 显示的实际目录为准，不要把文件放在 `Profiles` 父目录）：
+
+| 系统 | 路径示例 |
+|---|---|
+| macOS | `~/Library/Thunderbird/Profiles/<配置名>/user.js` |
+| Windows | `%APPDATA%\Thunderbird\Profiles\<配置名>\user.js` |
+| Linux | `~/.thunderbird/<配置名>/user.js`；沙箱打包版本可能不同 |
+
+- 不需要 `thunderbird.cfg`、`defaults/pref/autoconfig.js`、管理员权限或重新签名；多个个人配置需分别部署，只影响放入文件的配置。
+- `user_pref()` 不锁定设置，但文件中的值会在每次启动时重新应用；如要长期改值，应同步编辑 `user.js`，不能只改界面选项。不要在文件中加入循环、导入等普通 JavaScript 逻辑。
+- 字体需预先安装；缺失时由系统回退。这些是字体候选列表，不强制覆盖 HTML 邮件自带字体，也不指定撰写字体；语言列表不修改界面语言或发信编码。自定义 CSS 需另放在个人配置目录的 `chrome/` 中，本模块不附带样式。
+- 卸载时先退出，删除 `user.js`（合并安装时只移除本配置的项），重启后在配置编辑器中逐项重置需要恢复的值；**仅删文件或注释某行不会撤销已写入 `prefs.js` 的偏好值**。不要为重置这些项而删除整个 `prefs.js`，其中还保存账户等设置。
+
+### 从旧 AutoConfig 版本迁移
+
+先备份个人配置。如果之前只在仓库里保存旧文件、未安装到应用目录，直接按上面部署 `user.js` 即可；仓库已移除旧的 `.cfg` 和加载器。
+
+如果实际安装过旧版：完全退出后，在 Windows/Linux 移除本次旧方案添加的 `thunderbird.cfg` 和 `defaults/pref/autoconfig.js`，有预先存在的配置则恢复原文件，不要删除组织管理的 AutoConfig。若曾修改 macOS 的 `Thunderbird.app/Contents/Resources`，建议用官方原版应用包替换整个已修改的 `.app` 以恢复签名完整性，不要临时重签名或关闭系统安全检查；个人配置和邮件位于独立的配置目录，应保留并预先备份。然后按用户层方式部署，避免旧 AutoConfig 与新文件同时生效。
 
 ## Firefox 默认应用重复项清理
 
@@ -1276,3 +1348,9 @@ node --test bwh-traffic/worker.test.js
 - `expire` 写死为**下一年 1 月 1 日 UTC 零点**，不取上游：`data_next_reset` 是流量重置时间，而 Sub-Store 的 `validCheck` 拿 `expire` 判「订阅已过期」，照抄会误报。
 - 标签页图标是内联 SVG 品牌标记：bandwagonhost.com 没有 favicon（`/favicon.ico` 等全是 404），唯一的官方图形是 814×100 的 wordmark，当图标会糊。页面不引用任何外部地址。
 - `redirect: "manual"` + 3xx 判失败：Workers 不支持 `redirect: "error"`，所以手动拒绝重定向，避免 API Key 被转发到第二个主机。
+
+## strelaysrv（VPS 私有中继状态页）
+
+状态页入口为 <https://strelaysrv.ddtwstudio.com/>，显示 Syncthing Relay 的运行时长、流量和连接情况，每 60 秒从同域 `/status` 更新；原始状态 JSON 可直接访问 <https://strelaysrv.ddtwstudio.com/status>。
+
+网页与中继服务一起部署在搬瓦工 VPS 的 `/usr/local` 安装前缀下，不在 Cloudflare Workers 上，也不再占用作为文件存储的 `/srv/`。程序、网页、私有配置的实际路径及维护/回滚方法见 [DEVELOPMENT.md 第 3.17 节](./DEVELOPMENT.md#317-strelaysrvvps-私有中继状态页)。
