@@ -13,7 +13,7 @@
     "zh-CN": "在独立阅读器标签页中阅读 RSS 和 Atom 订阅。Dox Reader 将订阅、下载的文章、已读与收藏状态保存在浏览器本地，当前阅读器界面为简体中文。\n\n主要功能：\n- 按未读、全部文章或收藏浏览内容，管理订阅源。\n- 搜索缓存文章，通过 OPML 导入和导出订阅。\n- 调整阅读布局、配色和字体。\n- 可选连接自己的 HTTPS WebDAV 服务，同步订阅、已读与收藏状态和偏好；本地模式下文章正文保留在各设备本地。\n\n无需 Dox Reader 账号或开发者运营的后端，不含广告或分析。访问网站权限用于请求你添加的订阅地址和 WebDAV 服务，不用于读取浏览历史。文章图片可能从原始图片服务器加载。\n\n支持 Firefox 142 及以上桌面版和 Android 版。问题反馈：https://github.com/aenerv7/Dox/issues\n\n可选连接部署在自己 Cloudflare 账号的 Dox Reader Backend，统一保存文章、订阅及已读/收藏状态，关闭所有客户端仍会定时抓取。设置中可调整抓取间隔和全库保留上限，默认 60 分钟和最新 10000 篇（含收藏）。纯本地模式保持独立。部署说明：https://github.com/aenerv7/Dox/tree/main/Dox%20Reader/Backend"
   },
   "homepage": {
-    "en-US": "https://github.com/aenerv7/Dox/tree/main/Firefox/Dox%20Reader"
+    "en-US": "https://github.com/aenerv7/Dox/tree/main/Firefox/Add-Ons/Dox%20Reader"
   },
   "categories": [
     "feeds-news-blogging"

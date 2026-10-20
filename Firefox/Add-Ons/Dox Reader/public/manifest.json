@@ -4,7 +4,7 @@
   "version": "1.1.8",
   "description": "RSS reader with local mode, WebDAV sync and an optional self-hosted Dox Reader Backend.",
   "author": "aenerv7",
-  "homepage_url": "https://github.com/aenerv7/Dox/tree/main/Firefox/Dox%20Reader",
+  "homepage_url": "https://github.com/aenerv7/Dox/tree/main/Firefox/Add-Ons/Dox%20Reader",
   "permissions": [
     "storage",
     "unlimitedStorage"

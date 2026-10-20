@@ -4,7 +4,7 @@
 >
 > **全仓库只有两份文档：根 `README.md`（用户使用）和本文件（维护规范）。** 不存在模块级 README，也不存在第二份开发文档；同一事实只写一处，不复制到两处。新增模块在根 `README.md` 加一个小节、在本文件加一个小节即可。
 >
-> 随包分发或合规用途的文件不属于此约定，保持原位：各 `PRIVACY.md`（隐私说明）、`Firefox/Add-Ons/AutoSortBookmarks/THIRD_PARTY_NOTICES.md`（第三方许可）、`Firefox/Dox Reader/README.md`（随 AMO 源码包分发）。
+> 随包分发或合规用途的文件不属于此约定，保持原位：各 `PRIVACY.md`（隐私说明）、`Firefox/Add-Ons/AutoSortBookmarks/THIRD_PARTY_NOTICES.md`（第三方许可）、`Firefox/Add-Ons/Dox Reader/README.md`（随 AMO 源码包分发）。
 
 ## 目录
 
@@ -49,7 +49,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | Python 3.11+ / 标准库、PowerShell、HTTP | `Firefox/` | Firefox 界面翻译补全（按当前语言调用本机 magpie 翻译）、Firefox / Zen 默认应用重复项清理 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
-| JavaScript | `Scripts/Userscripts/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/`、`Firefox/Dox Reader/` | 浏览器用户脚本、Manifest V3 扩展 |
+| JavaScript | `Scripts/Userscripts/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/`、`Firefox/Add-Ons/Dox Reader/` | 浏览器用户脚本、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射 |
 | 批处理 / PowerShell | `Scripts/*.bat`、`Scripts/*.ps1` | Edge 清理脚本和 FFmpeg 安装脚本 |
 
@@ -61,7 +61,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `SizerSwift/` | 活跃 | macOS 原生菜单栏窗口调整工具，Swift Package Manager 项目 |
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
 | `Dox Reader/Cloudflare Workers/` | 活跃 | 本地 IndexedDB + WebDAV 同步的 Web RSS 阅读器，无状态 Cloudflare Worker 代理 |
-| `Firefox/Dox Reader/` | 活跃 | Dox Reader 的 Firefox WebExtension（Manifest V3，AMO listed，扩展 ID `dox-reader@magi`）源码、发布脚本与签名产物 |
+| `Firefox/Add-Ons/Dox Reader/` | 活跃 | Dox Reader 的 Firefox WebExtension（Manifest V3，AMO listed，扩展 ID `dox-reader@magi`）源码、发布脚本与签名产物 |
 | `Firefox/Add-Ons/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
 | `Firefox/`（根目录） | 活跃 | Firefox 用户层偏好配置、界面翻译补全（按当前语言扫描缺项、magpie 翻译、可还原补丁），以及 Firefox / Zen 共用的默认应用重复项清理 |
 | `Thunderbird/` | 活跃 | 从 Firefox 偏好设置筛选并适配的 Thunderbird 用户层 user.js |
@@ -90,7 +90,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `DeepSeek Harness/Launcher/bin/`
 - `Firefox/__pycache__/`
 - `Firefox/build/`、`Firefox/backups/`、`Firefox/validation.json`（Firefox 界面翻译补丁的本地产物）
-- `Firefox/Dox Reader/.env.release`（AMO API 发布凭据）
+- `Firefox/Add-Ons/Dox Reader/.env.release`（AMO API 发布凭据）
 - `sub-store/.upstream/`、`sub-store/build/`
 - `sub-store-front-end/dist/`、`sub-store-front-end/build/`
 - `Scripts/tools/`
@@ -102,7 +102,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `CapsLockOSD/`（C++ 源与资源脚本）
 - `CSS/font-face.css`
 - `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
-- `Firefox/Dox Reader/src/*.ts`、`Firefox/Dox Reader/src/*.tsx`、`Firefox/Dox Reader/public/manifest.json`、`Firefox/Dox Reader/release.ps1`
+- `Firefox/Add-Ons/Dox Reader/src/*.ts`、`Firefox/Add-Ons/Dox Reader/src/*.tsx`、`Firefox/Add-Ons/Dox Reader/public/manifest.json`、`Firefox/Add-Ons/Dox Reader/release.ps1`
 - `Firefox/user.js`、`Thunderbird/user.js`（个人配置目录偏好文件）
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
 - `Firefox/patch_firefox.py`、`Firefox/translations.<语言>.ftl`、`Firefox/test_firefox_patch.py`、`Firefox/test_firefox_translate.py`
@@ -567,7 +567,7 @@ cd CapsLockOSD
 同一产品有两个源码目录，技术栈均为 Preact、TypeScript、Vite、Dexie 和 fast-xml-parser：
 
 - `Dox Reader/Cloudflare Workers/`：Web 版（阅读器静态资源 + 无状态 Worker 代理），Cloudflare 项目名固定为 `dox-reader`。
-- `Firefox/Dox Reader/`：Firefox WebExtension 版（Manifest V3，桌面版与 Android 版），扩展 ID `dox-reader@magi`，经 AMO listed 渠道发布。
+- `Firefox/Add-Ons/Dox Reader/`：Firefox WebExtension 版（Manifest V3，桌面版与 Android 版），扩展 ID `dox-reader@magi`，经 AMO listed 渠道发布。
 
 不维护 Dox Reader Backend、Durable Objects、服务端文章存储或定时抓取。
 
@@ -596,18 +596,18 @@ npx wrangler deploy --dry-run
 
 `wrangler.jsonc` 的名称固定为 `dox-reader`，静态资源为 `dist/`，`/api/*` 优先交给 Worker。发布使用 `npm run deploy` 或 `deploy-cloudflare.ps1`（支持 `-SkipInstall`、`-DryRun`）；只有明确授权后才部署。`node_modules/`、`dist/`、`.wrangler/` 和本地凭据文件由根 `.gitignore` 排除，不提交产物或认证信息。历史 `dox-reader-backend` 不属于本模块，不重新创建。
 
-#### Firefox 扩展（`Firefox/Dox Reader/`）
+#### Firefox 扩展（`Firefox/Add-Ons/Dox Reader/`）
 
 与 Web 版同源的 Firefox WebExtension（Manifest V3，桌面版与 Android 版），最低 Firefox 142，扩展 ID 固定为 `dox-reader@magi`。目录同时保存源码、发布脚本和 AMO listed 元数据：`src/*.ts|tsx`、`public/manifest.json`、`public/icons/icon.svg`、`index.html`、`vite.config.ts`、`vitest.config.ts`、`tsconfig.json`、`package.json`、`release.ps1`、`amo-listing.json`、`updates.json`、`AMO_REVIEW_NOTES.md`、`PRIVACY.md`、`README.md`，以及签名产物 `bb7581fa1bbf4b928862.xpi`。
 
 - 数据边界：IndexedDB 数据库名保留 `dox-rss-reader`，`browser.storage.local` 保存设置与 WebDAV 凭据；不依赖开发者运营的后端，可选连接用户自建的 Dox Reader Backend。
 - 发布流程：`release.ps1` 依次运行 `npm run check`、`web-ext build`、生成 AMO 源码包并提交 listed 审核；审批后用 AMO API 下载签名 XPI，校验 manifest 的 `id`/`version` 与 Mozilla 签名，再覆盖为 `bb7581fa1bbf4b928862.xpi`。`updates.json` 键仍为旧扩展 ID `dox-rss-reader@dox.local`，仅作 1.0 之前（0.x）的自托管更新入口，脚本不再维护它。
-- 维护约束：`public/manifest.json` 的 gecko `id` 固定为 `dox-reader@magi`，不得随发布变动；manifest 不得设置 `update_url`（listed 渠道由 AMO 更新）；版本号在 `package.json`、`public/manifest.json` 与 `package-lock.json` 三处保持一致；`amo-listing.json` 的 `homepage` 与 manifest 的 `homepage_url` 都指向 `Firefox/Dox Reader`；模块目录不设独立 `.gitignore`，`node_modules/`、`dist/`、`web-ext-artifacts/`、`*.log`、`.env.release` 由根 `.gitignore` 排除。
+- 维护约束：`public/manifest.json` 的 gecko `id` 固定为 `dox-reader@magi`，不得随发布变动；manifest 不得设置 `update_url`（listed 渠道由 AMO 更新）；版本号在 `package.json`、`public/manifest.json` 与 `package-lock.json` 三处保持一致；`amo-listing.json` 的 `homepage` 与 manifest 的 `homepage_url` 都指向 `Firefox/Add-Ons/Dox Reader`；模块目录不设独立 `.gitignore`，`node_modules/`、`dist/`、`web-ext-artifacts/`、`*.log`、`.env.release` 由根 `.gitignore` 排除。
 
 验证：
 
 ```powershell
-cd "Firefox/Dox Reader"
+cd "Firefox/Add-Ons/Dox Reader"
 npm ci
 npm run check
 pwsh -File release.ps1 -SkipSign   # 只做 check、构建与源码包，不提交 AMO
@@ -1354,7 +1354,7 @@ Caddy 的 `handle /status*` 仍反代到 `127.0.0.1:16090`，其余请求使用 
 | SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; swift build -c release` |
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
 | Dox Reader（Web 版） | Node.js 24+；Cloudflare 账号 | `cd "Dox Reader/Cloudflare Workers"; npm ci; npm run check`；部署须授权 |
-| Firefox/Dox Reader（Dox Reader 扩展） | Node.js 24+；发布另需 AMO API 凭据 | `cd "Firefox/Dox Reader"; npm ci; npm run check`；`pwsh -File release.ps1 -SkipSign` |
+| Firefox/Add-Ons/Dox Reader（Dox Reader 扩展） | Node.js 24+；发布另需 AMO API 凭据 | `cd "Firefox/Add-Ons/Dox Reader"; npm ci; npm run check`；`pwsh -File release.ps1 -SkipSign` |
 | Firefox/Add-Ons/AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js` |
 | Firefox（界面翻译补全、默认应用重复项清理） | Windows；Python 3.11+；`validate` 另需 fluent.syntax；`build` 需要本机 magpie 在运行 | `python -B -m unittest discover -s Firefox -p test_duplicate.py -v`；`python -B Firefox/fix_duplicate.py detect`；`python -B -m unittest discover -s Firefox -p 'test_firefox_*.py' -v`；`python -B Firefox/patch_firefox.py scan`；`python -B Firefox/patch_firefox.py build`；`python -B Firefox/patch_firefox.py validate`；使用见 [README](./README.md#firefox-界面翻译补全) |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |

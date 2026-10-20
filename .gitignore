@@ -33,11 +33,11 @@ Dox Reader/**/.env*
 Firefox/**/web-ext-artifacts/
 Firefox/**/.amo-upload-uuid
 
-# Dox Reader Firefox 扩展（本地依赖、构建产物与发布凭据）
-Firefox/Dox Reader/**/node_modules/
-Firefox/Dox Reader/**/dist/
-Firefox/Dox Reader/**/*.log
-Firefox/Dox Reader/.env.release
+# Firefox 扩展源码目录（本地依赖、构建产物与发布凭据）
+Firefox/Add-Ons/**/node_modules/
+Firefox/Add-Ons/**/dist/
+Firefox/Add-Ons/**/*.log
+Firefox/Add-Ons/**/.env.release
 
 # Firefox registry scripts
 Firefox/__pycache__/
