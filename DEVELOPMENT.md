@@ -598,7 +598,9 @@ npx wrangler deploy --dry-run
 
 #### Firefox 扩展（`Firefox/Add-Ons/Dox Reader/`）
 
-与 Web 版同源的 Firefox WebExtension（Manifest V3，桌面版与 Android 版），最低 Firefox 142，扩展 ID 固定为 `dox-reader@magi`。目录同时保存源码、发布脚本和 AMO listed 元数据：`src/*.ts|tsx`、`public/manifest.json`、`public/icons/icon.svg`、`index.html`、`vite.config.ts`、`vitest.config.ts`、`tsconfig.json`、`package.json`、`release.ps1`、`amo-listing.json`、`updates.json`、`AMO_REVIEW_NOTES.md`、`PRIVACY.md`、`README.md`，以及签名产物 `bb7581fa1bbf4b928862.xpi`。
+与 Web 版同源的 Firefox WebExtension（Manifest V3，桌面版与 Android 版），最低 Firefox 142，扩展 ID 固定为 `dox-reader@magi`。目录同时保存源码、发布脚本和 AMO listed 元数据：`src/*.ts|tsx`、`public/manifest.json`、`public/icons/icon-{32,48,64,96,128}.png`（`icon.svg` 为设计源）、`index.html`、`vite.config.ts`、`vitest.config.ts`、`tsconfig.json`、`package.json`、`generate-icons.ps1`、`release.ps1`、`amo-listing.json`、`updates.json`、`AMO_REVIEW_NOTES.md`、`PRIVACY.md`、`README.md`，以及签名产物 `bb7581fa1bbf4b928862.xpi`。
+
+- 图标：`public/manifest.json` 只引用 `public/icons/icon-*.png`。AMO 的商品图标只接受位图，manifest 只给 SVG 时 AMO 会退化为默认占位图。改图标先改 `public/icons/icon.svg`，再运行 `pwsh -File generate-icons.ps1` 重新生成 PNG（脚本按 SVG 的 96×96 坐标 1:1 绘制，不要手改 PNG）。
 
 - 数据边界：IndexedDB 数据库名保留 `dox-rss-reader`，`browser.storage.local` 保存设置与 WebDAV 凭据；不依赖开发者运营的后端，可选连接用户自建的 Dox Reader Backend。
 - 发布流程：`release.ps1` 依次运行 `npm run check`、`web-ext build`、生成 AMO 源码包并提交 listed 审核；审批后用 AMO API 下载签名 XPI，校验 manifest 的 `id`/`version` 与 Mozilla 签名，再覆盖为 `bb7581fa1bbf4b928862.xpi`。`updates.json` 键仍为旧扩展 ID `dox-rss-reader@dox.local`，仅作 1.0 之前（0.x）的自托管更新入口，脚本不再维护它。
