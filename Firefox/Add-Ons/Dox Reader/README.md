@@ -4,7 +4,7 @@ Dox Reader 的 Firefox WebExtension 版本，支持 Firefox 桌面版和 Android
 
 ## 安装
 
-AMO 商店地址：[Dox Reader](https://addons.mozilla.org/firefox/addon/dox-reader/)。`1.0.0` 已提交公开审核，需等待 Mozilla 批准后开放安装。最低支持 Firefox 142（桌面及 Android）。
+本扩展以 AMO listed channel 发布，商店页为 [Dox Reader](https://addons.mozilla.org/firefox/addon/dox-reader/)，是否可安装以 AMO 上架状态为准。最低支持 Firefox 142（桌面及 Android）。
 
 项目使用 [MIT 许可证](LICENSE)。
 
@@ -40,7 +40,7 @@ npm run package
 
 ## 发布
 
-`1.0.0` 起改为 AMO listed 公开发行，当前已提交 Mozilla 审核，审核通过后才可从商店安装。扩展 ID 为 `dox-reader@magi`；manifest 不再设置 `update_url`，升级后的扩展由 AMO 提供后续更新。
+`1.0.0` 起改为 AMO listed 公开发行，版本需经 Mozilla 审核后上架，能否从商店安装以 AMO 上架状态为准。扩展 ID 为 `dox-reader@magi`；manifest 不再设置 `update_url`，升级后的扩展由 AMO 提供后续更新。
 
 在本目录创建被 `.gitignore` 排除的 `.env.release`：
 
