@@ -1236,7 +1236,7 @@ function SettingsDialog(props: {
               <button class={draft.storageMode==='local'?'active':''} onClick={()=>{update({storageMode:'local'});setShowBackendToken(false);}}>本地</button>
               <div class="data-mode-backend">
                 <button class={draft.storageMode==='backend'?'active':''} onClick={()=>update({storageMode:'backend'})}>Dox Reader Backend</button>
-                <a class="icon-button small backend-help" href="https://github.com/aenerv7/Dox/blob/main/Dox%20Reader/Backend/README.md#部署" target="_blank" rel="noopener noreferrer" title="Cloudflare 部署说明" aria-label="Dox Reader Backend 的 Cloudflare 部署说明"><CircleHelp size={15} aria-hidden="true" /></a>
+                <a class="icon-button small backend-help" href="https://github.com/aenerv7/Dox/blob/main/Firefox/Add-Ons/Dox%20Reader/README.md" target="_blank" rel="noopener noreferrer" title="后端模式说明" aria-label="Dox Reader 后端模式说明"><CircleHelp size={15} aria-hidden="true" /></a>
               </div>
             </div>
             {draft.storageMode==='backend' && <>

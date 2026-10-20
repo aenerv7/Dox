@@ -17,9 +17,15 @@
 #        AMO_API_KEY=user:12345678
 #        AMO_API_SECRET=<hex secret>
 #      or export them as environment variables with the same names.
-#   2. The add-on must already exist on AMO. Because the manifest carries a
-#      fixed extension ID, `web-ext sign` always targets that existing add-on
-#      and never creates a new one.
+#   2. The add-on must already exist on AMO. The manifest pins a fixed
+#      extension ID, and when an id is present `web-ext sign` can only update
+#      an existing add-on (PUT addon/<id>/versions/<version>/); it never
+#      creates one. A first-time registration therefore needs a raw AMO API
+#      call (POST /api/v5/addons/addon/ carrying the uploaded file uuid, as
+#      done for dox-reader@magi on 2026-10-20) or the Developer Hub upload
+#      form. Afterwards this script works unchanged.
+#      Also keep the system clock in sync: AMO rejects JWTs whose iat is in the
+#      future with HTTP 401, and caps the JWT lifetime (exp - iat) at 60s.
 #   3. Bump the version first in package.json and public/manifest.json
 #      (and `npm install` to refresh package-lock.json) - this script uses
 #      the version already declared in package.json.
