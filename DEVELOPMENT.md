@@ -596,6 +596,8 @@ npx wrangler deploy --dry-run
 
 `wrangler.jsonc` 的名称固定为 `dox-reader`，静态资源为 `dist/`，`/api/*` 优先交给 Worker。发布使用 `npm run deploy` 或 `deploy-cloudflare.ps1`（支持 `-SkipInstall`、`-DryRun`）；只有明确授权后才部署。`node_modules/`、`dist/`、`.wrangler/` 和本地凭据文件由根 `.gitignore` 排除，不提交产物或认证信息。历史 `dox-reader-backend` 不属于本模块，不重新创建。
 
+`devDependencies` 里的 `overrides: { "sharp": "^0.35.5" }` 是安全修复：`wrangler → miniflare` 把 `sharp` 精确锁在 `0.35.4`（CVE-2026-96889 / GHSA-wq5f-xc86-pv6w），只能靠 override 提升；它只是开发期传递依赖，不进产物。等 wrangler 上游升级后可删除该 override。若 `wrangler types --check` 在某些环境打印结果后不退出，可单独运行 `tsc -p worker/tsconfig.json --noEmit` 和 `npm run build` 代替整条 `check`。
+
 #### Firefox 扩展（`Firefox/Add-Ons/Dox Reader/`）
 
 与 Web 版同源的 Firefox WebExtension（Manifest V3，桌面版与 Android 版），最低 Firefox 142，扩展 ID 固定为 `dox-reader@magi`。目录同时保存源码、发布脚本和 AMO listed 元数据：`src/*.ts|tsx`、`public/manifest.json`、`public/icons/icon-{32,48,64,96,128}.png`（`icon.svg` 为设计源）、`index.html`、`vite.config.ts`、`vitest.config.ts`、`tsconfig.json`、`package.json`、`generate-icons.ps1`、`release.ps1`、`amo-listing.json`、`updates.json`、`AMO_REVIEW_NOTES.md`、`PRIVACY.md`、`README.md`，以及签名产物 `bb7581fa1bbf4b928862.xpi`。
