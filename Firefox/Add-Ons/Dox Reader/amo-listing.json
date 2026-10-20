@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Move backend fetch status from the reader footer into Dox Reader Backend settings. Show the next fetch time after connection status without changing backend synchronization behavior.",
-      "zh-CN": "将后端抓取状态从阅读器底部移至 Dox Reader Backend 设置，并在连接成功提示后显示下次抓取时间；不改变后端同步行为。"
+      "en-US": "Add raster extension icons so the Dox Reader icon shows correctly in Firefox and on this listing. The backend help link in Settings now opens the extension README instead of the removed backend deployment guide.",
+      "zh-CN": "新增位图扩展图标，Firefox 与商店页面均能正确显示图标；设置中的后端帮助链接改为打开扩展 README，不再指向已移除的后端部署文档。"
     }
   }
 }

@@ -1,10 +1,10 @@
 # AMO Reviewer Notes
 
-Version 1.1.8 includes the optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
+Version 1.1.9 keeps the optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code. Changes since 1.1.8: raster PNG icons (an SVG-only manifest left Firefox and AMO without an icon) and the Settings backend help link now opening this README.
 
 ## Build
 
-Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.8.zip.
+Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.9.zip.
 
 ## Data and network
 
