@@ -20,6 +20,8 @@
 | [`sub-store`](./sub-store) | Sub-Store 后端的 Cloudflare Workers 部署（D1 持久化、路径口令鉴权、每日自动更新） |
 | [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
 | [`bwh-traffic`](./bwh-traffic) | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
+| [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%20Workers) | 本地 RSS/Atom 阅读器，使用 WebDAV 同步，可部署到 Cloudflare Workers |
+| [`Firefox/Dox Reader`](./Firefox/Dox%20Reader) | Dox Reader 的 Firefox 扩展（Manifest V3，桌面版与 Android 版） |
 | [`Firefox/user.js`](./Firefox/user.js) | Firefox 用户层偏好配置（字体、侧栏、表单与隐私选项；不修改应用包） |
 | [`Thunderbird`](./Thunderbird) | 从 Firefox 配置筛选并适配的 Thunderbird 用户层 user.js（字体、语言、滚动和拼写检查） |
 | [`Firefox/Add-Ons/AutoSortBookmarks`](./Firefox/Add-Ons/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
@@ -35,6 +37,30 @@
 | [`Scripts/RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
 | [`Scripts/RemoveMSEdgeAll.bat`](./Scripts/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
 | [`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) | 下载最新 FFmpeg full 构建并就地升级 `PATH` 中已有的那份安装 |
+
+## Dox Reader
+
+Web 版源码位于 [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%20Workers)，Cloudflare Worker 项目名为 `dox-reader`；Firefox 扩展源码位于 [`Firefox/Dox Reader`](./Firefox/Dox%20Reader)，扩展 ID 为 `dox-reader@magi`，桌面版与 Android 版均最低支持 Firefox 142。Dox Reader Backend 已移除，不再提供。
+
+- RSS/Atom 订阅、文章正文和阅读状态保存在当前浏览器的 IndexedDB，可阅读已缓存文章。对于只有摘要的订阅，打开文章后点击“获取全文”可按需从原网页提取正文和主图；提取结果只保存在本机。
+- 默认外观为 Material 3，亮暗模式跟随系统；已有本机设置或 WebDAV 同步的个人配色保持不变。
+- 支持搜索、收藏、已读/未读、订阅编辑和 OPML 导入导出。
+- 在设置中填写 HTTPS WebDAV URL 前缀、用户名和应用密码，手动点击“测试连接”后同步；输入时不会自动检测，地址非空时才显示测试与同步按钮。自动使用该目录下的 `Dox Reader/state.json`。
+- WebDAV 只同步订阅、已读/收藏状态、刷新时间和外观/阅读偏好，不上传文章正文、图片、凭据或本机布局。新设备同步订阅后会首次抓取文章。
+- 自动刷新默认 24 小时，按每个订阅源上次成功更新的时间单独判断；可在设置中以整数小时调整，设为 0 关闭（当前设备）。页面打开时每分钟检查一次，回到页面或恢复网络时补查；失败后至少间隔 5 分钟重试，关闭页面后不运行。
+- 自动刷新、单源刷新与右上角全部刷新共用队列，全部刷新会接入正在刷新的源，避免重复请求；各源按钮均显示刷新动画。
+- 不配置 WebDAV 也可本地使用。关闭页面后不会继续抓取；清除本机数据不会删除 WebDAV 文件。
+- Web 版的 Worker 只提供静态资源和 RSS/原文/WebDAV 无状态跨域代理，不存储文章或运行定时抓取。WebDAV 凭据经过该代理，请使用自己信任的部署及专用应用密码。
+
+部署（Node.js 24+，需要 Cloudflare 账号）：
+
+```powershell
+cd "Dox Reader/Cloudflare Workers"
+npm ci
+npm run deploy
+```
+
+也可在 Windows 运行该目录的 `deploy-cloudflare.cmd`。部署后打开 Wrangler 输出的地址即可使用；不是静态文件双击运行。隐私说明见 [`PRIVACY.md`](./Dox%20Reader/Cloudflare%20Workers/PRIVACY.md)。
 
 ## 中文字体映射
 

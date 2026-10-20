@@ -22,9 +22,22 @@ CapsLockOSD/*.obj
 CapsLockOSD/*.res
 CapsLockOSD/CapsLockOSD.ini
 
+# Dox Reader（本地依赖与构建产物）
+Dox Reader/**/node_modules/
+Dox Reader/**/dist/
+Dox Reader/**/.wrangler/
+Dox Reader/**/.dev.vars
+Dox Reader/**/.env*
+
 # Firefox extensions
 Firefox/**/web-ext-artifacts/
 Firefox/**/.amo-upload-uuid
+
+# Dox Reader Firefox 扩展（本地依赖、构建产物与发布凭据）
+Firefox/Dox Reader/**/node_modules/
+Firefox/Dox Reader/**/dist/
+Firefox/Dox Reader/**/*.log
+Firefox/Dox Reader/.env.release
 
 # Firefox registry scripts
 Firefox/__pycache__/

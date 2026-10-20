@@ -1,0 +1,181 @@
+import { describe, expect, it, vi } from "vitest";
+import { handleRequest } from "./index";
+
+const clientHeaders = {
+  "Sec-Fetch-Site": "same-origin",
+  "X-Dox-Reader-Request": "1",
+};
+
+function apiRequest(path: string, target?: string, init?: RequestInit): Request {
+  const headers = new Headers(init?.headers);
+  for (const [name, value] of Object.entries(clientHeaders)) headers.set(name, value);
+  if (target) headers.set("X-Dox-Target", target);
+  return new Request(`https://reader.example${path}`, { ...init, headers });
+}
+
+describe("Worker proxy", () => {
+  it("rejects requests without the browser client marker", async () => {
+    const response = await handleRequest(new Request("https://reader.example/api/feed"));
+    expect(response.status).toBe(403);
+  });
+
+  it.each([
+    "http://127.0.0.1/feed",
+    "http://192.168.1.2/feed",
+    "https://metadata.google.internal/computeMetadata/v1/",
+    "https://example.com:444/feed",
+  ])("blocks unsafe targets: %s", async (target) => {
+    const upstream = vi.fn<typeof fetch>();
+    const response = await handleRequest(
+      apiRequest("/api/feed", target),
+      upstream,
+    );
+    expect(response.status).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it("fetches a feed and reports the final upstream URL", async () => {
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(new Response("<rss/>", {
+      headers: { "Content-Type": "application/rss+xml" },
+    }));
+    const response = await handleRequest(
+      apiRequest("/api/feed", "https://example.com/feed.xml"),
+      upstream,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-Dox-Upstream-URL")).toBe("https://example.com/feed.xml");
+    expect(await response.text()).toBe("<rss/>");
+    const headers = new Headers(upstream.mock.calls[0][1]?.headers);
+    expect(headers.get("User-Agent")).toMatch(/^Dox-Reader\//);
+  });
+
+  it("validates every feed redirect target", async () => {
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, {
+      status: 302,
+      headers: { Location: "http://127.0.0.1/admin" },
+    }));
+    const response = await handleRequest(
+      apiRequest("/api/feed", "https://example.com/feed.xml"),
+      upstream,
+    );
+    expect(response.status).toBe(403);
+    expect(upstream).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches an article through the same-origin Worker", async () => {
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(new Response("<html/>", {
+      headers: { "Content-Type": "text/html" },
+    }));
+    const response = await handleRequest(
+      apiRequest("/api/article", "https://example.com/posts/1"),
+      upstream,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Security-Policy")).toBe("default-src 'none'; sandbox");
+    expect(response.headers.get("X-Dox-Upstream-URL")).toBe("https://example.com/posts/1");
+    expect(await response.text()).toBe("<html/>");
+    const headers = new Headers(upstream.mock.calls[0][1]?.headers);
+    expect(headers.get("User-Agent")).toMatch(/^Dox-Reader\//);
+  });
+
+  it("does not forward browser credentials when fetching an article", async () => {
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(new Response('<html/>', { headers: { 'Content-Type': 'text/html' } }));
+    await handleRequest(apiRequest('/api/article', 'https://example.com/post', {
+      headers: { Authorization: 'secret', Cookie: 'session=secret', Accept: 'text/html' },
+    }), upstream);
+    const headers = new Headers(upstream.mock.calls[0][1]?.headers);
+    expect(headers.has('Authorization')).toBe(false);
+    expect(headers.has('Cookie')).toBe(false);
+    expect(headers.get('Accept')).toBe('text/html');
+  });
+
+  it("rejects non-HTML articles and oversized declared responses", async () => {
+    const upstream = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response('<html/>', { headers: { 'Content-Type': 'text/html', 'Content-Length': String(8 * 1024 * 1024 + 1) } }));
+    expect((await handleRequest(apiRequest('/api/article', 'https://example.com/post'), upstream)).status).toBe(415);
+    expect((await handleRequest(apiRequest('/api/article', 'https://example.com/post'), upstream)).status).toBe(502);
+  });
+
+  it("rejects cross-origin and non-GET article requests before contacting upstream", async () => {
+    const upstream = vi.fn<typeof fetch>();
+    const crossOrigin = apiRequest('/api/article', 'https://example.com/post', { headers: { Origin: 'https://other.example' } });
+    expect((await handleRequest(crossOrigin, upstream)).status).toBe(403);
+    expect((await handleRequest(apiRequest('/api/article', 'https://example.com/post', { method: 'POST' }), upstream)).status).toBe(405);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it("validates article redirects just like feed redirects", async () => {
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, {
+      status: 302,
+      headers: { Location: "http://127.0.0.1/admin" },
+    }));
+    const response = await handleRequest(
+      apiRequest("/api/article", "https://example.com/posts/1"),
+      upstream,
+    );
+    expect(response.status).toBe(403);
+    expect(upstream).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects article requests without the same-origin marker", async () => {
+    const upstream = vi.fn<typeof fetch>();
+    const response = await handleRequest(new Request(
+      "https://reader.example/api/article",
+      { headers: { "X-Dox-Target": "https://example.com/post" } },
+    ), upstream);
+    expect(response.status).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+  it("forwards only the required WebDAV method, headers, and body", async () => {
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, {
+      status: 204,
+      headers: { ETag: "\"v2\"" },
+    }));
+    const response = await handleRequest(apiRequest(
+      "/api/webdav",
+      "https://dav.example.com/Dox%20Reader/state.json",
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Basic abc",
+          "Content-Type": "application/json",
+          "If-Match": "\"v1\"",
+          "X-Not-Forwarded": "secret",
+        },
+        body: "{}",
+      },
+    ), upstream);
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("ETag")).toBe("\"v2\"");
+    expect(upstream).toHaveBeenCalledTimes(1);
+    const [target, init] = upstream.mock.calls[0];
+    expect(String(target)).toBe("https://dav.example.com/Dox%20Reader/state.json");
+    expect(init?.method).toBe("PUT");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Basic abc");
+    expect(new Headers(init?.headers).has("X-Not-Forwarded")).toBe(false);
+    expect(new TextDecoder().decode(init?.body as ArrayBuffer)).toBe("{}");
+  });
+
+  it("requires HTTPS for WebDAV", async () => {
+    const upstream = vi.fn<typeof fetch>();
+    const response = await handleRequest(
+      apiRequest("/api/webdav", "http://dav.example.com/state.json"),
+      upstream,
+    );
+    expect(response.status).toBe(400);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it("does not act as a general-purpose WebDAV proxy", async () => {
+    const upstream = vi.fn<typeof fetch>();
+    const response = await handleRequest(
+      apiRequest("/api/webdav", "https://dav.example.com/private/other.json"),
+      upstream,
+    );
+    expect(response.status).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+});
