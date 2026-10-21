@@ -72,6 +72,7 @@ type ResizeTarget = "feeds" | "items";
 interface RefreshDisplayProgress {
   completed: number;
   total: number;
+  activeFeedIds: readonly string[];
   activeFeedNames: string[];
 }
 
@@ -209,6 +210,7 @@ function displayRefreshProgress(
   return {
     completed: progress.completed,
     total: progress.total,
+    activeFeedIds: progress.activeFeedIds,
     activeFeedNames: progress.activeFeedIds.map((feedId) => feedNames.get(feedId) || "未知订阅源"),
   };
 }
@@ -480,6 +482,11 @@ export function App() {
       await keepFeedbackVisible(startedAt);
       endReadAction(action);
     }
+  }
+
+  // 正在抓取的订阅源按钮播放动画，自动刷新与手动刷新一致。
+  function isFeedRefreshing(feedId: string): boolean {
+    return refreshScope === feedId || Boolean(refreshProgress?.activeFeedIds.includes(feedId));
   }
 
   async function handleRefresh(feedId?: string, auto = false) {
@@ -763,7 +770,7 @@ export function App() {
           <span>Dox Reader</span>
         </button>
         <div class="topbar-actions">
-          {settings.storageMode === "local" && <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing"} onClick={() => void performSync()}>
+          {settings.storageMode === "local" && <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing" || refreshing} onClick={() => void performSync()}>
             {syncIcon}
           </button>}
           <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
@@ -811,7 +818,7 @@ export function App() {
                     {isReadBusy(feedReadAction(feed.id)) ? <LoaderCircle size={14} class="spin" /> : <ListChecks size={14} />}
                   </button>
                   <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
-                    <RefreshCw size={14} class={refreshScope === feed.id ? "spin" : ""} />
+                    <RefreshCw size={14} class={isFeedRefreshing(feed.id) ? "spin" : ""} />
                   </button>
                   <button class="feed-action" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(feed)}>
                     <Pencil size={14} />
@@ -838,7 +845,7 @@ export function App() {
                 {isReadBusy(feedReadAction(selectedFeed.id)) ? <LoaderCircle size={16} class="spin" /> : <ListChecks size={16} />}
               </button>
               <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
-                <RefreshCw size={16} class={refreshScope === selectedFeed.id ? "spin" : ""} />
+                <RefreshCw size={16} class={isFeedRefreshing(selectedFeed.id) ? "spin" : ""} />
               </button>
               <button class="icon-button" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(selectedFeed)}>
                 <Pencil size={16} />

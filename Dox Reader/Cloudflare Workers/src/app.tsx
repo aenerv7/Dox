@@ -764,7 +764,7 @@ export function App() {
           <span>Dox Reader</span>
         </button>
         <div class="topbar-actions">
-          <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing"} onClick={() => void performSync()}>
+          <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing" || refreshing} onClick={() => void performSync()}>
             {syncIcon}
           </button>
           <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>

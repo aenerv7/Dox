@@ -19,7 +19,7 @@ vi.mock('./database', () => ({ getFeed: vi.fn(), saveParsedFeed: vi.fn(), setFee
 vi.mock('./runtime-fetch', () => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed-parser', () => ({ parseFeedXml: vi.fn(async () => ({ title: 'Feed', siteUrl: '', items: [] })) }));
 vi.mock('./webdav', () => ({ syncWithWebDav: vi.fn(), isWebdavUrlValid: (value: string) => value.startsWith('https://') }));
-import { listFeeds } from './repository';
+import { getItemCounts, listFeeds } from './repository';
 
 let root: HTMLDivElement;
 let feeds: FeedRecord[];
@@ -87,6 +87,24 @@ describe('automatic refresh integration', () => {
     expect(root.querySelector('button[title="刷新 B"] .spin')).toBeNull();
     expect(root.textContent).toContain('全部刷新完成：成功 2 个');
     expect(fetchFeed).toHaveBeenCalledTimes(2);
+  });
+
+  it('greys out sync and mark-all-read while refreshing', async () => {
+    vi.mocked(getItemCounts).mockResolvedValue({ total: 2, unread: 2, starred: 0 });
+    feeds.forEach(feed => { feed.lastFetchedAt = Date.now(); });
+    await mount({ ...DEFAULT_SETTINGS, webdavUrl: 'https://dav.example/' });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    const sync = () => root.querySelector<HTMLButtonElement>('button[title="同步"]')!;
+    const markAll = () => root.querySelector<HTMLButtonElement>('button[title="全部标为已读"]')!;
+    expect(sync().disabled).toBe(false);
+    expect(markAll().disabled).toBe(false);
+    await click('button[title="刷新所有订阅"]');
+    expect(sync().disabled).toBe(true);
+    expect(markAll().disabled).toBe(true);
+    await act(async () => { releases.splice(0).forEach(release => release()); });
+    await settle();
+    expect(sync().disabled).toBe(false);
+    expect(markAll().disabled).toBe(false);
   });
 
   it('checks while the page stays open and stops scheduling when disabled in settings', async () => {
