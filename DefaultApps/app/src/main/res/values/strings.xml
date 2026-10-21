@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">默认应用</string>
+    <string name="toolbar_subtitle">Shizuku 特权模式</string>
+</resources>

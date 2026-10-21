@@ -1,0 +1,24 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+
+# Local toolchains and caches
+tools/jdk17/
+tools/gradle-8.9/
+tools/sdk/
+tools/gradle-home/
+tools/android-home/
+tools/*.lock
+tools/*.log
+
+keystore.properties
+keystore/
+*.jks
+
+
+*.apk
+*.aab
+*.keystore
+
