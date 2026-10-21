@@ -771,7 +771,7 @@ export function App() {
             {isReadBusy(ALL_READ_ACTION) ? <LoaderCircle size={18} class="spin" /> : <CheckCheck size={18} />}
           </button>
           <button class="icon-button" title="刷新所有订阅" disabled={refreshScope === "all" || !feeds.length} onClick={() => void handleRefresh()}>
-            <RefreshCw size={18} class={refreshing ? "spin" : ""} />
+            <RefreshCw size={18} class={refreshScope === "all" ? "spin" : ""} />
           </button>
           <button class="icon-button" title="添加订阅" onClick={() => setShowAdd(true)}>
             <Plus size={19} />

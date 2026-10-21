@@ -74,19 +74,36 @@ describe('automatic refresh integration', () => {
     expect(fetchFeed).toHaveBeenCalledTimes(1);
     expect(root.querySelector('button[title="刷新 A"] .spin')).not.toBeNull();
     expect(root.querySelector('button[title="刷新 B"] .spin')).toBeNull();
+    expect(root.querySelector('button[title="刷新所有订阅"] .spin')).toBeNull();
     await click('.feed-row:first-child > button');
     expect(root.querySelector('button[title="更新 A"] .spin')).not.toBeNull();
     expect(root.querySelector<HTMLButtonElement>('button[title="刷新所有订阅"]')!.disabled).toBe(false);
     await click('button[title="刷新所有订阅"]');
     expect(fetchFeed).toHaveBeenCalledTimes(2);
     expect(root.querySelector('button[title="刷新 B"] .spin')).not.toBeNull();
+    expect(root.querySelector('button[title="刷新所有订阅"] .spin')).not.toBeNull();
     expect(root.querySelector<HTMLButtonElement>('button[title="刷新所有订阅"]')!.disabled).toBe(true);
     await act(async () => { releases.splice(0).forEach(release => release()); });
     await settle();
     expect(root.querySelector('button[title="刷新 A"] .spin')).toBeNull();
     expect(root.querySelector('button[title="刷新 B"] .spin')).toBeNull();
+    expect(root.querySelector('button[title="刷新所有订阅"] .spin')).toBeNull();
     expect(root.textContent).toContain('全部刷新完成：成功 2 个');
     expect(fetchFeed).toHaveBeenCalledTimes(2);
+  });
+
+  it('animates only the single feed being refreshed, not the global button', async () => {
+    feeds.forEach(feed => { feed.lastFetchedAt = Date.now(); });
+    await mount();
+    expect(fetchFeed).not.toHaveBeenCalled();
+
+    await click('button[title="刷新 A"]');
+    expect(root.querySelector('button[title="刷新 A"] .spin')).not.toBeNull();
+    expect(root.querySelector('button[title="刷新所有订阅"] .spin')).toBeNull();
+
+    await act(async () => { releases.splice(0).forEach(release => release()); });
+    await settle();
+    expect(root.querySelector('button[title="刷新 A"] .spin')).toBeNull();
   });
 
   it('greys out sync and mark-all-read while refreshing', async () => {

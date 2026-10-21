@@ -45,6 +45,11 @@ async function mount(settings: AppSettings = DEFAULT_SETTINGS) {
   await settle();
 }
 
+async function click(selector: string) {
+  await act(async () => { root.querySelector<HTMLButtonElement>(selector)!.click(); });
+  await settle();
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.resetAllMocks();
@@ -95,5 +100,19 @@ describe("refresh controls", () => {
     expect(root.querySelector('button[title="刷新 B"] .spin')).toBeNull();
     expect(sync().disabled).toBe(false);
     expect(markAll().disabled).toBe(false);
+  });
+
+  it("animates only the refreshed feed, not the global refresh button", async () => {
+    vi.mocked(repository.getLastRefreshAllAt).mockResolvedValue(Date.now());
+    await mount();
+    expect(fetchFeed).not.toHaveBeenCalled();
+
+    await click('button[title="刷新 A"]');
+    expect(root.querySelector('button[title="刷新 A"] .spin')).not.toBeNull();
+    expect(root.querySelector('button[title="刷新所有订阅"] .spin')).toBeNull();
+
+    await act(async () => { releases.splice(0).forEach(release => release()); });
+    await settle();
+    expect(root.querySelector('button[title="刷新 A"] .spin')).toBeNull();
   });
 });
