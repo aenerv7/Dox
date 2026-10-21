@@ -18,7 +18,7 @@ vi.mock('./settings', () => ({ loadSettings: vi.fn(), saveSettings: vi.fn(), app
 vi.mock('./database', () => ({ getFeed: vi.fn(), saveParsedFeed: vi.fn(), setFeedError: vi.fn() }));
 vi.mock('./runtime-fetch', () => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed-parser', () => ({ parseFeedXml: vi.fn(async () => ({ title: 'Feed', siteUrl: '', items: [] })) }));
-vi.mock('./webdav', () => ({ syncWithWebDav: vi.fn(), testWebDav: vi.fn() }));
+vi.mock('./webdav', () => ({ syncWithWebDav: vi.fn(), isWebdavUrlValid: (value: string) => value.startsWith('https://') }));
 import { listFeeds } from './repository';
 
 let root: HTMLDivElement;

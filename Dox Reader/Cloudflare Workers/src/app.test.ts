@@ -6,7 +6,7 @@ import { App } from "./app";
 import { DEFAULT_SETTINGS } from "./model";
 import type { FeedRecord, ItemRecord } from "./model";
 import * as repository from "./repository";
-import { syncWithWebDav, testWebDav } from "./webdav";
+import { syncWithWebDav } from "./webdav";
 import { extractFullArticle } from "./article-extractor";
 
 vi.mock("./repository", () => ({
@@ -24,7 +24,10 @@ vi.mock("./settings", () => ({
   loadSettings: vi.fn(() => ({ ...DEFAULT_SETTINGS, webdavUrl: "https://dav.example/" })),
   saveSettings: vi.fn(), applyAppearance: vi.fn(),
 }));
-vi.mock("./webdav", () => ({ syncWithWebDav: vi.fn(), testWebDav: vi.fn(() => "连接成功") }));
+vi.mock("./webdav", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./webdav")>(),
+  syncWithWebDav: vi.fn(),
+}));
 
 const feeds = ["A", "B"].map(id => ({
   id, title: id, customName: "", url: `https://${id}.example/feed`,
@@ -77,9 +80,9 @@ afterEach(() => {
 });
 
 describe("pending reader actions", () => {
-  it("shows WebDAV buttons only for nonempty input and never tests while editing", async () => {
+  it("always shows sync and disables it without a valid HTTPS URL", async () => {
     await click('.topbar button[title="设置"]');
-    const actions = () => root.querySelector('.settings-section:first-child .inline-actions');
+    const syncButton = () => root.querySelector<HTMLButtonElement>('.settings-section:first-child .inline-actions button')!;
     const address = root.querySelector<HTMLInputElement>('.settings-dialog input[type="url"]')!;
     const input = async (value: string) => {
       await act(async () => {
@@ -88,15 +91,13 @@ describe("pending reader actions", () => {
         await vi.advanceTimersByTimeAsync(1000);
       });
     };
-    expect(actions()).not.toBeNull();
-    expect(testWebDav).not.toHaveBeenCalled();
-    await input('');
-    expect(actions()).toBeNull();
-    await input('   ');
-    expect(actions()).toBeNull();
-    await input('https');
-    expect(actions()).not.toBeNull();
+    expect(syncButton().disabled).toBe(false);
+    for (const value of ['', '   ', 'https', 'http://dav.example/']) {
+      await input(value);
+      expect(syncButton().disabled).toBe(true);
+    }
     await input('https://dav.example/new/');
+    expect(syncButton().disabled).toBe(false);
     for (const selector of ['input[autocomplete="username"]', '#webdav-password']) {
       await act(async () => {
         const field = root.querySelector<HTMLInputElement>(selector)!;
@@ -105,36 +106,14 @@ describe("pending reader actions", () => {
         await vi.advanceTimersByTimeAsync(1000);
       });
     }
-    expect(testWebDav).not.toHaveBeenCalled();
     expect(syncWithWebDav).not.toHaveBeenCalled();
-    await click('.settings-section .inline-actions button:first-child');
-    expect(testWebDav).toHaveBeenCalledTimes(1);
-    expect(testWebDav).toHaveBeenCalledWith(expect.objectContaining({
+    await click('.settings-section:first-child .inline-actions button');
+    expect(syncWithWebDav).toHaveBeenCalledTimes(1);
+    expect(syncWithWebDav).toHaveBeenCalledWith(expect.objectContaining({
       webdavUrl: 'https://dav.example/new/', webdavUsername: 'changed', webdavPassword: 'changed',
     }));
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    expect(root.querySelector('.connection-result')?.textContent).toBe('连接成功');
-    await input('');
-    expect(actions()).toBeNull();
     expect(root.querySelector('.connection-result')).toBeNull();
-  });
-
-  it("ignores pending test results after the connection settings change", async () => {
-    const pending = deferred<string>();
-    vi.mocked(testWebDav).mockReturnValueOnce(pending.promise);
-    await click('.topbar button[title="设置"]');
-    await click('.settings-section .inline-actions button:first-child');
-    expect(button('.settings-section .inline-actions button:first-child').disabled).toBe(true);
-    await act(async () => {
-      const address = root.querySelector<HTMLInputElement>('.settings-dialog input[type="url"]')!;
-      address.value = '';
-      address.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await act(async () => { pending.resolve('旧地址连接成功'); await pending.promise; });
-    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    expect(root.querySelector('.settings-section:first-child .inline-actions')).toBeNull();
-    expect(root.querySelector('.connection-result')).toBeNull();
-    expect(testWebDav).toHaveBeenCalledTimes(1);
   });
 
   it("extracts only on click, shares the request lock and can switch back to RSS", async () => {

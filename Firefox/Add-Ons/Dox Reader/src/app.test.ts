@@ -22,7 +22,10 @@ vi.mock("./settings", () => ({
 vi.mock("./backend", () => ({
   backendEnabled: () => false, backendOffline: () => false, connectBackend: vi.fn(),
 }));
-vi.mock("./webdav", () => ({ syncWithWebDav: vi.fn(), testWebDav: vi.fn(() => "连接成功") }));
+vi.mock("./webdav", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./webdav")>(),
+  syncWithWebDav: vi.fn(),
+}));
 
 const feeds = ["A", "B"].map(id => ({
   id, title: id, customName: "", url: `https://${id}.example/feed`,

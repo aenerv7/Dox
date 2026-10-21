@@ -48,6 +48,15 @@ function headers(settings: AppSettings): Headers {
   return result;
 }
 
+// 同步只支持可解析的 HTTPS 地址；设置页用它决定“立即同步”是否可点。
+export function isWebdavUrlValid(value: string): boolean {
+  try {
+    return new URL(value.trim()).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function resolveWebDavLocations(settings: AppSettings): WebDavLocations {
   if (!settings.webdavUrl.trim()) throw new Error("请先填写 WebDAV URL 前缀");
   const base = new URL(settings.webdavUrl.trim());
@@ -127,22 +136,6 @@ async function putRemote(
     headers: requestHeaders,
     body: JSON.stringify(document),
   });
-}
-
-export async function testWebDav(settings: AppSettings): Promise<string> {
-  const { locations, created } = await ensureDirectory(settings);
-  const response = await fetchWebDav(locations.file.toString(), {
-    method: "GET",
-    headers: headers(settings),
-    cache: "no-store",
-  });
-  if (response.status === 404) {
-    return created
-      ? "连接成功；已创建 Dox Reader 文件夹"
-      : "连接成功；首次同步时将创建 state.json";
-  }
-  if (response.ok) return "连接成功；已找到 Dox Reader/state.json";
-  throw new Error(`WebDAV 连接失败（HTTP ${response.status}）`);
 }
 
 export async function syncWithWebDav(settings: AppSettings): Promise<SyncResult> {

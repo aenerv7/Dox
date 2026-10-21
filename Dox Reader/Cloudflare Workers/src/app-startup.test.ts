@@ -18,7 +18,7 @@ vi.mock("./settings", () => ({
   loadSettings: vi.fn(() => ({ ...DEFAULT_SETTINGS, webdavUrl: "https://dav.example/" })),
   saveSettings: vi.fn(), applyAppearance: vi.fn(),
 }));
-vi.mock("./webdav", () => ({ syncWithWebDav: vi.fn(), testWebDav: vi.fn() }));
+vi.mock("./webdav", () => ({ syncWithWebDav: vi.fn(), isWebdavUrlValid: (value: string) => value.startsWith("https://") }));
 
 const feeds = ["A", "B"].map(id => ({
   id, title: id, customName: "", url: `https://${id}.example/feed`,

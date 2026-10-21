@@ -28,7 +28,6 @@ import {
   Star,
   Trash2,
   Upload,
-  Wifi,
   X,
 } from "lucide-preact";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -63,7 +62,7 @@ import type { AppSettings, ColorScheme, FeedRecord, ItemRecord, PreferenceValues
 import { DEFAULT_SETTINGS } from "./model";
 import { createOpml, parseOpml } from "./opml";
 import { applyAppearance, loadSettings, saveSettings } from "./settings";
-import { syncWithWebDav, testWebDav } from "./webdav";
+import { isWebdavUrlValid, syncWithWebDav } from "./webdav";
 
 type Filter = "all" | "unread" | "starred" | string;
 type MobilePane = "feeds" | "items" | "reader";
@@ -981,7 +980,6 @@ export function App() {
           onClose={() => setShowSettings(false)}
           onSave={handleSaveSettings}
           onSync={handleSettingsSync}
-          onTest={testWebDav}
           onImport={handleImport}
           onExport={handleExport}
           onClear={handleClearData}
@@ -1121,7 +1119,6 @@ function SettingsDialog(props: {
   onClose: () => void;
   onSave: (settings: AppSettings, config?:BackendConfig) => Promise<void>;
   onSync: (settings: AppSettings) => Promise<AppSettings>;
-  onTest: (settings: AppSettings) => Promise<string>;
   onImport: (file: File) => Promise<void>;
   onExport: () => void;
   onClear: () => Promise<void>;
@@ -1129,10 +1126,9 @@ function SettingsDialog(props: {
   const [draft, setDraft] = useState(props.settings);
   const [showPassword, setShowPassword] = useState(false);
   const [showBackendToken, setShowBackendToken] = useState(false);
-  const [testing, setTesting] = useState(false);
   const syncing = props.syncing;
-  const [testResult, setTestResult] = useState("");
-  const [webdavRetry, setWebdavRetry] = useState(0);
+  const [message, setMessage] = useState("");
+  const webdavReady = isWebdavUrlValid(draft.webdavUrl);
   const [backendConfig,setBackendConfig]=useState<BackendConfig|null>(null);
   const [backendTestStatus,setBackendTestStatus]=useState<BackendStatus|null>(null);
   const [saving,setSaving]=useState(false);
@@ -1172,16 +1168,21 @@ function SettingsDialog(props: {
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [draft.storageMode, draft.backendUrl, draft.backendToken, backendRetry]);
   const save=async()=>{
-    setSaving(true);setTestResult('');
+    setSaving(true);setMessage('');
     try {
       if (draft.storageMode === 'backend' && (!backendConfig || backendLoading)) throw new Error('请先等待后端设置读取成功');
       await props.onSave(draft,draft.storageMode==='backend'?backendConfig??undefined:undefined);
     }
-    catch(error){setTestResult(error instanceof Error?error.message:String(error));}
+    catch(error){setMessage(error instanceof Error?error.message:String(error));}
     finally{setSaving(false);}
   };
   const fileInput = useRef<HTMLInputElement>(null);
-  const update = (patch: Partial<AppSettings>) => setDraft((current) => ({ ...current, ...patch }));
+  const update = (patch: Partial<AppSettings>) => {
+    if ("webdavUrl" in patch || "webdavUsername" in patch || "webdavPassword" in patch) {
+      setMessage('');
+    }
+    setDraft((current) => ({ ...current, ...patch }));
+  };
   const closeWithoutSaving = () => {
     applyAppearance(props.settings);
     props.onClose();
@@ -1189,40 +1190,15 @@ function SettingsDialog(props: {
   useEffect(() => {
     applyAppearance(draft);
   }, [draft.theme, draft.colorScheme, draft.customAccent]);
-  useEffect(() => {
-    let cancelled = false;
-    setTestResult('');
-    if (draft.storageMode !== 'local' || !draft.webdavUrl.trim()) {
-      setTesting(false);
-      return;
-    }
-    setTesting(true);
-    setTestResult('正在测试连接…');
-    const timer = window.setTimeout(() => {
-      const startedAt = Date.now();
-      void (async () => {
-        try {
-          const result = await props.onTest(draft);
-          if (!cancelled) setTestResult(result);
-        } catch (error) {
-          if (!cancelled) setTestResult(error instanceof Error ? error.message : String(error));
-        } finally {
-          await keepFeedbackVisible(startedAt);
-          if (!cancelled) setTesting(false);
-        }
-      })();
-    }, 300);
-    return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [draft.storageMode, draft.webdavUrl, draft.webdavUsername, draft.webdavPassword, webdavRetry]);
   const handleSync = async () => {
-    if (syncing) {
+    if (syncing || !webdavReady) {
       return;
     }
-    setTestResult("");
+    setMessage("");
     try {
       setDraft(await props.onSync(draft));
     } catch (error) {
-      setTestResult(error instanceof Error ? error.message : String(error));
+      setMessage(error instanceof Error ? error.message : String(error));
     }
   };
   return (
@@ -1264,10 +1240,9 @@ function SettingsDialog(props: {
               <label class="field"><span>用户名</span><input value={draft.webdavUsername} onInput={(event) => update({ webdavUsername: event.currentTarget.value })} autoComplete="username" /></label>
               <div class="field"><label for="webdav-password">应用密码</label><div class="password-field"><input id="webdav-password" type={showPassword ? "text" : "password"} value={draft.webdavPassword} onInput={(event) => update({ webdavPassword: event.currentTarget.value })} autoComplete="current-password" /><button type="button" class="password-toggle" title={showPassword ? "隐藏应用密码" : "查看应用密码"} aria-label={showPassword ? "隐藏应用密码" : "查看应用密码"} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></div>
             </div>
-            {testResult && <div class="connection-result">{testResult}</div>}
+            {message && <div class="connection-result">{message}</div>}
             <div class="inline-actions">
-              <button class="secondary-button" aria-busy={testing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => setWebdavRetry(value => value + 1)}>{testing ? <LoaderCircle size={16} class="spin" /> : <Wifi size={16} />}{testing ? "正在测试" : "测试连接"}</button>
-              <button class="secondary-button" aria-busy={syncing} disabled={testing || syncing || !draft.webdavUrl} onClick={() => void handleSync()}>{syncing ? <LoaderCircle size={16} class="spin" /> : <Upload size={16} />}{syncing ? "正在同步" : "立即同步"}</button>
+              <button class="secondary-button" aria-busy={syncing} disabled={syncing || !webdavReady} onClick={() => void handleSync()}>{syncing ? <LoaderCircle size={16} class="spin" /> : <Upload size={16} />}{syncing ? "正在同步" : "立即同步"}</button>
             </div>
           </section>}
           <section class="settings-section">
@@ -1337,8 +1312,8 @@ function SettingsDialog(props: {
             <button class="danger-button" onClick={() => void props.onClear()}><Trash2 size={16} />清除本机数据</button>
           </section>
         </div>
-        {testResult && draft.storageMode==='backend' && <div class="connection-result">{testResult}</div>}
-        <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving||testing||(draft.storageMode==='backend'&&(!backendConfig||backendLoading))} onClick={()=>void save()}><Check size={17} />{saving?'正在保存':'保存'}</button></div>
+        {message && draft.storageMode==='backend' && <div class="connection-result">{message}</div>}
+        <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving||(draft.storageMode==='backend'&&(!backendConfig||backendLoading))} onClick={()=>void save()}><Check size={17} />{saving?'正在保存':'保存'}</button></div>
       </div>
     </div>
   );

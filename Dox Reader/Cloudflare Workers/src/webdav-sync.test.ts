@@ -99,4 +99,19 @@ describe("WebDAV preference sync", () => {
       showItemSnippet: settings.showItemSnippet,
     });
   });
+
+  it("creates the Dox Reader directory on the first sync", async () => {
+    database.exportSyncDocument.mockResolvedValue(document("desktop"));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 201 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await syncWithWebDav(settings);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ href: "https://dav.example.com/user/Dox%20Reader/" }), expect.objectContaining({ method: "PROPFIND" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, expect.any(URL), expect.objectContaining({ method: "MKCOL" }));
+  });
 });
