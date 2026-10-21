@@ -1,10 +1,10 @@
 # AMO Reviewer Notes
 
-Version 1.1.9 keeps the optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code. Changes since 1.1.8: raster PNG icons (an SVG-only manifest left Firefox and AMO without an icon) and the Settings backend help link now opening this README.
+Version 1.1.12 keeps the optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code. Changes since 1.1.8: raster PNG icons, a Settings backend help link, refresh controls that grey out while refreshing, and Referer-aware article images.
 
 ## Build
 
-Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.9.zip.
+Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.12.zip.
 
 ## Data and network
 
@@ -14,6 +14,6 @@ Backend mode is explicitly selected in Settings. The user provides an HTTPS root
 
 Declarations: authenticationInfo covers WebDAV credentials/backend token; browsingActivity covers feed/site URLs; websiteActivity covers read/starred state; websiteContent covers subscription titles/custom names. Broad HTTP(S) permissions support arbitrary user-selected feeds and servers. Browser history is not read. Search runs locally. No analytics or advertising.
 
-Article HTML is rendered through allowed Preact tags by src/article-content.tsx, with validated link/image protocols. Images can contact feed-specified HTTP(S) hosts with no-referrer. No application innerHTML injection occurs. The single UNSAFE_VAR_ASSIGNMENT linter warning is in unmodified Preact's renderer (its optional dangerouslySetInnerHTML support), unused for feed content.
+Article HTML is rendered by src/article-content.tsx through allowed Preact tags with validated link/image protocols. Images use an origin-only referrer because some hosts reject Referer-less requests. No application innerHTML injection occurs. The single UNSAFE_VAR_ASSIGNMENT warning is in unmodified Preact, unused for feed content.
 
 Runtime: Preact 10.29.8, Dexie 4.4.5, fast-xml-parser 5.10.1, Lucide Preact 1.31.0. Tooling/test versions are in package-lock.json. fake-indexeddb is test-only.

@@ -48,7 +48,8 @@ function renderNode(node: Node, baseUrl: string, key: string): ComponentChildren
     props.src = src;
     props.alt = node.getAttribute("alt") || "";
     props.loading = "lazy";
-    props.referrerPolicy = "no-referrer";
+    // 部分图床（如 sspai 的 CDN）拒绝没有 Referer 的请求并返回 403；只暴露源站 origin。
+    props.referrerPolicy = "strict-origin-when-cross-origin";
     const width = Number(node.getAttribute("width"));
     const height = Number(node.getAttribute("height"));
     if (Number.isFinite(width) && width > 0) props.width = width;
