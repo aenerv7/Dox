@@ -581,7 +581,7 @@ cd CapsLockOSD
 - `src/feed-service.ts` 对源 ID 维护共享 Promise 与 FIFO 队列，所有刷新入口复用排队或进行中任务，总并发最多 4。队列订阅驱动单源按钮动画；自动刷新时全部刷新按钮仍可点击并接入现有任务，批次完成独立统计且去重。刷新期间同步与“全部标为已读”按钮置灰。不要恢复全局时间戳驱动的自动刷新。
 - WebDAV 设置不在打开对话框或编辑地址/凭据时自动检测。地址必须是可解析的 HTTPS URL，否则“立即同步”按钮置灰不可点；同步是唯一的连通性检查，同步失败即视为未连通并显示错误。编辑连接参数或关闭对话框后清除旧结果，避免过期状态覆盖当前输入。
 - `src/runtime-fetch.ts` 将浏览器网络请求路由到同源 `/api/feed`、`/api/article` 与 `/api/webdav`。只有用户在摘要文章中点击“获取全文”时才请求 `/api/article`；Readability 提取的正文和主图只写入本机 IndexedDB，不进入 WebDAV 同步。`worker/index.ts` 是无状态代理，不是个人资料库服务，不得引入数据库、后台抓取或 Backend 模式。
-- `src/article-content.tsx` 用 Preact 白名单渲染正文，图片带 `referrerPolicy="strict-origin-when-cross-origin"`，只向图床暴露部署 origin。不要改回 `no-referrer`：部分图床（如 sspai 的 CDN）对无 Referer 的图片请求返回 403，表现为“获取全文”后正文有文字但没有图。
+- `src/article-content.tsx` 用 Preact 白名单渲染正文；图片先按 `strict-origin-when-cross-origin` 只暴露部署 origin，加载失败后自动改用无 Referer 重试一次（有的图床拒绝空 Referer，如 sspai 的 CDN；有的只接受空 Referer）。`src/article-extractor.ts` 在提取前统一解析懒加载图片：`data-*` 地址属性、`srcset`/`data-srcset`、`<picture><source>`、`<noscript>` 兜底，并按最大候选取图。不要删掉这些兼容处理：正文有文字却没有图，通常来自图片地址未被解析或被图床拒绝。
 - Worker 校验同源请求标记、目标协议/主机/端口和每次重定向，阻止显式本机、内网及保留地址，限制响应体和超时；`/api/article` 的原网页响应上限为 8 MiB、超时 45 秒，WebDAV 要求 HTTPS，仅放行同步目录/文件及必要方法，凭据只随该请求转发。保留这些保护及对应测试；同源标记不等于用户鉴权。
 
 #### Web 版验证与部署
@@ -610,7 +610,7 @@ npx wrangler deploy --dry-run
 - 首次上架：manifest 固定了扩展 ID 时，`web-ext sign` 只会 `PUT addon/<id>/versions/<version>/`，不会创建 add-on，因此新 ID 必须先注册一次——用 AMO API `POST /api/v5/addons/addon/` 携带 `upload/` 返回的文件 uuid（或 Developer Hub 上传表单）。注册之后 `release.ps1` 即可按上面的流程工作。
 - 时钟与 JWT：AMO 会以 HTTP 401 拒绝 `iat` 超前的 JWT，并把 JWT 有效期（`exp - iat`）限制在 60 秒内。本机 `w32time` 未同步时系统时钟比 AMO 快约 18 秒，发布前先确认时钟同步，否则 `release.ps1` 的版本查询和 `web-ext sign` 都会失败。
 - 商品页字段：用 AMO API `PATCH /api/v5/addons/addon/<id>/` 可上传商品图标（multipart 字段 `icon`，已上传 `public/icons/icon-128.png`），但 `homepage` 既不会随 create 或版本提交写入，也不会被该 PATCH 采纳（返回 HTTP 200 但字段仍为空），只能在 Developer Hub 手工填写。AMO 对同一账号有请求频率限制，超限返回 HTTP 429 `Request was throttled`。
-- AMO 现状：`dox-reader@magi`（slug `dox-reader`，分类 `feeds-news-blogging`）于 2026-10-20 创建，先提交 1.1.8，随后依次被 1.1.9、1.1.10、1.1.11、1.1.12 取代；当前版本 1.1.12（版本 id `6603602`，2026-10-21 提交）为 listed 审核中，状态 `nominated`、文件 `unreviewed`，源码包已随版本上传（<https://addons.mozilla.org/firefox/downloads/source/6603602>）；审核页 <https://addons.mozilla.org/en-US/developers/addon/dox-reader/versions/6603602>，商品页 <https://addons.mozilla.org/en-US/firefox/addon/dox-reader/>。同一版本不要重复提交。`AMO_REVIEW_NOTES.md` 会作为审核备注上传，长度上限 3000 字符。
+- AMO 现状：`dox-reader@magi`（slug `dox-reader`，分类 `feeds-news-blogging`）于 2026-10-20 创建，先提交 1.1.8，随后依次被 1.1.9、1.1.10、1.1.11、1.1.12、1.1.13 取代；当前版本 1.1.13（版本 id `6603638`，2026-10-21 提交）为 listed 审核中，状态 `nominated`、文件 `unreviewed`，源码包已随版本上传（<https://addons.mozilla.org/firefox/downloads/source/6603638>）；审核页 <https://addons.mozilla.org/en-US/developers/addon/dox-reader/versions/6603638>，商品页 <https://addons.mozilla.org/en-US/firefox/addon/dox-reader/>。同一版本不要重复提交。`AMO_REVIEW_NOTES.md` 会作为审核备注上传，长度上限 3000 字符。
 - 维护约束：`public/manifest.json` 的 gecko `id` 固定为 `dox-reader@magi`，不得随发布变动；manifest 不得设置 `update_url`（listed 渠道由 AMO 更新）；版本号在 `package.json`、`public/manifest.json` 与 `package-lock.json` 三处保持一致；`amo-listing.json` 的 `homepage` 与 manifest 的 `homepage_url` 都指向 `Firefox/Add-Ons/Dox Reader`；模块目录不设独立 `.gitignore`，`node_modules/`、`dist/`、`web-ext-artifacts/`、`*.log`、`.env.release` 由根 `.gitignore` 排除。
 
 验证：

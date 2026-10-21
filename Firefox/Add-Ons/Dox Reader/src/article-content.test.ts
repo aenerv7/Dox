@@ -12,4 +12,17 @@ describe("article content rendering", () => {
     expect(img.getAttribute("src")).toBe("https://sspai.com/cover.jpg");
     expect(img.getAttribute("referrerpolicy")).toBe("strict-origin-when-cross-origin");
   });
+
+  it("retries a failed image once without a referrer", () => {
+    const root = document.createElement("div");
+    render(h("div", {}, renderArticleContent('<img src="https://cdn.example/a.jpg">', "https://example.com/post")), root);
+
+    const img = root.querySelector("img")!;
+    img.dispatchEvent(new Event("error"));
+    expect(img.getAttribute("referrerpolicy")).toBe("no-referrer");
+    expect(img.getAttribute("src")).toBe("https://cdn.example/a.jpg#dox-retry");
+
+    img.dispatchEvent(new Event("error"));
+    expect(img.getAttribute("src")).toBe("https://cdn.example/a.jpg#dox-retry");
+  });
 });

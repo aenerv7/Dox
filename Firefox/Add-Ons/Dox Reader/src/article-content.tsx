@@ -20,6 +20,18 @@ function safeUrl(value: string | null, baseUrl: string, image = false): string |
   return undefined;
 }
 
+// 图床的保护策略并不统一：有的要求带 Referer，有的只接受不带 Referer 的请求。
+// 首次按页面 origin 加载，失败后换成不带 Referer 重试；只改 URL 片段，服务端收到的地址不变。
+function retryImage(event: Event): void {
+  const image = event.currentTarget as HTMLImageElement | null;
+  if (!image || image.dataset.doxRetry) return;
+  image.dataset.doxRetry = "1";
+  image.referrerPolicy = "no-referrer";
+  const url = new URL(image.src);
+  url.hash = "dox-retry";
+  image.src = url.href;
+}
+
 function renderNode(node: Node, baseUrl: string, key: string): ComponentChildren {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent;
   if (!(node instanceof Element)) return null;
@@ -50,6 +62,7 @@ function renderNode(node: Node, baseUrl: string, key: string): ComponentChildren
     props.loading = "lazy";
     // 部分图床（如 sspai 的 CDN）拒绝没有 Referer 的请求并返回 403；只暴露页面 origin。
     props.referrerPolicy = "strict-origin-when-cross-origin";
+    props.onError = retryImage;
     const width = Number(node.getAttribute("width"));
     const height = Number(node.getAttribute("height"));
     if (Number.isFinite(width) && width > 0) props.width = width;

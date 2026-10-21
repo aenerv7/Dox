@@ -8,6 +8,11 @@ import { extractFullArticle, needsFullArticle } from "./article-extractor";
 
 afterEach(() => vi.clearAllMocks());
 
+function articlePage(body: string): string {
+  return `<!doctype html><html><head><title>标题</title></head><body><article><h1>标题</h1>
+    <p>${"这是完整正文内容。".repeat(40)}</p>${body}</article></body></html>`;
+}
+
 describe("article extraction", () => {
   it("only offers extraction for short feed content", () => {
     expect(needsFullArticle("<p>摘要</p>", "https://example.com/post")).toBe(true);
@@ -44,6 +49,45 @@ describe("article extraction", () => {
     expect(article.content).toContain('href="https://example.com/posts/final/details"');
     expect(article.content).not.toContain('wrong.example');
     expect(article.content).not.toContain('srcset');
+  });
+
+  it("keeps images that only expose srcset or data-srcset candidates", async () => {
+    runtimeFetch.fetchArticle.mockResolvedValue(new Response(articlePage(`
+      <img srcset="https://cdn.example/a-400.jpg 400w, https://cdn.example/a-1600.jpg 1600w">
+      <img src="data:image/gif;base64,R0lG" data-srcset="https://cdn.example/b-800.jpg 800w, https://cdn.example/b-2000.jpg 2000w">`), {
+      headers: { "Content-Type": "text/html" },
+    }));
+
+    const article = await extractFullArticle("https://example.com/posts/1");
+
+    expect(article.content).toContain('src="https://cdn.example/a-1600.jpg"');
+    expect(article.content).toContain('src="https://cdn.example/b-2000.jpg"');
+  });
+
+  it("keeps common lazy-load attributes and noscript fallbacks", async () => {
+    runtimeFetch.fetchArticle.mockResolvedValue(new Response(articlePage(`
+      <img data-lazy-src="/lazy.jpg">
+      <img data-actualsrc="../actual.jpg">
+      <figure><img src="data:image/gif;base64,R0lG"><noscript><img src="https://cdn.example/ns.jpg"></noscript></figure>`), {
+      headers: { "Content-Type": "text/html" },
+    }));
+
+    const article = await extractFullArticle("https://example.com/posts/1");
+
+    expect(article.content).toContain('src="https://example.com/lazy.jpg"');
+    expect(article.content).toContain('src="https://example.com/actual.jpg"');
+    expect(article.content).toContain('src="https://cdn.example/ns.jpg"');
+  });
+
+  it("falls back to the picture source when the img has no usable src", async () => {
+    runtimeFetch.fetchArticle.mockResolvedValue(new Response(articlePage(`
+      <picture><source srcset="https://cdn.example/p-800.webp 800w, https://cdn.example/p-1600.webp 1600w"><img alt=""></picture>`), {
+      headers: { "Content-Type": "text/html" },
+    }));
+
+    const article = await extractFullArticle("https://example.com/posts/1");
+
+    expect(article.content).toContain('src="https://cdn.example/p-1600.webp"');
   });
 
   it("rejects non-HTML responses and failed upstream requests", async () => {

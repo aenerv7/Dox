@@ -8,7 +8,8 @@ export interface ExtractedArticle {
 const MIN_FEED_TEXT_LENGTH = 800;
 const MAX_ARTICLE_BYTES = 8 * 1024 * 1024;
 
-function httpUrl(value: string, base?: string): string | undefined {
+function httpUrl(value: string | null | undefined, base?: string): string | undefined {
+  if (!value?.trim()) return undefined;
   try {
     const url = new URL(value, base);
     if (["http:", "https:"].includes(url.protocol) && !url.username && !url.password) return url.href;
@@ -34,6 +35,82 @@ function metadataImage(doc: Document, base: string): string | undefined {
   return undefined;
 }
 
+// 常见懒加载站点会把真实地址放在这些属性里，src 只留占位图。
+const LAZY_IMAGE_ATTRIBUTES = [
+  "data-src",
+  "data-original",
+  "data-lazy-src",
+  "data-lazy",
+  "data-echo",
+  "data-url",
+  "data-actualsrc",
+  "data-hi-res-src",
+  "data-full-src",
+  "data-original-src",
+];
+
+interface ImageCandidate {
+  url: string;
+  rank: number;
+}
+
+function srcsetCandidates(value: string | null, base: string): ImageCandidate[] {
+  const candidates: ImageCandidate[] = [];
+  for (const part of value?.split(",") ?? []) {
+    const [raw = "", descriptor = ""] = part.trim().split(/\s+/, 2);
+    const url = httpUrl(raw, base);
+    if (!url) continue;
+    // 宽度（w）与像素密度（x）无法直接比较，按 100 折算让大图优先。
+    const match = /^(\d+(?:\.\d+)?)([wx])$/i.exec(descriptor);
+    const rank = match ? Number(match[1]) * (match[2].toLowerCase() === "w" ? 1 : 100) : 1;
+    candidates.push({ url, rank });
+  }
+  return candidates;
+}
+
+function bestCandidate(candidates: ImageCandidate[]): string | undefined {
+  let best: ImageCandidate | undefined;
+  for (const candidate of candidates) {
+    if (!best || candidate.rank >= best.rank) best = candidate;
+  }
+  return best?.url;
+}
+
+function pictureCandidates(image: Element, base: string): ImageCandidate[] {
+  const picture = image.closest("picture");
+  if (!picture) return [];
+  return Array.from(picture.querySelectorAll("source[srcset], source[data-srcset]"))
+    .flatMap((source) => [
+      ...srcsetCandidates(source.getAttribute("srcset"), base),
+      ...srcsetCandidates(source.getAttribute("data-srcset"), base),
+    ]);
+}
+
+function imageSource(image: Element, base: string): string | undefined {
+  for (const attribute of LAZY_IMAGE_ATTRIBUTES) {
+    const url = httpUrl(image.getAttribute(attribute) || "", base);
+    if (url) return url;
+  }
+  const candidate = bestCandidate([
+    ...srcsetCandidates(image.getAttribute("srcset"), base),
+    ...srcsetCandidates(image.getAttribute("data-srcset"), base),
+    ...pictureCandidates(image, base),
+  ]);
+  return candidate ?? httpUrl(image.getAttribute("src") || "", base);
+}
+
+// 懒加载站点常把真实图片放进 noscript；其内容可能已被解析成节点，也可能仍是一段文本。
+function liftNoscriptImages(doc: Document): void {
+  for (const noscript of doc.querySelectorAll("noscript")) {
+    if (noscript.children.length) {
+      noscript.replaceWith(...Array.from(noscript.childNodes));
+      continue;
+    }
+    const parsed = new DOMParser().parseFromString(noscript.textContent || "", "text/html");
+    if (parsed.body.children.length) noscript.replaceWith(...Array.from(parsed.body.childNodes));
+  }
+}
+
 export async function extractFullArticle(url: string): Promise<ExtractedArticle> {
   if (!httpUrl(url)) throw new Error("原文地址必须是 HTTP(S) URL");
   const response = await fetchArticle(url, {
@@ -55,14 +132,32 @@ export async function extractFullArticle(url: string): Promise<ExtractedArticle>
   const image = metadataImage(doc, base);
   // Ignore untrusted <base> elements. Resolve links against the validated final URL.
   doc.querySelectorAll("base").forEach(node => node.remove());
-  for (const node of doc.querySelectorAll("a[href],img")) {
-    const attribute = node.tagName.toLowerCase() === "img" ? "src" : "href";
-    const raw = node.getAttribute("data-src") || node.getAttribute("data-original") || node.getAttribute(attribute);
-    const absolute = raw && httpUrl(raw, base);
-    if (absolute) node.setAttribute(attribute, absolute);
-    else node.removeAttribute(attribute);
+  liftNoscriptImages(doc);
+  for (const node of doc.querySelectorAll("a[href],img,source[srcset],source[data-srcset]")) {
+    const tag = node.tagName.toLowerCase();
+    if (tag === "a") {
+      const raw = node.getAttribute("data-src") || node.getAttribute("data-original") || node.getAttribute("href");
+      const absolute = raw && httpUrl(raw, base);
+      if (absolute) node.setAttribute("href", absolute);
+      else node.removeAttribute("href");
+      continue;
+    }
+    if (tag === "source") {
+      const absolute = bestCandidate([
+        ...srcsetCandidates(node.getAttribute("srcset"), base),
+        ...srcsetCandidates(node.getAttribute("data-srcset"), base),
+      ]);
+      if (absolute) node.setAttribute("srcset", absolute);
+      else node.removeAttribute("srcset");
+      node.removeAttribute("data-srcset");
+      continue;
+    }
+    const absolute = imageSource(node, base);
+    if (absolute) node.setAttribute("src", absolute);
+    else node.removeAttribute("src");
     node.removeAttribute("srcset");
     node.removeAttribute("data-srcset");
+    for (const attribute of LAZY_IMAGE_ATTRIBUTES) node.removeAttribute(attribute);
   }
   const { Readability } = await import("@mozilla/readability");
   const article = new Readability(doc, { maxElemsToParse: 50_000 }).parse();

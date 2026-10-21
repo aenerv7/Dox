@@ -1,10 +1,10 @@
 # AMO Reviewer Notes
 
-Version 1.1.12 keeps the optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code. Changes since 1.1.8: raster PNG icons, a Settings backend help link, refresh controls that grey out while refreshing, and Referer-aware article images.
+Version 1.1.13 keeps the optional user-operated backend; local mode remains the default. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code. Changes since 1.1.8: raster PNG icons, a Settings backend help link, refresh controls that grey out while refreshing, and article-image extraction that handles lazy-loaded and srcset images with a Referer fallback.
 
 ## Build
 
-Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.12.zip.
+Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.1.13.zip.
 
 ## Data and network
 
