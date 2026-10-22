@@ -117,14 +117,8 @@ enum HotkeyAction: String, CaseIterable {
     case centreVertical = "CentreVertical"
     case custom = "Custom"
 
-    /// 出厂默认绑定（其余动作默认留空）。
-    var defaultSpec: String {
-        switch self {
-        case .centre: return "opt+cmd+c"
-        case .auto: return "ctrl+opt+cmd+c"
-        default: return ""
-        }
-    }
+    /// 出厂默认全部留空（不绑定）。快捷键由用户在 ini 的 `[Hotkeys]` 分区里自行配置。
+    var defaultSpec: String { "" }
 }
 
 /// 一个已解析的快捷键：keyCode + 修饰键。`spec` 只用于回写配置，不参与相等性判断——
@@ -313,15 +307,18 @@ enum ConfigStore {
         text += "\n[Hotkeys]\n"
         text += hotkeyComment
         for action in HotkeyAction.allCases {
-            text += "\(action.rawValue) = \(action.defaultSpec)\n"
+            text += "\(action.rawValue) =\(action.defaultSpec)\n"
         }
         return text
     }
 
     static let hotkeyComment =
-        "; 修饰键：ctrl / opt / cmd / shift，用 + 连接，最后接按键名；留空表示不绑定。\n" +
+        "; 默认全部留空（不绑定）。格式：修饰键+按键，修饰键取 ctrl / opt / cmd / shift，用 + 连接，\n" +
+        "; 且至少包含 ctrl / opt / cmd 之一；最后接按键名。留空表示不绑定，保存后下次打开菜单即生效。\n" +
         "; 按键名支持 a-z、0-9、f1-f20、space、return、tab、esc、up/down/left/right、home/end/pageup/pagedown 与常见符号。\n" +
-        "; 例：ShowMenu = shift+opt+space，Centre = opt+cmd+c\n"
+        "; 示例（删掉行首的 \"; \" 即生效）：\n" +
+        "; Auto = ctrl+opt+cmd+c\n" +
+        "; Centre = opt+cmd+c\n"
 
     /// 读取配置；文件缺失时生成默认内容。权限类错误视为致命（弹窗后退出），与 SizerWin 一致。
     static func load() -> AppConfig {
@@ -509,7 +506,7 @@ enum ConfigStore {
 
         let missing = HotkeyAction.allCases.filter { !present.contains($0.rawValue) }
         guard !missing.isEmpty else { return text }
-        let additions = missing.map { "\($0.rawValue) = \($0.defaultSpec)" }
+        let additions = missing.map { "\($0.rawValue) =\($0.defaultSpec)" }
 
         if let start = sectionStart {
             // 插到分区内最后一条非空行之后，不被尾部空行隔开。

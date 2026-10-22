@@ -257,10 +257,10 @@ macOS 原生窗口调整工具，常驻菜单栏，使用 Swift 编写，最低�
 
 窗口移动和缩放都是 0.25 秒缓动动画，和 macOS 原生窗口操作一样平滑；系统开启「减弱动态效果」时直接落位。
 
-默认快捷键：
+默认不绑定任何快捷键，需要自己在 ini 的 `[Hotkeys]` 里配置（默认 ini 里附有注释和示例）：
 
-- `⌥⌘C` — 居中当前窗口，保持原尺寸
-- `⌃⌥⌘C` — 调整到屏幕工作区约 75% 并居中
+- 示例：`Auto = ctrl+opt+cmd+c` — 调整到屏幕工作区约 75% 并居中
+- 示例：`Centre = opt+cmd+c` — 居中当前窗口，保持原尺寸
 
 其它说明：
 
@@ -283,10 +283,17 @@ macOS 原生窗口调整工具，常驻菜单栏，使用 Swift 编写，最低�
 720x1280
 
 [Hotkeys]
-; 修饰键 ctrl / opt / cmd / shift，最后接按键名；留空表示不绑定
-ShowMenu = shift+opt+space
-Auto = ctrl+opt+cmd+c
-Centre = opt+cmd+c
+; 默认全部留空（不绑定）。格式：修饰键+按键，修饰键取 ctrl / opt / cmd / shift，
+; 且至少包含 ctrl / opt / cmd 之一；留空表示不绑定，保存后下次打开菜单即生效。
+; 示例（删掉行首的 "; " 即生效）：
+; Auto = ctrl+opt+cmd+c
+; Centre = opt+cmd+c
+ShowMenu =
+Auto =
+Centre =
+CentreHorizontal =
+CentreVertical =
+Custom =
 ```
 
 一键构建并安装到 `/Applications`（会先退出正在运行的实例）：

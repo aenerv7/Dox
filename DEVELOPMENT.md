@@ -408,8 +408,8 @@ macOS 原生菜单栏窗口调整工具，Swift 编写，最低 macOS 13，打�
 - 内置默认：水平 `640x480, 1024x768, 1280x720, 1280x800, 1600x900, 1600x1000, 1920x1080, 1920x1200`；垂直 `480x854, 720x1280, 800x1280`。
 - `[Hotkeys]` 六个动作键：`ShowMenu`、`Auto`、`Centre`、`CentreHorizontal`、`CentreVertical`、`Custom`。格式 `修饰键+按键`，修饰键取 `ctrl`/`opt`/`cmd`/`shift` 且至少含 ctrl/opt/cmd 之一（避免吃掉普通输入），按键名见 `KeyTable.keyCodes`；留空表示不绑定。表头、动作键名、修饰键、按键名**全部大小写不敏感**（`auto`、`AUTO`、`Auto` 等价）——之前只对动作键区分大小写，用户写 `centre = opt+cmd+m` 会被当成未知键忽略，再被 `ensureHotkeyKeys` 用默认值覆盖回去。
 - 三个分区可以任意顺序。`parse` 遇到 `[v…`（长度 ≥10）分支时必须同时退出 hotkey 模式，否则把 `[Hotkeys]` 写在 `[Vertical]` 之前会让所有垂直预设被当成 `=` 行静默丢弃。
-- 默认只绑定 `Centre = opt+cmd+c` 与 `Auto = ctrl+opt+cmd+c`。SizerWin 的 `Shift+Alt+Space` 默认不绑定：macOS 上点菜单栏图标即可呼出，而该组合容易与输入法切换冲突。
-- **整行缺失**才补默认绑定；写成 `Centre =`（空值）视为用户显式解绑。`ensureHotkeyKeys` 每次加载都把缺失的键补回 `[Hotkeys]` 分区末尾并落盘，用户误删键后重启即恢复；补写后若超过 `maxFileSize` 就只用在内存里、不落盘（否则下次启动会因文件过大静默回退默认，反而丢配置）。
+- 出厂默认**不绑定任何快捷键**：六个动作键全部留空。默认 ini 的 `[Hotkeys]` 分区用注释说明格式，并以旧版默认的 `Auto = ctrl+opt+cmd+c`、`Centre = opt+cmd+c` 作为注释示例（删掉行首 `;` 即生效）。SizerWin 的 `Shift+Alt+Space` 同样不绑定：macOS 上点菜单栏图标即可呼出，而该组合容易与输入法切换冲突。
+- **整行缺失**才补默认行（默认值全部为空）；写成 `Centre =`（空值）视为用户显式解绑。`ensureHotkeyKeys` 每次加载都把缺失的键补回 `[Hotkeys]` 分区末尾并落盘，用户误删键后重启即恢复；补写后若超过 `maxFileSize` 就只用在内存里、不落盘（否则下次启动会因文件过大静默回退默认，反而丢配置）。
 - 权限类错误（`EACCES`/`EPERM`/`EROFS`，含 `NSError.underlyingErrors` 里嵌套的 `POSIXError`）视为致命：弹窗后 `exit(1)`。
 
 #### 实现要点
