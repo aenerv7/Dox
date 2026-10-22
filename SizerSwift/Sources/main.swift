@@ -30,6 +30,9 @@ struct L10n {
     static var centreHorizontal: String { localized("Horizontal Centre", zh: "水平居中", zhCN: "水平居中") }
     static var centreVertical: String { localized("Vertical Centre", zh: "垂直居中", zhCN: "垂直居中") }
     static var custom: String { localized("Custom…", zh: "自訂…", zhCN: "自定义…") }
+    static var revealConfig: String {
+        localized("Open Config Folder", zh: "打開設定檔所在資料夾", zhCN: "打开配置文件所在目录")
+    }
     static var launchAtLogin: String { localized("Launch at Login", zh: "登入時啟動", zhCN: "开机自启动") }
     static var quit: String { localized("Quit SizerSwift", zh: "結束 SizerSwift", zhCN: "退出 SizerSwift") }
     static var tooltip: String { "SizerSwift" }
@@ -297,6 +300,20 @@ enum ConfigStore {
     }
 
     static var fileURL: URL { directory.appendingPathComponent(fileName) }
+
+    /// 菜单「打开配置文件所在目录」：在 Finder 中定位 `SizerSwift.ini`。
+    /// 文件被手工删掉时先按默认内容重新生成；连目录都建不出来才退化为打开所在目录。
+    static func revealInFinder() {
+        let url = fileURL
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: url.path) { _ = load() }
+        if fm.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } else {
+            try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
+            NSWorkspace.shared.open(directory)
+        }
+    }
 
     /// 默认配置文件内容（首次运行生成）。
     static var defaultContent: String {
@@ -1710,6 +1727,10 @@ final class MenuBar: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
         menu.addItem(makeItem(title: L10n.custom, command: .custom, binding: config.hotkeys[.custom], enabled: hasTarget))
+        // 不依赖目标窗口，因此不走 MenuCommand（也不占用 [Hotkeys] 的键位）。
+        let revealItem = NSMenuItem(title: L10n.revealConfig, action: #selector(revealConfigInFinder(_:)), keyEquivalent: "")
+        revealItem.target = self
+        menu.addItem(revealItem)
 
         menu.addItem(.separator())
         let loginItem = NSMenuItem(title: L10n.launchAtLogin, action: #selector(toggleLoginItem(_:)), keyEquivalent: "")
@@ -1725,6 +1746,10 @@ final class MenuBar: NSObject, NSMenuDelegate {
 
     @objc private func openAccessibilitySettings(_ sender: Any?) {
         SystemSettings.openAccessibilityPane()
+    }
+
+    @objc private func revealConfigInFinder(_ sender: Any?) {
+        ConfigStore.revealInFinder()
     }
 
     private func makeItem(title: String, command: MenuCommand, binding: HotkeyBinding?, enabled: Bool) -> NSMenuItem {

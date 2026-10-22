@@ -253,6 +253,7 @@ macOS 原生窗口调整工具，常驻菜单栏，使用 Swift 编写，最低�
 - **居中 / 水平居中 / 垂直居中**：保持尺寸，只移动位置
 - **预设分辨率**：直接设为 `640x480`、`1920x1080` 等常用尺寸；按住 `⌥` 点击则同时居中，菜单标题会实时变成「调整并居中 1920x1080」
 - **自定义…**：输入宽高后调整，`Return` 调整尺寸、`⌘Return` 调整并居中、`Esc` 取消
+- **打开配置文件所在目录**：在 Finder 中定位 `SizerSwift.ini`，改完保存后下次打开菜单生效
 - **开机自启动**：勾选切换登录项
 
 窗口移动和缩放都是 0.25 秒缓动动画，和 macOS 原生窗口操作一样平滑；系统开启「减弱动态效果」时直接落位。
@@ -310,7 +311,9 @@ cd SizerSwift
 ./build.sh
 ```
 
-当前不使用 codesign 签名，以避免辅助功能权限因重新签名而失效；手动复制到 `/Applications` 后需执行 `xattr -cr` 清除隔离属性。
+首次构建会在本机创建一张自签名代码签名证书（`./make-signing-cert.sh`，默认名 `MAGI-OpenSource`），`build.sh` 用它签整包。目的是固定签名身份：TCC 与开机自启动按 designated requirement 记录授权，而 ad-hoc 签名的 DR 就是 cdhash，每次重编译都会让授权失效；固定证书后覆盖升级不需要重新授权。
+
+自签名包过不了 Gatekeeper。把 `SizerSwift.app` 拷给别人时对方首次打开会被拦下（或者在带隔离属性时报「已损坏」），需要在「系统设置 → 隐私与安全性」里手动放行、并自行授权辅助功能；完整步骤见 [`SizerSwift/INSTALL.md`](./SizerSwift/INSTALL.md)。
 
 完整实现架构、配置格式和维护说明见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
 
