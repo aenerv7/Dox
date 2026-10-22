@@ -245,23 +245,67 @@ cmake --build build --config Release
 
 ## SizerSwift
 
-macOS 原生窗口调整工具，使用 Swift 编写，最低支持 macOS 13，编译为独立 `.app`。
+macOS 原生窗口调整工具，常驻菜单栏，使用 Swift 编写，最低支持 macOS 13。功能是 Windows 版 [`SizerWin`](#sizerwin) 的 macOS 对应实现，界面遵循 macOS 菜单栏应用规范。
+
+点击菜单栏图标即可在光标处弹出菜单，也可以给「显示菜单」绑定全局快捷键：
+
+- **自动**：调整到所在屏幕工作区约 3/4 并居中
+- **居中 / 水平居中 / 垂直居中**：保持尺寸，只移动位置
+- **预设分辨率**：直接设为 `640x480`、`1920x1080` 等常用尺寸；按住 `⌥` 点击则同时居中，菜单标题会实时变成「调整并居中 1920x1080」
+- **自定义…**：输入宽高后调整，`Return` 调整尺寸、`⌘Return` 调整并居中、`Esc` 取消
+- **开机自启动**：勾选切换登录项
+
+窗口移动和缩放都是 0.25 秒缓动动画，和 macOS 原生窗口操作一样平滑；系统开启「减弱动态效果」时直接落位。
+
+默认快捷键：
 
 - `⌥⌘C` — 居中当前窗口，保持原尺寸
-- `⌃⌥⌘C` — 将当前窗口调整到屏幕可见区域的 75% 并居中
-- 菜单栏常驻图标，无 Dock 图标
-- 支持通过 `SMAppService` 开机自启动
-- 支持英语、繁体中文和简体中文
-- 优先使用 Accessibility API 直接操作窗口；不暴露 AX 窗口的应用会回退到模拟拖拽标题栏居中，回退路径不能调整窗口尺寸
+- `⌃⌥⌘C` — 调整到屏幕工作区约 75% 并居中
 
-首次使用需要在“系统设置 → 隐私与安全性 → 辅助功能”中授权。构建：
+其它说明：
+
+- 菜单栏常驻图标，无 Dock 图标
+- 全屏和最小化的窗口不响应，桌面与菜单栏不会被误当成窗口
+- 多显示器支持，基于窗口所在屏幕的工作区避开菜单栏和 Dock
+- 优先使用辅助功能 API 直接操作窗口；不暴露窗口的应用会回退到模拟拖拽标题栏，回退路径只能移动、不能调整尺寸
+- 支持英语、繁体中文和简体中文
+
+首次使用需要在“系统设置 → 隐私与安全性 → 辅助功能”中授权。未授权时菜单顶部会出现「打开辅助功能权限…」，授权后重新打开菜单即可生效，无需重启。
+
+预设和快捷键都写在 `~/Library/Application Support/SizerSwift/SizerSwift.ini`，首次运行自动生成，改完不用重启程序（下次打开菜单生效）：
+
+```ini
+[Horizontal]
+640x480
+1920x1080
+
+[Vertical]
+720x1280
+
+[Hotkeys]
+; 修饰键 ctrl / opt / cmd / shift，最后接按键名；留空表示不绑定
+ShowMenu = shift+opt+space
+Auto = ctrl+opt+cmd+c
+Centre = opt+cmd+c
+```
+
+一键构建并安装到 `/Applications`（会先退出正在运行的实例）：
 
 ```bash
 cd SizerSwift
-swift build -c release
+./build.sh --install
 ```
 
-手动打包为 `.app` 后部署到 `/Applications`，需执行 `xattr -cr` 清除隔离属性。当前不使用 codesign 签名，以避免辅助功能权限因重新签名而失效。
+只构建、产物留在 `SizerSwift/build/SizerSwift.app`：
+
+```bash
+cd SizerSwift
+./build.sh
+```
+
+当前不使用 codesign 签名，以避免辅助功能权限因重新签名而失效；手动复制到 `/Applications` 后需执行 `xattr -cr` 清除隔离属性。
+
+完整实现架构、配置格式和维护说明见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
 
 ## Firefox 用户层配置
 

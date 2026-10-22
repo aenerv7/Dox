@@ -98,7 +98,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 当前源码入口：
 
 - `SizerWin/SizerWin.c`、`SizerWin/SizerWin.manifest`
-- `SizerSwift/Sources/main.swift`
+- `SizerSwift/Sources/main.swift`、`SizerSwift/build.sh`
 - `CapsLockOSD/`（C++ 源与资源脚本）
 - `CSS/font-face.css`
 - `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
@@ -355,39 +355,89 @@ DPI：清单声明 Per-Monitor V2；`GetDpiForWindow`/`AdjustWindowRectExForDpi`
 
 ### 3.3 SizerSwift
 
-macOS 原生菜单栏窗口调整工具，Swift 编写，最低 macOS 13，编译为独立 `.app`。入口：`SizerSwift/Sources/main.swift`。Swift tools version 5.9，单个 executable target。
+macOS 原生菜单栏窗口调整工具，Swift 编写，最低 macOS 13，打包为独立 `.app`。入口：`SizerSwift/Sources/main.swift`（单文件，约 1800 行）。Swift tools version 5.9，单个 executable target。功能上是 [3.2 SizerWin](#32-sizerwin) 的 macOS 对应实现，交互与外观遵循 macOS 菜单栏应用规范。
 
-功能：`⌥⌘C` 居中当前窗口（保持尺寸）；`⌃⌥⌘C` 调整到屏幕可见区域 75% 并居中；菜单栏常驻图标，无 Dock 图标；`SMAppService` 开机自启动；英语/繁中/简中。
+#### 功能
 
-技术路径：优先用 Accessibility API（`AXUIElement`）直接设置窗口位置；不暴露 AX 窗口的应用回退到 `CGWindowListCopyWindowInfo` 查询 + `CGEvent` 模拟拖拽标题栏居中（回退路径不能可靠调整尺寸）。
+- **自动**：窗口缩放到所在屏幕工作区（`visibleFrame`）的 `3/4` 并居中。
+- **居中 / 水平居中 / 垂直居中**：保持尺寸，仅移动位置。
+- **预设分辨率**：按 `WxH` 列表设置；按住 `⌥ Option` 点击预设同时居中，菜单标题实时变为「调整并居中 1920x1080」。
+- **自定义尺寸**：`NSAlert` + accessoryView 输入宽高，`Return` 调整尺寸、`⌘Return` 调整并居中、`Esc` 取消，区间 `1...32767`，非法输入响铃 + 全选 + 不关闭。
+- **动画**：所有位置与尺寸变化都是 0.25 秒缓动过渡，不是瞬移。
+- 菜单栏常驻图标，无 Dock 图标；`SMAppService` 开机自启动；英语/繁中/简中；多显示器。
 
-主要结构和函数：
+#### 菜单顺序
 
-| 名称 | 职责 |
-|---|---|
-| `L10n` | 英语、繁体中文、简体中文字符串选择 |
-| `WindowInfo` | 记录窗口位置和尺寸 |
-| `findFrontmostWindow()` | 优先 AX 查询前台窗口，失败时查询 CGWindowList |
-| `screenForRect(...)` | 根据窗口中心点匹配屏幕 |
-| `centerWindowViaAX()` | 用 Accessibility API 直接设置位置 |
-| `simulateDrag(...)` | 通过 `CGEventSource(.privateState)` 模拟鼠标拖拽 |
-| `centerWindowViaDrag()` | AX 不可用时用拖拽方式居中 |
-| `resizeAndCenterViaAX()` | 用 AX 调整为可见区域 75% 并居中 |
-| `resizeAndCenterViaDrag()` | AX 不可用时只居中，不调整尺寸 |
-| `registerHotkey()` | 使用 `CGEvent.tapCreate` 监听全局快捷键 |
-| `isLoginItemEnabled()` / `setLoginItem(enabled:)` | macOS 13+ 登录项管理 |
-| `AppDelegate` | 辅助功能权限提示、菜单栏图标和菜单项 |
+| 顺序 | 菜单项 | 行为 |
+|---|---|---|
+| 0 | 打开辅助功能权限… | 仅未授权辅助功能时出现，打开系统设置对应面板 |
+| 1 | 自动 | 工作区 3/4 并居中 |
+| 2 | 居中 | 保持尺寸，双轴居中 |
+| 3 | 水平居中 | 保持尺寸，仅 X 居中 |
+| 4 | 垂直居中 | 保持尺寸，仅 Y 居中 |
+| — | 分隔线 | |
+| 5 | 预设分辨率 | 动态插入，水平组与垂直组之间再插分隔线；按住 ⌥ 变「调整并居中」 |
+| — | 分隔线 | |
+| 6 | 自定义… | 打开自定义尺寸对话框 |
+| 7 | 开机自启动 | 勾选切换 `SMAppService.mainApp` |
+| 8 | 退出 SizerSwift | |
 
-行为路径：以 `.accessory` 策略运行（无 Dock 图标）→ 无辅助功能权限则提示并可打开系统设置 → 创建菜单栏图标 → 注册键盘 tap → 快捷键触发时优先 AX，失败拖拽回退。
+菜单项右侧显示 `[Hotkeys]` 里配置的快捷键（`NSMenuItem.keyEquivalent`），作用等同 SizerWin 的 `&A`/`&C` 助记符。
+
+#### 动画
+
+「丝滑」是本模块的核心要求，实现集中在 `WindowAnimator`：
+
+- 时长 0.25 秒，缓动曲线 Apple easeInEaseOut = `cubic-bezier(0.42, 0, 0.58, 1)`。
+- `CVDisplayLink` 逐帧驱动，按 `CACurrentMediaTime()` 的真实经过时间插值，掉帧不会把动画拖长。
+- `CAMediaTimingFunction` 在 Swift 里不暴露控制点，`cubicBezier(x1:y1:x2:y2:)` 自行用牛顿迭代（8 次）求解 x→t。
+- 每帧先写 `AXSize` 再写 `AXPosition`，避免中间帧出现「尺寸已变、位置未变」的跳动。
+- `CVDisplayLink` 回调跑在实时线程上，只做 `scheduleTick()` 排队（`tickPending` 去重）再 `DispatchQueue.main.async` 把 AX 写放回主线程：AX 写属性是同步 IPC，在时间受限线程上等一个忙的应用会造成优先级反转。
+- 读几何前先把 `AXUIElementSetMessagingTimeout` 压到 `probeTimeout = 0.05` 秒，动画期间为 `animationTimeout = 0.02` 秒（略大于一帧），结束后恢复 0（全局默认）；所有退出路径（正常结束、被打断接管、帧驱动启动失败）都必须恢复，否则目标窗口会一直处于短超时状态。
+- 连续 `maxConsecutiveFailures = 6` 帧写失败（窗口在拖动中或已卡死）就放弃动画、把终值写一次。
+- 读不到当前尺寸时不做尺寸插值（第一帧就按目标尺寸起步），但不能因此把 resize 整个丢掉。
+- 位移与尺寸变化都小于 2pt、或系统开启「减弱动态效果」（`NSWorkspace.shared.accessibilityDisplayShouldReduceMotion`）时直接落位。
+- 动画中途触发新命令：新任务从当前真实位置续跑；若被打断的是**另一个**窗口，先把它落到上一次的终点再换目标。
+- 拖拽回退路径（`DragMover`）同样插值：0.18 秒 / 24 步，抓标题栏 `(minX + max(90, width * 0.15), minY + 14)`。合成点击前必须 `CGPreflightPostEventAccess()`，否则事件会被系统静默丢弃（看起来“点了一下什么都没发生”）；结束后用 `CGWarpMouseCursorPosition` + `CGAssociateMouseAndMouseCursorPosition(1)` 把用户指针放回原位（合成拖拽会把光标带到窗口新位置而不会自己回来）。
+
+#### 配置文件
+
+- 路径 `~/Library/Application Support/SizerSwift/SizerSwift.ini`（不放进 `.app`，重装不丢配置）。
+- 每次弹菜单、呼出对话框、按下快捷键前重新读取（`ConfigStore.reloadIfChanged()` 按 size + mtime 判定），改文件无需重启进程；打开菜单时顺带刷新快捷键绑定。
+- `[Horizontal]`/`[Vertical]` 规则与 SizerWin 完全一致：`;`、`#` 为注释；每行只解析**行首**（跳过空白后）的 `WxH`，`x` 不区分大小写；上限 `maxPresets = 64`；文件为空、超过 `maxFileSize = 8192` 字节或解析结果为空时回退内置默认。
+- 内置默认：水平 `640x480, 1024x768, 1280x720, 1280x800, 1600x900, 1600x1000, 1920x1080, 1920x1200`；垂直 `480x854, 720x1280, 800x1280`。
+- `[Hotkeys]` 六个动作键：`ShowMenu`、`Auto`、`Centre`、`CentreHorizontal`、`CentreVertical`、`Custom`。格式 `修饰键+按键`，修饰键取 `ctrl`/`opt`/`cmd`/`shift` 且至少含 ctrl/opt/cmd 之一（避免吃掉普通输入），按键名见 `KeyTable.keyCodes`；留空表示不绑定。表头、动作键名、修饰键、按键名**全部大小写不敏感**（`auto`、`AUTO`、`Auto` 等价）——之前只对动作键区分大小写，用户写 `centre = opt+cmd+m` 会被当成未知键忽略，再被 `ensureHotkeyKeys` 用默认值覆盖回去。
+- 三个分区可以任意顺序。`parse` 遇到 `[v…`（长度 ≥10）分支时必须同时退出 hotkey 模式，否则把 `[Hotkeys]` 写在 `[Vertical]` 之前会让所有垂直预设被当成 `=` 行静默丢弃。
+- 默认只绑定 `Centre = opt+cmd+c` 与 `Auto = ctrl+opt+cmd+c`。SizerWin 的 `Shift+Alt+Space` 默认不绑定：macOS 上点菜单栏图标即可呼出，而该组合容易与输入法切换冲突。
+- **整行缺失**才补默认绑定；写成 `Centre =`（空值）视为用户显式解绑。`ensureHotkeyKeys` 每次加载都把缺失的键补回 `[Hotkeys]` 分区末尾并落盘，用户误删键后重启即恢复；补写后若超过 `maxFileSize` 就只用在内存里、不落盘（否则下次启动会因文件过大静默回退默认，反而丢配置）。
+- 权限类错误（`EACCES`/`EPERM`/`EROFS`，含 `NSError.underlyingErrors` 里嵌套的 `POSIXError`）视为致命：弹窗后 `exit(1)`。
+
+#### 实现要点
+
+目标窗口：`TargetResolver.current()` 取 `NSWorkspace.shared.frontmostApplication`（跳过自身 PID 与 `excludedBundleIdentifiers`：Dock、ControlCenter、SystemUIServer、WindowManager、loginwindow、NotificationCenterUI、SecurityAgent、ScreenSaverEngine、Spotlight）→ AX `kAXFocusedWindow`，失败退 `kAXWindows`（messaging timeout 0.25 秒，只要求尺寸 ≥ 1pt）→ 再退 `CGWindowListCopyWindowInfo`（layer == 0 且尺寸 ≥ 1pt）。`isEligible` 过滤 role 非 `AXWindow`、`excludedWindowSubroles`（`AXDesktopWindow`、`AXDesktopIcon`、`AXSystemFloatingWindow`、`AXSystemDialog`）、`AXMinimized`、`AXFullScreen`，对应 SizerWin 的 `SW_SHOWNORMAL` 校验与任务栏/桌面类名排除。**不要再用尺寸阈值（如 > 10pt / > 100pt）筛窗口**：小工具窗口、检查器面板会被整菜单禁用。也不要把 `AXUnknown` 当成系统窗口排除——很多 Electron/自定义边框窗口就是这个 subrole。
+
+目标窗口的快照会过期：`MenuCommand` 携带的是弹菜单那一刻的 `TargetWindow`，`WindowOps.perform` 必须在执行前用 `refreshed()` 重新读一次 AX 位置与尺寸（对应 SizerWin 执行时再取 `GetWindowRect`），否则菜单开着时用户挪动窗口，非居中的预设会按旧左上角回弹。
+
+几何：`Geometry.screen(for:)` 取相交面积最大的屏幕，完全不相交时取最近屏幕（等价 `MONITOR_DEFAULTTONEAREST`），工作区用 `visibleFrame`（等价 `rcWork`，避开菜单栏与 Dock）。`PlacementMath` 全部整数除法，与 SizerWin 逐位对齐：`intOrigin`/`intSize` 向下取整，`intWindowSize` 四舍五入。`Placement.size == nil` 表示只移动不改尺寸。
+
+坐标：AX 用 CG 坐标（原点左上），AppKit 用左下，统一经 `Geometry.toCG`/`toAppKit` 按主屏高度翻转。
+
+快捷键：`HotkeyCenter` 用 `CGEvent.tapCreate(.cgSessionEventTap, .headInsertEventTap, .defaultTap)` 监听 `keyDown | flagsChanged | tapDisabledByTimeout | tapDisabledByUserInput`；命中绑定的按键在自动重复（`.keyboardEventAutorepeat != 0`）时必须连 auto-repeat 一起吞掉（等价 `MOD_NOREPEAT`，长按不能把字符泄漏给前台应用）；自定义对话框打开期间（`CustomSizeDialog.isOpen`）屏蔽热键（等价 `g_customDialogOpen`）；`flagsChanged` 通过 `.sizerModifiersChanged` 通知驱动菜单预设标题跟随 ⌥。`CFMachPortCreateRunLoopSource` 返回 nil 时视为安装失败（`tap` 不能留下来假装已安装）；权限被撤销时 `installIfTrusted()` 用 `teardown()` 拆掉 tap 与 run loop source，否则重新授权后永远装不上。
+
+执行：`WindowOps.perform(_:target:)` → 有 `axWindow` 走 `WindowAnimator`，否则 `DragMover` 回退；回退路径不能改尺寸，需要 resize 的动作退化为居中。`.showMenu` 在取目标窗口之前处理（对应 SizerWin 先弹菜单再取前台窗口）。菜单与对话框关闭后把焦点还给目标应用。
+
+单实例：`NSRunningApplication.runningApplications(withBundleIdentifier:)` 检查同 bundle 的其它进程，发现则弹窗显示 PID 后退出（等价 SizerWin 的互斥体 + Toolhelp32 扫描）。
 
 #### 构建与部署
 
 ```bash
 cd SizerSwift
-swift build -c release
+./build.sh              # release 构建 + 打包到 build/SizerSwift.app
+./build.sh --install    # 再安装到 /Applications：退出旧实例、复制、xattr -cr、启动
+./build.sh --version 1.2.0
 ```
 
-手动打包 `.app` 的目录结构：
+`build.sh` 生成 `Contents/Info.plist`（`CFBundleIdentifier = com.dox.SizerSwift`、`LSUIElement = true` 无 Dock 图标、`LSMinimumSystemVersion = 13.0`、`CFBundleIconFile = AppIcon`），并用 `cp` 复制二进制以保留 SwiftPM 自带的 ad-hoc 签名。目录结构：
 
 ```text
 SizerSwift.app/
@@ -399,19 +449,42 @@ SizerSwift.app/
         └── AppIcon.icns
 ```
 
-部署到 `/Applications` 后运行 `xattr -cr /Applications/SizerSwift.app` 清除隔离属性。当前**不使用 codesign 签名**，避免重新编译后辅助功能权限失效。
+- **不执行 codesign**：重新签名会让 TCC 里的辅助功能授权对不上号，每次重编译都要重新授权。手工拼的 bundle 没有 `_CodeSignature/CodeResources`，`codesign --verify` 必然报 `code has no resources but signature indicates they must be present`，这不是问题；`build.sh` 只读 `codesign -dv` 的 `Signature=` 字段确认二进制仍是 ad-hoc 签名。
+- 只构建不打包用 `swift build -c release`；产物 `.build/release/SizerSwift` 不要直接运行，没有 bundle 就没有 `LSUIElement`（会出现 Dock 图标），`SMAppService` 也无法注册。
+- 开机自启动要在安装到 `/Applications` 之后再打开。
 
-#### 维护约束
+#### 已知限制与维护约束
 
-- 最低平台保持 macOS 13。
+- 最低平台保持 macOS 13。`CVDisplayLinkCreateWithActiveCGDisplays` 自 macOS 15 起 deprecated，但按 macOS 13 target 编译无警告；改用 `NSView.displayLink(target:selector:)` 需要 macOS 14。
+- 事件 tap 回调放行事件必须返回 `Unmanaged.passUnretained(event)`；`passRetained` 会每按一次键泄漏一个 event。
+- 必须监听 `.tapDisabledByTimeout`/`.tapDisabledByUserInput` 并重新 `CGEvent.tapEnable`，否则系统禁用 tap 后快捷键永久失效。
+- y 轴翻转只能用「主屏高度 − AppKit y − 窗口高度」，AX 路径与拖拽路径必须共用同一公式（旧实现在多屏纵向排列时两条路径不一致）。
 - 拖拽回退只能可靠移动窗口，不能可靠调整尺寸，不要在文档里承诺回退路径可 resize。
-- 全局快捷键监听 C 键 keyCode `8`。
-- 菜单栏图标来自 `AppIcon.icns`，缺失回退为文本符号。
-- 保持不 codesign 的部署策略。
+- `HotkeyBinding` 的 `Equatable`/`Hashable` 只比较 `keyCode` + `modifiers`，带上 `spec` 会让 `ctrl+opt+c` 与 `control+opt+c` 被当成两个绑定。
+- 预设不做超出屏幕边界校正（与 SizerWin 一致）。
+- `MenuCommand` 携带的 `TargetWindow` 会过期：`WindowOps.perform` 执行前用 `refreshed()` 重读几何，并用 `PlacementMath.isSane` 拒绝非有限值（NaN/±inf）。所有 `CGFloat → Int` 都必须走 `PlacementMath.safeInt`：AX 几何来自目标应用，一个上报 `inf` 的应用会让 `Int(_:)` 陷阱转换直接干掉进程。
+- 事件 tap 装在 `.commonModes` 上，意味着菜单跟踪模式里快捷键仍会触发：`MenuBar.showMenuAtCursor()` 需要 `isShowingMenu` 重入保护，`NSMenu.popUp` 不支持嵌套。
+- macOS 没有 `SW_SHOWNORMAL` 对应的「缩放（zoom）」状态可查，所以缩放窗口不会被拒绝（平台差异，与 SizerWin 拒绝最大化窗口不同）。
+- 非 AX 的拖拽回退本身也依赖辅助功能/合成事件权限；菜单项是否可用由 `AccessStatus.canControlWindows`（`AXIsProcessTrusted() || CGPreflightPostEventAccess()`）决定，避免整个菜单被禁用。
+- 菜单栏图标来自 `AppIcon.icns`（`isTemplate = true`，18×18），缺失回退文本 `◫`。
+- 未授权辅助功能时：菜单顶部出现「打开辅助功能权限…」；快捷键 tap 建不起来，启动只提示一次权限、不重复报快捷键失败；授权后下次打开菜单自动装上快捷键（`HotkeyCenter.installIfTrusted()`），无需重启。
+- 公开 SDK 没有 `AXDesktopWindow` 等 subrole 常量，也没有 `kAXFullScreenAttribute`，只能用字面量。
+- macOS 窗口拼贴（Tiling）可能干扰模拟拖拽；重编译后可能需要重新授权辅助功能。
+- 新增菜单动作的顺序：加 `MenuCommand` case → `WindowOps.perform` 分支 → `PlacementMath` 计算 → 需要快捷键再加 `HotkeyAction` case（`CaseIterable` 顺序即组合键冲突时的优先级）→ 三种语言文案补齐。改默认预设需同步 `ConfigStore.defaultHorizontal`/`defaultVertical` 与 `defaultContent`。
 
-已知限制：macOS Sequoia 窗口拼贴功能可能干扰模拟拖拽；首次运行/重编译后需重新授权辅助功能。
+#### 验证
 
-验证重点：无辅助功能权限时提示清楚并可打开系统设置；授权后菜单栏图标出现且无 Dock 图标；`⌥⌘C` 居中、`⌃⌥⌘C` 75% 并居中；不暴露 AX 窗口能拖拽回退至少居中；登录项切换正确；三种语言文案正确。
+`swift build` 要求无 error 无 warning。仓库没有测试 target（保持单文件），逻辑自测的做法：把 `Sources/main.swift` 中 `// MARK: - 启动` 之前的部分与测试代码拼成一个临时 executable（复用同一份 `Package.swift`），测试产物不入库。已覆盖：
+
+- `PlacementMath` 与 SizerWin 整数运算逐项对照（含奇数工作区与非整数窗口尺寸的截断行为）。
+- `KeyTable.parse`/`equivalent`（拒绝无修饰键、未知键、空值；接受 `ctrl+f12`、`shift+alt+space`）。
+- `ConfigStore.parse`/`parsePreset`/`ensureHotkeyKeys`（默认内容、显式空值解绑、冲突时先出现者生效、空文件回退、预设上限、补键幂等、`[Hotkeys]` 位于 `[Vertical]` 之前仍能读到垂直预设、动作键大小写不敏感）。
+- `PlacementMath.safeInt`/`isSane`（NaN/±inf 不触发陷阱转换，负数向零截断）。
+- `cubicBezier` 与独立二分参考解对照（偏差 < 1e-5）、单调性、前后段速度。
+- `Geometry` 坐标往返、工作区、`screen(for:)` 命中与最近屏幕回退。
+- `MenuBar.rebuild` 的菜单结构（项数、分隔线位置、快捷键显示）与 ⌥ 标题跟随。
+
+真机验证重点：授权后 `⌥⌘C` 居中、`⌃⌥⌘C` 自动、水平/垂直居中、预设、⌥+预设「调整并居中」、自定义尺寸三种提交方式；动画是否 0.25 秒缓动且不卡顿；多显示器与菜单栏/Dock 变化后工作区正确；全屏与最小化窗口不响应；桌面与菜单栏不误处理；不暴露 AX 窗口的应用能拖拽回退居中；改 ini 后重新打开菜单即时生效；删掉 `[Hotkeys]` 里的键重启后补回；登录项切换；三种语言文案。
 
 ### 3.4 CapsLockOSD
 
@@ -1360,7 +1433,7 @@ Caddy 的 `handle /status*` 仍反代到 `127.0.0.1:16090`，其余请求使用 
 | 模块 | 需要的环境 | 主要命令 |
 |---|---|---|
 | SizerWin | VS Build Tools / Windows SDK `cl.exe`+`rc.exe`，可选 CMake | `cd SizerWin; .\build.ps1` |
-| SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; swift build -c release` |
+| SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; ./build.sh --install`（只构建用 `swift build -c release`） |
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
 | Dox Reader（Web 版） | Node.js 24+；Cloudflare 账号 | `cd "Dox Reader/Cloudflare Workers"; npm ci; npm run check`；部署须授权 |
 | Firefox/Add-Ons/Dox Reader（Dox Reader 扩展） | Node.js 24+；发布另需 AMO API 凭据 | `cd "Firefox/Add-Ons/Dox Reader"; npm ci; npm run check`；`pwsh -File release.ps1 -SkipSign` |
