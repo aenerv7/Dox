@@ -8,35 +8,32 @@
 - 想构建、测试或修改实现：看 [`DEVELOPMENT.md`](./DEVELOPMENT.md)，其中记录唯一的维护者文档、模块边界和验证命令。
 - 想处理 Edge 默认关联残留：先运行 `Scripts/RemoveMSEdge.bat -audit-associations`，确认后再使用 `-repair-associations`；这两个入口只检查/修复关联，不会卸载 Edge。
 - 想安装或升级 FFmpeg：运行 `Scripts/InstallFFmpeg.ps1`，它升级 `PATH` 中 `ffmpeg.exe` 所在的那份安装，重复运行即替换为新版本；`PATH` 里没有 `ffmpeg.exe` 时脚本不安装任何东西。
-- 想补全 Firefox 界面翻译：运行 `Firefox/patch_firefox.py`，它会按 Firefox 当前语言找缺项，先 `scan` 看缺项，再 `build` 自动翻译并生成补丁（需要本机运行 magpie）。
 
 ## 功能一览
 
 | 模块 | 说明 |
 |---|---|
-| [`SizerWin`](./SizerWin) | 不依赖 AutoHotkey 运行时的原生 Windows 窗口调整工具 |
-| [`CapsLockOSD`](./CapsLockOSD) | Windows 原生 Caps Lock 状态屏幕提示 |
-| [`SizerSwift`](./SizerSwift) | macOS 菜单栏窗口调整工具 |
-| [`sub-store`](./sub-store) | Sub-Store 后端的 Cloudflare Workers 部署（D1 持久化、路径口令鉴权、每日自动更新） |
-| [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
-| [`bwh-traffic`](./bwh-traffic) | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
+| [`CSS`](./CSS) | 中文字体映射 CSS |
+| [`DeepSeek Harness/Launcher`](#deepseek-harness-launcher) | Windows 托盘监督器，负责启动、停止和重启本地 DeepSeek Harness |
 | [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%20Workers) | 本地 RSS/Atom 阅读器，使用 WebDAV 同步，可部署到 Cloudflare Workers |
 | [`Firefox/Add-Ons/Dox Reader`](./Firefox/Add-Ons/Dox%20Reader) | Dox Reader 的 Firefox 扩展（Manifest V3，桌面版与 Android 版） |
-| [`Firefox/user.js`](./Firefox/user.js) | Firefox 用户层偏好配置（字体、侧栏、表单与隐私选项；不修改应用包） |
-| [`Thunderbird`](./Thunderbird) | 从 Firefox 配置筛选并适配的 Thunderbird 用户层 user.js（字体、语言、滚动和拼写检查） |
 | [`Firefox/Add-Ons/AutoSortBookmarks`](./Firefox/Add-Ons/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py) | 清理让「设置 > 默认应用」重复显示 Firefox 或 Zen 的注册表项 |
-| [`Firefox/patch_firefox.py`](./Firefox/patch_firefox.py) | Firefox 界面翻译补全：按当前语言扫描缺项、调用本机 magpie 自动翻译并生成可还原的资源补丁 |
+| [`Firefox/user.js`](./Firefox/user.js) | Firefox 用户层偏好配置（字体、侧栏、表单与隐私选项；不修改应用包） |
 | [`Scripts`](./Scripts) | Windows 批处理工具、Edge 关联清理辅助脚本和 FFmpeg 安装脚本 |
-| [`DeepSeek Harness/Launcher`](#deepseek-harness-launcher) | Windows 托盘监督器，负责启动、停止和重启本地 DeepSeek Harness |
-| [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
-| [`CSS`](./CSS) | 中文字体映射 CSS |
-| [`Scripts/Userscripts`](./Scripts/Userscripts) | Tampermonkey/Greasemonkey 用户脚本 |
-| [`Scripts/rename-apk.ps1`](./Scripts/rename-apk.ps1) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
 | [`Scripts/Flatten.bat`](./Scripts/Flatten.bat) | Windows 目录展平工具 |
+| [`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) | 下载最新 FFmpeg full 构建并就地升级 `PATH` 中已有的那份安装 |
 | [`Scripts/RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
 | [`Scripts/RemoveMSEdgeAll.bat`](./Scripts/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
-| [`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) | 下载最新 FFmpeg full 构建并就地升级 `PATH` 中已有的那份安装 |
+| [`Scripts/Userscripts`](./Scripts/Userscripts) | Tampermonkey/Greasemonkey 用户脚本 |
+| [`Scripts/rename-apk.ps1`](./Scripts/rename-apk.ps1) | 只修改 APK 应用名称、保持包名与签名身份不变的脚本 |
+| [`SizerSwift`](./SizerSwift) | macOS 菜单栏窗口调整工具 |
+| [`SizerWin`](./SizerWin) | 不依赖 AutoHotkey 运行时的原生 Windows 窗口调整工具 |
+| [`Thunderbird`](./Thunderbird) | 从 Firefox 配置筛选并适配的 Thunderbird 用户层 user.js（字体、语言、滚动和拼写检查） |
+| [`Windhawk/CJKSpacer`](./Windhawk/CJKSpacer) | 为 Explorer 菜单和 Tooltip 的中日韩字符边界补空格的 Windhawk 模组 |
+| [`bwh-traffic`](./bwh-traffic) | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
+| [`sub-store`](./sub-store) | Sub-Store 后端的 Cloudflare Workers 部署（D1 持久化、路径口令鉴权、每日自动更新） |
+| [`sub-store-front-end`](./sub-store-front-end) | Sub-Store 前端的 Cloudflare Workers 静态资源部署 |
 
 ## Dox Reader
 
@@ -427,79 +424,6 @@ python .\Firefox\fix_duplicate.py fix
 ### 文件与备份
 
 `Firefox/fix_duplicate.py` 不写文件，只删除注册表项；删除前可用 `detect` 查看将删除的内容，HKCU 部分可用 `reg export` 自行备份。
-
-## Firefox 界面翻译补全
-
-[`Firefox/patch_firefox.py`](./Firefox/patch_firefox.py) 先判定安装包自带哪些语言、Firefox 当前用的是哪一种，再扫描「英文有、该语言没有」的界面文案，调用本机 magpie 的 OpenAI 兼容接口翻译，并生成可还原的 `omni.ja` / `browser/omni.ja` 补丁。当前语言是英文时没有可补的内容。
-
-适用：本机已安装且至少启动过一次的 Firefox（发布版 / ESR / Developer Edition / Nightly 均可），需要 Python 3.11+ 和本机运行的 magpie。在仓库根目录运行：
-
-```powershell
-python .\Firefox\patch_firefox.py detect     # 只读：版本、安装目录、配置、自带语言与当前语言
-python .\Firefox\patch_firefox.py scan       # 只读：列出缺项（加 --verbose 显示消息 ID）
-python .\Firefox\patch_firefox.py build      # 自动翻译缺项并生成补丁
-python .\Firefox\patch_firefox.py validate   # 校验补丁（需要 fluent.syntax）
-# 完全退出 Firefox 后（Program Files 安装通常需要管理员终端）
-python .\Firefox\patch_firefox.py install
-python .\Firefox\patch_firefox.py verify
-python .\Firefox\patch_firefox.py restore    # 还原
-```
-
-`install` 与 `restore` 需要安装目录写权限，并且必须先完全退出 Firefox（包括后台进程）。其余命令不需要管理员权限，浏览器可以开着。复制到其他电脑时只需 `Firefox/patch_firefox.py`、对应的 `Firefox/translations.<语言>.ftl`，不需要 `build/`、`backups/` 或本机配置。
-
-### 语言判定
-
-`detect` 会打印安装包自带的语言（`shipped_locales`）和判定出的当前语言（`locale`）及其依据（`source`）。顺序为：
-
-1. `--target-locale 语言代码`；
-2. 配置 `prefs.js` 的 `intl.locale.requested`（逗号列表取第一项），其次 `general.useragent.locale`；
-3. 安装目录 `defaults/pref/*.js`（其次归档内 `defaults/pref/*.js`）的 `general.useragent.locale`；
-4. 安装包中唯一的非英文语言；
-5. 安装包中唯一的语言。
-
-自带多种非英文语言而配置里没写时，脚本会列出可选语言并要求 `--target-locale`；指定的语言不在自带语言中也会明确报错。译文按语言分文件保存：`Firefox/translations.<语言>.ftl`（例如 `translations.zh-CN.ftl`、`translations.ja.ftl`）。`build/` 里的补丁只对应一种语言：语言变化后 `build` 会拒绝，要求先 `restore` 或删除 `build/` 再重建。
-
-### magpie 配置
-
-默认连接本机 `http://127.0.0.1:16110/v1`，模型 `opencode-go/deepseek-v4.1-flash`。
-
-| 参数 | 环境变量 | 说明 |
-|---|---|---|
-| `--base-url` | `MAGPIE_BASE_URL` | OpenAI 兼容地址；非本机地址必须是 HTTPS |
-| `--model` | `MAGPIE_MODEL` | 模型名；不存在时会列出可用示例并退出 |
-| `--api-key` | `MAGPIE_API_KEY` | 只有需要密钥的网关才要填，本机 magpie 通常不需要 |
-
-翻译前脚本会先请求 `/models`：magpie 没运行、地址写错或模型不存在都会立刻打印原因并以退出码 1 结束，不写任何文件。译文按检测到的语言翻译（提示词里写明目标语言），每批 16 条，逐条比对消息 ID、属性、变量引用和命名链接，任何一条不合格就整体失败且不写入。
-
-### 常用参数
-
-| 参数 | 作用 |
-|---|---|
-| `--target-locale 语言代码` | 指定要补全的语言，覆盖自动判定（如 `zh-CN`、`ja`） |
-| `--install-dir 目录` | 手动指定安装目录；有多个安装，或要从备份目录构建时使用 |
-| `--profile 名称或路径` | 指定配置；语言判定会读它的 `prefs.js`，默认自动识别 |
-| `--limit N` | 只翻译前 N 条缺项，适合分批推进或先看译文质量 |
-| `--review-first` | 翻译并写入译文文件后停下，复核后再运行 `build` |
-| `--no-translate` | 只报告缺项，不联网 |
-| `--original-dir 目录` | `validate` 的参照原版目录；默认用构建来源或 `backups/<Build ID>` |
-| `--verbose` | `scan` 时列出每条缺失消息的 ID |
-
-### 译文与还原
-
-- 译文按语言写在 `Firefox/translations.<语言>.ftl`，按 `# @file <归档> <资源>` 分段；`build` 只追加、不重排，重复运行不会重复写入。
-- 想重译某条：删掉该条再运行 `build`。想先复核再生效：`build --review-first`，确认后重新 `build`。
-- `build/` 保存补丁、构建清单和可读资源；`backups/<Build ID>/` 保存原版资源包，保留它才能 `restore`。
-- Firefox 升级后直接运行 `install`：检测到没见过的原版资源会按新版自动重建补丁；升级覆盖掉补丁时重跑一次即可。
-- 补丁只改 `localization/<语言>/` 下的 Fluent 资源，不动代码、偏好设置、书签、扩展或配置目录；缓存只清理所选配置的 `startupCache`。
-
-### 限制
-
-- 只补 Fluent（`.ftl`）文案，`*.properties`、`*.dtd` 等旧格式不在范围内。
-- 只能补安装包自带语言中的一种；语言包未安装的语言会明确报错，纯英文安装没有可补的内容。
-- 自动译文没有逐条人工审阅，界面文案以实际显示为准；重要界面建议用 `--review-first` 过一遍。
-- 修改 `omni.ja` 属于改动安装目录，Firefox 自动更新仍会替换这些文件。
-
-维护说明见 [DEVELOPMENT.md](./DEVELOPMENT.md#315-firefox界面翻译补全)。
 
 ## Firefox 扩展
 
@@ -1433,4 +1357,4 @@ node --test bwh-traffic/worker.test.js
 
 状态页入口为 <https://strelaysrv.ddtwstudio.com/>，显示 Syncthing Relay 的运行时长、流量和连接情况，每 60 秒从同域 `/status` 更新；原始状态 JSON 可直接访问 <https://strelaysrv.ddtwstudio.com/status>。
 
-网页与中继服务一起部署在搬瓦工 VPS 的 `/usr/local` 安装前缀下，不在 Cloudflare Workers 上，也不再占用作为文件存储的 `/srv/`。程序、网页、私有配置的实际路径及维护/回滚方法见 [DEVELOPMENT.md 第 3.17 节](./DEVELOPMENT.md#317-strelaysrvvps-私有中继状态页)。
+网页与中继服务一起部署在搬瓦工 VPS 的 `/usr/local` 安装前缀下，不在 Cloudflare Workers 上，也不再占用作为文件存储的 `/srv/`。程序、网页、私有配置的实际路径及维护/回滚方法见 [DEVELOPMENT.md 第 3.16 节](./DEVELOPMENT.md#316-strelaysrvvps-私有中继状态页)。

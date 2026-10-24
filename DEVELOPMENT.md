@@ -25,10 +25,9 @@
    - 3.12 [Firefox 默认应用重复项清理](#312-firefox-默认应用重复项清理)
    - 3.13 [Sub-Store（Cloudflare Workers）](#313-sub-storecloudflare-workers)
    - 3.14 [bwh-traffic（BandwagonHost 流量订阅头）](#314-bwh-trafficbandwagonhost-流量订阅头)
-   - 3.15 [Firefox（界面翻译补全）](#315-firefox界面翻译补全)
-   - 3.16 [Thunderbird（用户层配置）](#316-thunderbird用户层配置)
-   - 3.17 [strelaysrv（VPS 私有中继状态页）](#317-strelaysrvvps-私有中继状态页)
-   - 3.18 [Firefox（用户层配置）](#318-firefox用户层配置)
+   - 3.15 [Thunderbird（用户层配置）](#315-thunderbird用户层配置)
+   - 3.16 [strelaysrv（VPS 私有中继状态页）](#316-strelaysrvvps-私有中继状态页)
+   - 3.17 [Firefox（用户层配置）](#317-firefox用户层配置)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -46,7 +45,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 |---|---|---|
 | C / Win32 API | `SizerWin/*.c`、`SizerWin/*.rc`、`SizerWin/*.manifest`、`CapsLockOSD/` | 原生 Windows 窗口调整工具与 OSD 提示 |
 | C++20 / Win32 API | `DeepSeek Harness/Launcher/` | DeepSeek Harness 本地托盘监督器 |
-| Python 3.11+ / 标准库、PowerShell、HTTP | `Firefox/` | Firefox 界面翻译补全（按当前语言调用本机 magpie 翻译）、Firefox / Zen 默认应用重复项清理 |
+| Python 3.11+ / 标准库 | `Firefox/` | Firefox / Zen 默认应用重复项清理 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
 | JavaScript | `Scripts/Userscripts/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/`、`Firefox/Add-Ons/Dox Reader/` | 浏览器用户脚本、Manifest V3 扩展 |
@@ -63,7 +62,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `Dox Reader/Cloudflare Workers/` | 活跃 | 本地 IndexedDB + WebDAV 同步的 Web RSS 阅读器，无状态 Cloudflare Worker 代理 |
 | `Firefox/Add-Ons/Dox Reader/` | 活跃 | Dox Reader 的 Firefox WebExtension（Manifest V3，AMO listed，扩展 ID `dox-reader@magi`）源码、发布脚本与签名产物 |
 | `Firefox/Add-Ons/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
-| `Firefox/`（根目录） | 活跃 | Firefox 用户层偏好配置、界面翻译补全（按当前语言扫描缺项、magpie 翻译、可还原补丁），以及 Firefox / Zen 共用的默认应用重复项清理 |
+| `Firefox/`（根目录） | 活跃 | Firefox 用户层偏好配置，以及 Firefox / Zen 共用的默认应用重复项清理 |
 | `Thunderbird/` | 活跃 | 从 Firefox 偏好设置筛选并适配的 Thunderbird 用户层 user.js |
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `CSS/` | 活跃 | 中文字体映射 CSS |
@@ -89,7 +88,6 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
 - `DeepSeek Harness/Launcher/bin/`
 - `Firefox/__pycache__/`
-- `Firefox/build/`、`Firefox/backups/`、`Firefox/validation.json`（Firefox 界面翻译补丁的本地产物）
 - `Firefox/Add-Ons/Dox Reader/.env.release`（AMO API 发布凭据）
 - `sub-store/.upstream/`、`sub-store/build/`
 - `sub-store-front-end/dist/`、`sub-store-front-end/build/`
@@ -105,7 +103,6 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/Add-Ons/Dox Reader/src/*.ts`、`Firefox/Add-Ons/Dox Reader/src/*.tsx`、`Firefox/Add-Ons/Dox Reader/public/manifest.json`、`Firefox/Add-Ons/Dox Reader/release.ps1`
 - `Firefox/user.js`、`Thunderbird/user.js`（个人配置目录偏好文件）
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
-- `Firefox/patch_firefox.py`、`Firefox/translations.<语言>.ftl`、`Firefox/test_firefox_patch.py`、`Firefox/test_firefox_translate.py`
 - `Scripts/Userscripts/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
 - `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`、`Scripts/rename-apk.ps1`
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
@@ -1318,69 +1315,7 @@ cd bwh-traffic; npx wrangler deploy --dry-run
 
 线上验收：`curl.exe "https://<worker>/<ACCESS_TOKEN>?debug=1"` 的 `upstream_keys` 应包含 `plan_monthly_data`，正常请求应带 `subscription-userinfo: upload=0; download=<已用>; total=<配额>; expire=<下一年 1 月 1 日>`；浏览器打开同一地址（去掉 `debug=1`）应看到用量面板。若 `upstream_keys` 为 `["success","token"]`，说明 `KIWIVM_BASE` 未生效或中转自己也在 Cloudflare 上。中转自检用假 Key：`curl -H "X-Relay-Token: <ACCESS_TOKEN>" "https://bwh-traffic.ddtwstudio.com/getServiceInfo?veid=1&api_key=x"` 应回 KiwiVM 的 700005，去掉口令或换路径应 403。改上游字段、响应头语义或中转约定时，同一提交更新本节与根 `README.md` 的 bwh-traffic 小节。
 
-### 3.15 Firefox（界面翻译补全）
-
-`Firefox/patch_firefox.py` 补全已安装 Firefox **当前使用语言** 的界面文案：先判定安装包自带哪些语言、Firefox 正在用哪一种，再找出英文有、该语言没有的 Fluent 消息，调用本机 magpie 的 OpenAI 兼容接口翻译，生成可还原的 `omni.ja` / `browser/omni.ja` 补丁。**本节是维护规范，用户使用见 [`README.md`](./README.md#firefox-界面翻译补全) 的 Firefox 小节。**
-
-#### 范围与源码边界
-
-| 文件 | 职责 |
-|---|---|
-| `patch_firefox.py` | 入口，子命令 `help/detect/scan/build/validate/install/verify/restore`；语言判定、安装与配置定位、缺口扫描、magpie 翻译、归档读写、校验、备份与替换 |
-| `translations.<语言>.ftl` | 按 `# @file <归档> <该语言资源>` 分段保存新增消息，由 `build` 自动追加；一种语言一个文件（`translations.zh-CN.ftl`、`translations.ja.ftl`…） |
-| `test_firefox_patch.py` | 标准库 unittest；优化布局归档读取、语言与配置识别、缺口扫描、构建/安装/还原往返 |
-| `test_firefox_translate.py` | 标准库 unittest；magpie 客户端（本地假网关）、译文结构校验与写回 |
-
-`build/`（补丁、清单、可读资源、部署记录）、`backups/<Build ID>/`、`validation.json` 均为本地 ignored 产物。补丁只写 `localization/<语言>/` 下的 Fluent 资源，不改代码、偏好设置、扩展或配置。
-
-#### 语言判定
-
-安装自带的语言取自两个归档里 `localization/<语言>/…` 的目录名；英文回退树（优先 `en-US`，否则任一 `en-*`）是比对基准 `source_locale`，缺少英文回退资源时直接报错。
-
-目标语言按顺序取：`--target-locale` → 配置 `prefs.js` 的 `intl.locale.requested`（取逗号列表首项）→ `general.useragent.locale` → 安装目录 `defaults/pref/*.js`（其次归档内 `defaults/pref/*.js`）的 `general.useragent.locale` → 安装包中唯一的非英文语言 → 安装包中唯一的语言。仍不确定（自带多种非英文语言且配置未指定）时列出语言并要求 `--target-locale`；目标语言不在自带资源中同样报错。目标语言是英文（`en`、`en-US`、`en-GB`…）时没有可补全内容，`scan`/`build` 说明后以 0 结束，不生成补丁。`detect` 输出 `language` 段（`locale`、`source`、`source_locale`、`shipped_locales`），语言无法判定时输出错误原因与自带语言列表而不中断其余检测。
-
-清单记录 `target_locale`、`source_locale`、`locale_source`、`shipped_locales`；`build` 发现清单语言与当前语言不同会拒绝并要求先 `restore` 或删除 `build/`（补丁产物不按语言分目录）。`validate` 用清单里的 `target_locale`，可用 `--target-locale` 覆盖。
-
-#### 归档读写（最易退化的部分）
-
-Firefox 的 `omni.ja` 把 ZIP 中央目录放在文件开头（Mozilla 优化布局），python `zipfile` 会把它当作自解压前缀修正偏移并报 `Bad magic number for central directory`，因此脚本自带 `Jar`：以中央目录结束记录定位，逐条解析 `PK\x01\x02`，再按本地文件头读取数据（STORED / DEFLATE），明确拒绝 zip64 与未知压缩方式。写出的补丁是普通 ZIP_STORED 归档，Firefox 两种布局都能加载；条目顺序、时间戳与属性沿用原包，同一输入重复构建得到相同字节，且 `SUPPLEMENT` 标记未压缩因此可直接扫描。标记文本与语言无关（`# Local supplement added by patch_firefox.py.`）：判「已打过补丁」时不依赖目标语言，语言只记录在清单里。
-
-维护约束：`test_firefox_patch.py::optimized_jar` 复刻 Firefox 的目录前置布局，并断言 `zipfile` 打不开它；`Jar` 不得退回用 `zipfile` 读取原包。改 `SUPPLEMENT` 文本会让已构建归档的哈希变化，必须重新 `build`。
-
-#### 缺口判定与翻译
-
-缺口 = 归档内 `<source_locale>/**/*.ftl` 的消息 ID 不在对应 `localization/<目标语言>/...`（含该语言的译文文件内容）中；目标语言文件整体缺失时该文件全部消息计入缺项，补丁会新建该文件。判定假定安装包自带目标语言资源；纯英文安装没有可补全内容（按上面规则直接结束）。
-
-翻译走本机 magpie：默认 `http://127.0.0.1:16110/v1`、模型 `opencode-go/deepseek-v4.1-flash`，可用 `--base-url`/`--model` 或环境变量 `MAGPIE_BASE_URL`/`MAGPIE_MODEL` 覆盖，密钥取 `MAGPIE_API_KEY`（本机 magpie 通常不需要）。提示词里的目标语言由语言表 `LOCALE_NAMES` 解析（未收录的语言代码按 `the language of locale <代码>` 交给模型）。翻译前先查 `/models`，网关不可达或模型不存在立即失败；只接受 HTTPS，回环地址可用 http；不跟随重定向。每批 16 条，逐条校验消息 ID、属性集合、`{$变量}`/`{-term}`/`data-l10n-name` 与值/属性结构，全部通过后才写译文文件。`--limit N` 只翻译前 N 条并停下（分批推进），`--review-first` 写完即停，`--no-translate` 只报缺项。
-
-#### 失败语义
-
-任何阻碍性错误都打印 `错误：<原因>` 并以退出码 1 结束，且不修改安装目录与译文文件：找不到或无法唯一确定安装、语言无法判定或不在自带语言中、清单语言与当前语言冲突、`application.ini` 缺字段、归档不是有效 jar 或来源已打过补丁（`SUPPLEMENT` 标记）、magpie 不可达 / 模型不存在 / 返回非 JSON / 译文结构不一致、Firefox 仍在运行、安装目录被升级替换、安装目录不可写。`--limit` 与 `--review-first` 只写译文不产包并以 0 结束；`install` 在该情况下拒绝沿用旧清单。
-
-#### 构建、验证与部署
-
-`build` 从 `application.ini`（先 `browser/`，其次根目录）读取 Name/Version/BuildID/SourceStamp 与 Gecko MinVersion，现算两个原版归档的 SHA-256 写进 `build/manifest.json`；不保存固定基线，升级后直接 `install` 会按新版原包重建。`validate` 需要 `fluent.syntax`：非目标资源逐字节比对必须一致、新增消息必须真的写进补丁、引用/属性/`data-l10n-name` 必须与英文基准一致、补丁后不得再有缺项，并写 `validation.json`（含 `target_locale`/`source_locale`）。`install`/`restore` 先完成全部校验再写入：原版备份按清单哈希校验、逐归档原子替换、失败回滚已替换归档，最后只删所选配置的 `startupCache`；`verify` 按清单哈希确认已安装。
-
-验证命令（仓库根目录）：
-
-```powershell
-python -B -m unittest discover -s Firefox -p 'test_firefox_*.py' -v
-python -B Firefox/patch_firefox.py detect
-python -B Firefox/patch_firefox.py scan --verbose
-python -B Firefox/patch_firefox.py scan --target-locale ja
-python -B Firefox/patch_firefox.py build --no-translate
-python -B Firefox/patch_firefox.py build
-python -B Firefox/patch_firefox.py validate
-python -B Firefox/patch_firefox.py install --profile "default-release"
-python -B Firefox/patch_firefox.py verify
-python -B Firefox/patch_firefox.py restore
-```
-
-本机验证结果（Firefox Developer Edition 159.0 / Build ID `20261012090602`，自带 `en-US` + `zh-CN`，配置未设语言，按「唯一的非英文语言」判定为 `zh-CN`）：`detect` 自动识别安装目录、运行中的配置（`dev-edition-default`）、启动缓存与语言判定依据；`scan` 列出 277 条缺项、43 个资源；`build` 经本机 magpie（`opencode-go/deepseek-v4.1-flash`）分 18 批自动翻译并生成两个归档，重复构建字节一致（`omni.ja` `fafcd557…`、`browser/omni.ja` `7980db80…`）；`validate` 比较 241 个 Fluent 文件、新增 277 条、缺项 0，语法、变量引用与命名链接一致，非目标资源未变；`test_firefox_patch.py` 与 `test_firefox_translate.py` 共 54 项 unittest 通过（含语言判定、英文安装空操作、非中文目标语言构建、清单语言冲突用例）。**真实启动验证尚未进行**：还需把补丁安装到实际安装目录后启动 Firefox，确认缺项对应的界面（新标签页、IP 保护、DevTools 工具箱选项等）显示目标语言。
-
-打包时只包含 `patch_firefox.py`、`translations.<语言>.ftl` 与用户说明；排除 `build/`、`backups/`、`validation.json` 与本机配置。
-
-### 3.16 Thunderbird（用户层配置）
+### 3.15 Thunderbird（用户层配置）
 
 用户部署、效果、卸载和旧版迁移见根 [README.md 的 Thunderbird 配置小节](./README.md#thunderbird-配置)。源码为 `Thunderbird/user.js`，无需构建；已从安装级 AutoConfig 改为个人配置目录中的声明式 `user_pref()`，移除本模块旧 `.cfg` 和加载器，不操作应用包。
 
@@ -1400,7 +1335,7 @@ python -B Firefox/patch_firefox.py restore
 - 运行验证使用临时个人配置，不修改安装目录：确认启动读取成功；核对 123 项值；用中英文纯文本/HTML 邮件检查字体回退与平滑滚动；撰写及发送前不触发拼写检查；已有账号收发信、密码保存、OAuth 登录及附件打开不应被影响；Windows/Linux 检查单独 Alt 不聚焦菜单、原有快捷键仍可用。
 - 检查重启重新应用值、移除文件后值仍保留、重置偏好可恢复默认。macOS 验证部署前后应用包签名检查结果不变。当前仅做静态校验，未进行 Thunderbird 真实启动或 macOS 签名测试。
 
-### 3.17 strelaysrv（VPS 私有中继状态页）
+### 3.16 strelaysrv（VPS 私有中继状态页）
 
 用户入口见根 [README.md 的 strelaysrv 小节](./README.md#strelaysrvvps-私有中继状态页)。这是 VPS 上已有服务的部署记录，仓库不保存其私钥、环境凭据或网页副本，也不创建 Cloudflare Worker。
 
@@ -1428,9 +1363,9 @@ Caddy 的 `handle /status*` 仍反代到 `127.0.0.1:16090`，其余请求使用 
 - 更新网页只需替换 `/usr/local/share/strelaysrv/www/` 内资源，无需重启中继。调整 Caddy 时先备份并执行 `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile`，成功后 `systemctl reload caddy`；检查网页、图标、`/status` 和 relay 进程状态。
 - 需要撤销页面内容更新时，可从归档选择性恢复 `index.html` / `favicon.png` 到当前 Web 根目录；不要整包解压进公开目录。若必须回滚本次目录迁移，应先将归档恢复到旧路径，确认 Caddy 可读，再恢复备份 Caddyfile（所有者 `root:caddy`、权限 640），校验并 reload；此操作会重新占用 `/srv/`，须先得到用户同意。
 
-### 3.18 Firefox（用户层配置）
+### 3.17 Firefox（用户层配置）
 
-源码为 `Firefox/user.js`，用户说明见根 [README.md 的 Firefox 用户层配置小节](./README.md#firefox-用户层配置)。与界面翻译补丁是独立入口，无需构建、翻译服务或修改应用资源。`Firefox/firefox.cfg` 与 `Firefox/defaults/` 保留为旧方案，此次不删除、不扩展。
+源码为 `Firefox/user.js`，用户说明见根 [README.md 的 Firefox 用户层配置小节](./README.md#firefox-用户层配置)。无需构建，也不修改应用资源。`Firefox/firefox.cfg` 与 `Firefox/defaults/` 保留为旧方案，此次不删除、不扩展。
 
 #### 维护约束
 
@@ -1455,7 +1390,7 @@ Caddy 的 `handle /status*` 仍反代到 `127.0.0.1:16090`，其余请求使用 
 | Dox Reader（Web 版） | Node.js 24+；Cloudflare 账号 | `cd "Dox Reader/Cloudflare Workers"; npm ci; npm run check`；部署须授权 |
 | Firefox/Add-Ons/Dox Reader（Dox Reader 扩展） | Node.js 24+；发布另需 AMO API 凭据 | `cd "Firefox/Add-Ons/Dox Reader"; npm ci; npm run check`；`pwsh -File release.ps1 -SkipSign` |
 | Firefox/Add-Ons/AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js` |
-| Firefox（界面翻译补全、默认应用重复项清理） | Windows；Python 3.11+；`validate` 另需 fluent.syntax；`build` 需要本机 magpie 在运行 | `python -B -m unittest discover -s Firefox -p test_duplicate.py -v`；`python -B Firefox/fix_duplicate.py detect`；`python -B -m unittest discover -s Firefox -p 'test_firefox_*.py' -v`；`python -B Firefox/patch_firefox.py scan`；`python -B Firefox/patch_firefox.py build`；`python -B Firefox/patch_firefox.py validate`；使用见 [README](./README.md#firefox-界面翻译补全) |
+| Firefox（默认应用重复项清理） | Windows；Python 3.11+ | `python -B -m unittest discover -s Firefox -p test_duplicate.py -v`；`python -B Firefox/fix_duplicate.py detect` |
 | DeepSeek Harness Launcher | PowerShell 7，VS Build Tools | `DeepSeek Harness/Launcher/scripts/build.ps1` |
 | Sub-Store（Cloudflare Workers） | Node.js 24+；Cloudflare 账号与 API Token | `cd sub-store; npm ci; npm run check`；`cd sub-store-front-end; npm ci; npm run build` |
 | bwh-traffic | Node.js 24+；Cloudflare 账号；非 Cloudflare 中转 | `node --test bwh-traffic/worker.test.js`；`cd bwh-traffic; npx wrangler deploy` |
