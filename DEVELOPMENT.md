@@ -96,7 +96,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 当前源码入口：
 
 - `SizerWin/SizerWin.c`、`SizerWin/SizerWin.manifest`
-- `SizerSwift/Sources/main.swift`、`SizerSwift/build.sh`、`SizerSwift/make-signing-cert.sh`、`SizerSwift/INSTALL.md`
+- `SizerSwift/Sources/main.swift`、`SizerSwift/build.sh`、`SizerSwift/INSTALL.md`
 - `CapsLockOSD/`（C++ 源与资源脚本）
 - `CSS/font-face.css`
 - `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
@@ -430,14 +430,14 @@ macOS 原生菜单栏窗口调整工具，Swift 编写，最低 macOS 13，打�
 
 ```bash
 cd SizerSwift
-./make-signing-cert.sh  # 首次：创建本机自签名证书 "MAGI-OpenSource"（幂等）
-./build.sh              # release 构建 + 签名 + 打包到 build/SizerSwift.app
-./build.sh --install    # 再安装到 /Applications：退出旧实例、复制、xattr -cr、校验签名、启动
+./build.sh --help                             # 选项、证书导入方法与 ad-hoc 说明
+./build.sh                                    # release 构建 + ad-hoc 签名 + 打包到 build/SizerSwift.app
+./build.sh --identity "MAGI-OpenSource"        # 用钥匙串里这张证书签整包（覆盖升级保留授权）
+./build.sh --identity "MAGI-OpenSource" --install  # 再安装到 /Applications：退出旧实例、复制、xattr -cr、校验签名、启动
 ./build.sh --version 1.2.0
-./build.sh --identity none   # 不签整包，保留 SwiftPM 的 ad-hoc 签名（仅临时调试用）
 ```
 
-`build.sh` 生成 `Contents/Info.plist`（`CFBundleIdentifier = magi.aenerv7.sizerswift`、`LSUIElement = true` 无 Dock 图标、`LSMinimumSystemVersion = 13.0`、`CFBundleIconFile = AppIcon`），并用 `cp` 复制二进制（保留 SwiftPM 自带的 ad-hoc 签名作为签名前的中间态）。签名后目录结构多出 `_CodeSignature/` 与 `Contents/_CodeSignature/CodeResources`：
+`build.sh` 生成 `Contents/Info.plist`（`CFBundleIdentifier = magi.aenerv7.sizerswift`、`LSUIElement = true` 无 Dock 图标、`LSMinimumSystemVersion = 13.0`、`CFBundleIconFile = AppIcon`），并用 `cp` 复制二进制（保留 SwiftPM 自带的 ad-hoc 签名，随后整包重签）。签名后目录结构多出 `_CodeSignature/` 与 `Contents/_CodeSignature/CodeResources`：
 
 ```text
 SizerSwift.app/
@@ -451,10 +451,12 @@ SizerSwift.app/
         └── CodeResources
 ```
 
-- **签名身份必须稳定**：TCC（辅助功能）与 `SMAppService`（开机自启动）都按 code signing 的 designated requirement 记录授权。SwiftPM 产物的 ad-hoc 签名 DR 就是 cdhash（`designated => cdhash H"…"`），每次重编译都变，等于换了个 App；因此 `build.sh` 默认用**签整包**的方式重新签名，DR 变成 `identifier "magi.aenerv7.sizerswift" and certificate leaf = H"<证书 SHA1>"`，与产物内容无关，覆盖升级后授权自动保留。
-- **自签名证书**：`make-signing-cert.sh` 用 `/usr/bin/openssl`（LibreSSL）生成 3650 天自签名 codeSigning 证书并 `security import` 到登录钥匙串，默认名 `MAGI-OpenSource`（本机其它个人小工具也用这一张）。不要用 Homebrew 的 OpenSSL 导出 p12：它写 AES-256 + SHA256 MAC，`security import` 会报 `MAC verification failed during PKCS12 import (wrong password?)`。证书不设信任（无 `security add-trusted-cert`），所以 `security find-identity -p codesigning` 里它以 `(CSSMERR_TP_NOT_TRUSTED)` 出现，且会被加 `-v` 过滤掉——这是预期，`build.sh` 因此不带 `-v`；`codesign` 与 TCC 都不受影响。
+签名统一走一条路径：`codesign --force --sign <身份> --identifier magi.aenerv7.sizerswift --timestamp=none` 签整包，然后 `codesign --verify` 校验并打印 designated requirement。`--identity` 为空时身份就是 `-`（ad-hoc），所以两种模式产出结构与校验方式一致，差别只在 DR。`--identity` 只认参数（或环境变量 `CODESIGN_IDENTITY`），没有默认证书名：名字写错直接报错退出，不会静默降级成 ad-hoc。身份优先级：`--identity` > `CODESIGN_IDENTITY` > ad-hoc；`--identity none` 可显式压住环境变量。
+
+- **签名身份必须稳定**：TCC（辅助功能）与 `SMAppService`（开机自启动）都按 code signing 的 designated requirement 记录授权。签名身份固定时 DR 是 `identifier "magi.aenerv7.sizerswift" and certificate leaf = H"<证书 SHA1>"`，与产物内容无关，覆盖升级后授权自动保留；不传 `--identity` 时 DR 就是 cdhash（`# designated => cdhash H"…"`），产物内容一变就换身份，等于换了个 App。同一份产物重复构建 cdhash 相同，但只要源码或构建输入变化就变，授权随之失效。
+- **证书由开发者自行提供**：仓库不生成证书，也没有生成脚本。可用「钥匙串访问 → 证书助理 → 创建证书」自建一张代码签名证书，或把已有的 `.p12` 导入登录钥匙串：`security import x.p12 -k ~/Library/Keychains/login.keychain-db -P <口令> -T /usr/bin/codesign -A`。不要用 Homebrew 的 OpenSSL 导出 p12：它写 AES-256 + SHA256 MAC，`security import` 会报 `MAC verification failed during PKCS12 import (wrong password?)`，改用 `/usr/bin/openssl pkcs12` 重新导出。自建证书不设信任（无 `security add-trusted-cert`），所以在 `security find-identity -p codesigning` 里带 `(CSSMERR_TP_NOT_TRUSTED)`，加 `-v` 会被过滤掉——这是预期，`build.sh` 因此不带 `-v`；`codesign` 与 TCC 都不受影响。
 - **刻意不加 `--options runtime`**：本机自签名不公证、也不分发，硬化运行时只会给动态库校验添麻烦。
-- **证书的存放与备份**：证书和私钥只存在于登录钥匙串 `~/Library/Keychains/login.keychain-db`（一条「证书」+ 一条「密钥」，用同一个 CN 关联成 identity）。`make-signing-cert.sh` 生成时用的 `.pem` / `.p12` 在 `mktemp -d` 临时目录里，脚本退出即删除，磁盘上没有可直接拷贝的私钥文件，要备份必须从钥匙串导出。备份只认 `.p12`（含私钥）：
+- **证书的存放与备份**：证书和私钥只存在于登录钥匙串 `~/Library/Keychains/login.keychain-db`（一条「证书」+ 一条「密钥」，用同一个 CN 关联成 identity），磁盘上没有可直接拷贝的私钥文件，要备份必须从钥匙串导出。备份只认 `.p12`（含私钥）：
   - GUI：钥匙串访问 → 登录 → 我的证书 → 选中 `MAGI-OpenSource`（条目类型是「身份」）→ 文件 → 导出项目 → 格式「个人信息交换 (.p12)」→ 设保护密码。
   - 命令行：`security export -k ~/Library/Keychains/login.keychain-db -t identities -f pkcs12 -o ~/Backups/MAGI-OpenSource.p12`，省略 `-P` 时由系统弹 GUI 口令框（`-P` 会把口令留在 shell 历史里）。注意 `security export` 没有按名字过滤的选项，会把这个钥匙串里所有带私钥的身份（包括 Apple 开发证书）一起导出。
   - `.p12` 等于可伪签的凭证，不要进 git、不要放 iCloud 明文目录；恢复了私钥的人能签出「同一个 App」，本机 TCC 会把它当成已授权。
@@ -462,7 +464,7 @@ SizerSwift.app/
 - **同一张证书可以给其它个人小工具用**：`codesign --force --sign "MAGI-OpenSource" --identifier <该工具的 bundle id> --timestamp=none Tool.app`。DR 是 `identifier + certificate leaf`，identifier 不同就是不同 App，各自独立授权，不会互相串；只是所有工具共享同一份私钥风险。当前证书 SHA1 `5906835B4E1C82671505925A32D9A3E86B424456`，有效至 2036-10-19；到期或换证书后所有用它签过的 App 的 TCC/登录项都要重新授权。
 - **自签名过不了 Gatekeeper**：`codesign --verify` 通过，但 `spctl -a -vv` 仍 `rejected (origin=…)`；带 `com.apple.quarantine` 的包在别人的机器上首次打开需要在「系统设置 → 隐私与安全性」放行（macOS 15 已无右键「打开」旁路），有时会报成「已损坏」，需 `xattr -dr com.apple.quarantine`。面向接收方的步骤写在 `SizerSwift/INSTALL.md`。
 - **改包名或换证书要重新授权**：两次变更都会让旧 DR 失配，TCC 与登录项需要用户重新授权一次（旧条目一般会变成带警告的失效项，先移除再添加）。当前包名 `magi.aenerv7.sizerswift`，历史包名 `com.dox.SizerSwift`。
-- **ad-hoc 回退路径**：`--identity none`（或默认证书缺失且未显式指定）时保留 SwiftPM 的 ad-hoc 签名；手工拼的 bundle 没有 `_CodeSignature/CodeResources`，此时不能用 `codesign --verify` 校验，`build.sh` 只读 `codesign -dv` 的 `Signature=` 字段确认二进制确实带签名（Apple Silicon 上没签名跑不起来）。
+- **ad-hoc 默认路径**：不传 `--identity`（或显式 `--identity none`）时用 `codesign --sign -` 签整包，DR 是 `cdhash H"…"`，`build.sh` 会把算出的 DR 打印出来便于对照。目录结构与证书签名完全一致（同样有 `_CodeSignature/CodeResources`），所以 `codesign --verify`、`spctl -a -vv` 的判定方式不受影响，`--install` 也照常校验。仅临时调试（不需要保住辅助功能授权）时适合这条路径。
 - 只构建不打包用 `swift build -c release`；产物 `.build/release/SizerSwift` 不要直接运行，没有 bundle 就没有 `LSUIElement`（会出现 Dock 图标），`SMAppService` 也无法注册。
 - 开机自启动要在安装到 `/Applications` 之后再打开。
 - 产物是 thin arm64（`lipo -info` 可确认），Intel Mac 上不能运行；要支持 Intel 需在 `build.sh` 里改成 `--arch arm64 --arch x86_64` 并验证辅助功能路径。

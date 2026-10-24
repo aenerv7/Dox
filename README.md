@@ -308,7 +308,7 @@ cd SizerSwift
 ./build.sh
 ```
 
-首次构建会在本机创建一张自签名代码签名证书（`./make-signing-cert.sh`，默认名 `MAGI-OpenSource`），`build.sh` 用它签整包。目的是固定签名身份：TCC 与开机自启动按 designated requirement 记录授权，而 ad-hoc 签名的 DR 就是 cdhash，每次重编译都会让授权失效；固定证书后覆盖升级不需要重新授权。
+构建时可用 `--identity <证书名称>` 指定本机钥匙串里的代码签名证书（证书由使用者自己提供，仓库不生成）：签名身份固定后，TCC 与开机自启动按 designated requirement 记录授权，覆盖升级不需要重新授权。不传 `--identity` 就用 ad-hoc 签名，DR 就是 cdhash，产物一变授权就失效。导入证书、查看可用身份的方法见 `./build.sh --help`。
 
 自签名包过不了 Gatekeeper。把 `SizerSwift.app` 拷给别人时对方首次打开会被拦下（或者在带隔离属性时报「已损坏」），需要在「系统设置 → 隐私与安全性」里手动放行、并自行授权辅助功能；完整步骤见 [`SizerSwift/INSTALL.md`](./SizerSwift/INSTALL.md)。
 

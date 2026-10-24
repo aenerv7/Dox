@@ -83,6 +83,8 @@ SizerSwift 通过辅助功能 API 操作其它应用的窗口。没有授权时�
 
   ```bash
   cd SizerSwift
-  ./make-signing-cert.sh   # 创建本机自签名证书
-  ./build.sh --install     # 构建、签名并安装
+  ./build.sh --install                            # ad-hoc 签名构建并安装
+  ./build.sh --identity "<证书名称>" --install     # 用自己提供的证书签名（升级后保住授权）
   ```
+
+  证书要自己提供（自行创建或从 `.p12` 导入登录钥匙串，`./build.sh --help` 有命令）；ad-hoc 签名每次改动重编译后都要重新授权。
