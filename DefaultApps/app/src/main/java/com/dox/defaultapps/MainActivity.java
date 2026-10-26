@@ -6,6 +6,7 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -20,6 +21,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -29,6 +31,8 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatRadioButton;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -114,6 +118,8 @@ public class MainActivity extends AppCompatActivity {
         content = findViewById(R.id.content);
         scroll = findViewById(R.id.scroll);
 
+        applySystemBarAppearance();
+
         try {
             Shizuku.addBinderReceivedListenerSticky(binderReceivedListener);
             Shizuku.addBinderDeadListener(binderDeadListener);
@@ -122,6 +128,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
         refresh();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void applySystemBarAppearance() {
+        boolean night = (getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+
+        Window window = getWindow();
+        window.setStatusBarColor(MaterialColors.getColor(content,
+                com.google.android.material.R.attr.colorSurface));
+
+        WindowInsetsControllerCompat controller =
+                WindowCompat.getInsetsController(window, window.getDecorView());
+        controller.setAppearanceLightStatusBars(!night);
     }
 
     @Override
@@ -781,7 +801,7 @@ public class MainActivity extends AppCompatActivity {
                 snack("系统没有该页面");
             }
         });
-        content.addView(system);
+        content.addView(system, footerButtonParams());
 
         MaterialButton more = new MaterialButton(this, null,
                 com.google.android.material.R.attr.materialButtonOutlinedStyle);
@@ -793,19 +813,20 @@ public class MainActivity extends AppCompatActivity {
                 snack("此 ROM 没有该页面");
             }
         });
-        LinearLayout.LayoutParams moreLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        moreLp.topMargin = dp(8);
-        content.addView(more, moreLp);
+        content.addView(more, footerButtonParams());
 
         MaterialButton custom = new MaterialButton(this, null,
                 com.google.android.material.R.attr.materialButtonOutlinedStyle);
         custom.setText("自定义 Intent…");
         custom.setOnClickListener(v -> showCustomDialog());
-        LinearLayout.LayoutParams customLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        customLp.topMargin = dp(8);
-        content.addView(custom, customLp);
+        content.addView(custom, footerButtonParams());
+    }
+
+    private LinearLayout.LayoutParams footerButtonParams() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(8);
+        return lp;
     }
 
     private void showCustomDialog() {
