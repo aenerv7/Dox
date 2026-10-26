@@ -19,12 +19,14 @@
 //
 // 把 KIWIVM_BASE 指向该中转，中转需要原样转发 `/getServiceInfo` 和查询串。
 // 默认值仍指向 API 本身，方便在直连恢复时保持透明。
+//
+// 访问不设口令：任何路径都回同一个面板/userinfo。RELAY_TOKEN 只用于向中转
+// 证明请求来自本 Worker，否则中转就成了一台公开的 KiwiVM API 代理。
 
 const KIWIVM_BASE_DEFAULT = "https://api.64clouds.com/v1";
 const SERVICE_INFO_PATH = "/getServiceInfo";
 
 const HTTP_OK = 200;
-const HTTP_FORBIDDEN = 403;
 const HTTP_MISCONFIGURED = 500;
 const HTTP_BAD_GATEWAY = 502;
 
@@ -64,20 +66,6 @@ function plain(status, message) {
     status,
     headers: { "content-type": TEXT_TYPE },
   });
-}
-
-// 口令放在路径首段（https://<worker>/<token>），与 Sub-Store 后端 URL 的形状
-// 一致；只在配置了 ACCESS_TOKEN 时校验。
-function tokenFrom(request) {
-  return new URL(request.url).pathname.split("/").filter(Boolean)[0] || "";
-}
-
-function tokenMismatch(request, env) {
-  if (!env.ACCESS_TOKEN) {
-    return false;
-  }
-
-  return tokenFrom(request) !== env.ACCESS_TOKEN;
 }
 
 function missingConfig(env) {
@@ -132,9 +120,9 @@ function isRedirect(status) {
 async function callKiwiVM(base, env) {
   const headers = { accept: "application/json" };
 
-  // 中转的共享口令就是访问口令：中转只做这一条 API 转发，不需要第二份凭据。
-  if (env.ACCESS_TOKEN) {
-    headers["x-relay-token"] = env.ACCESS_TOKEN;
+  // 中转的共享口令：中转只做这一条 API 转发，不带这个头就 403。
+  if (env.RELAY_TOKEN) {
+    headers["x-relay-token"] = env.RELAY_TOKEN;
   }
 
   // Workers 只支持 follow / manual，所以手动把 3xx 当失败，API Key 不会被送到第二个主机。
@@ -358,10 +346,6 @@ function report(base, upstream, payload) {
 
 export default {
   async fetch(request, env) {
-    if (tokenMismatch(request, env)) {
-      return plain(HTTP_FORBIDDEN, "Forbidden");
-    }
-
     const missing = missingConfig(env);
 
     if (missing) {

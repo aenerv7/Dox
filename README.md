@@ -1224,7 +1224,7 @@ Sub-Store ──▶ bwh-traffic Worker ──▶ 中转 ──▶ api.64clouds.c
 ```powershell
 cd bwh-traffic
 npx wrangler deploy
-npx wrangler secret put ACCESS_TOKEN     # 访问口令，同时也是中转的共享口令
+npx wrangler secret put RELAY_TOKEN      # 中转共享口令，只发给中转，不用于访问
 npx wrangler secret put BWH_VEID         # KiwiVM 面板里的 VEID
 npx wrangler secret put BWH_API_KEY      # KiwiVM 面板 API 页的 private_ 开头的 Key
 npx wrangler secret put KIWIVM_BASE      # 中转地址，例如 https://bwh-traffic.ddtwstudio.com
@@ -1232,12 +1232,12 @@ npx wrangler secret put KIWIVM_BASE      # 中转地址，例如 https://bwh-tra
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `ACCESS_TOKEN` | 否 | 设置后必须以 `/{token}` 形式访问（`https://<worker>/<值>`，取路径首段）；同时作为 `X-Relay-Token` 发给中转（不设置则不发该头）。和 Sub-Store 后端一样是路径前缀，所以值只能用 URL 安全字符 |
+| `RELAY_TOKEN` | 否 | 作为 `X-Relay-Token` 发给中转（不设置则不发该头），中转凭它确认请求来自本 Worker；**不参与访问鉴权**。值只能用 URL 安全字符 |
 | `BWH_VEID` | 是 | KiwiVM 的 VEID |
 | `BWH_API_KEY` | 是 | KiwiVM 的 API Key（`private_` 开头） |
 | `KIWIVM_BASE` | 否 | 中转基地址，只填 origin，Worker 自己接 `/getServiceInfo`；默认 `https://api.64clouds.com/v1`（直连，当前会失败） |
 
-`BWH_VEID`、`BWH_API_KEY`、`ACCESS_TOKEN` 一律走 `wrangler secret put`：secret 在 `wrangler deploy` 之间会保留，而 `wrangler.jsonc` 里的明文 `vars` 会被每次部署覆盖，把口令放进去等于每次上云都要重新配一遍。
+`BWH_VEID`、`BWH_API_KEY`、`RELAY_TOKEN` 一律走 `wrangler secret put`：secret 在 `wrangler deploy` 之间会保留，而 `wrangler.jsonc` 里的明文 `vars` 会被每次部署覆盖，把口令放进去等于每次上云都要重新配一遍。
 
 #### 当前部署
 
@@ -1260,7 +1260,7 @@ bwh-traffic.ddtwstudio.com {
     @relay {
         method GET
         path /getServiceInfo
-        header X-Relay-Token <ACCESS_TOKEN>
+        header X-Relay-Token <RELAY_TOKEN>
     }
 
     handle @relay {
@@ -1270,7 +1270,7 @@ bwh-traffic.ddtwstudio.com {
         }
     }
 
-    # 其余路径（浏览器面板、Sub-Store 的 /<token>）反代回 Worker。
+    # 其余路径（浏览器面板、Sub-Store）反代回 Worker。
     # Worker 取 /getServiceInfo 时命中的是上面的 @relay，不会回到这里，所以不自环。
     handle {
         reverse_proxy https://bwh-traffic.aenerv7.workers.dev
@@ -1278,17 +1278,17 @@ bwh-traffic.ddtwstudio.com {
 }
 ```
 
-这样 `https://bwh-traffic.ddtwstudio.com/<token>` 和 `https://bwh-traffic.aenerv7.workers.dev/<token>` 等价，都能看面板，Sub-Store 填哪个都行。
+Worker 不校验路径，两个域名的任意路径都回同一份数据，`https://bwh-traffic.ddtwstudio.com/` 和 `https://bwh-traffic.aenerv7.workers.dev/` 等价，Sub-Store 填哪个都行。
 
 **这个域名必须保持 DNS only。** 一旦改成橙云代理（或把 Worker 挂成它的自定义域/路由），Worker 再取 `https://bwh-traffic.ddtwstudio.com/getServiceInfo` 时就落不到 Caddy 上，Cloudflare 会回 `error code: 522`，Sub-Store 那边直接 502。
 
-改完 `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` 再 `systemctl reload caddy`。`<ACCESS_TOKEN>` 与 Worker 的访问口令是同一个值，换口令要同时改 Caddyfile 和 `wrangler secret put ACCESS_TOKEN`。
+改完 `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` 再 `systemctl reload caddy`。`<RELAY_TOKEN>` 只保护中转，与访问无关：换口令要同时改 Caddyfile 和 `wrangler secret put RELAY_TOKEN`。
 
 nginx 等价写法：
 
 ```nginx
 location = /getServiceInfo {
-    if ($http_x_relay_token != "<ACCESS_TOKEN>") { return 403; }
+    if ($http_x_relay_token != "<RELAY_TOKEN>") { return 403; }
     if ($request_method != GET) { return 403; }
 
     proxy_pass https://api.64clouds.com/v1/getServiceInfo;
@@ -1301,16 +1301,14 @@ location = /getServiceInfo {
 
 ### 在 Sub-Store 里用
 
-填到**单条订阅编辑弹窗里的「订阅流量信息」字段**（英文界面是 `Subscription-Userinfo`，占位符写着「值/链接」，问号弹窗标题是「手动设置订阅流量信息」）。口令走路径首段，形状和 Sub-Store 后端地址一致，两个域名通用：
+填到**单条订阅编辑弹窗里的「订阅流量信息」字段**（英文界面是 `Subscription-Userinfo`，占位符写着「值/链接」，问号弹窗标题是「手动设置订阅流量信息」）。两个域名通用，不需要任何口令：
 
 ```text
-https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>
-https://bwh-traffic.ddtwstudio.com/<ACCESS_TOKEN>
+https://bwh-traffic.aenerv7.workers.dev/
+https://bwh-traffic.ddtwstudio.com/
 ```
 
-后者经 VPS 的 Caddy 反代到同一个 Worker，参数与响应完全一致。
-
-`?token=<值>` 不再认，务必换成上面的路径写法。
+后者经 VPS 的 Caddy 反代到同一个 Worker，参数与响应完全一致。路径随便写都行（`/<任意串>` 与 `/` 同值），旧配置里带口令的地址继续有效。
 
 不要填到订阅自己的「订阅链接」里：那个字段的内容会被当节点订阅解析，本 Worker 没有节点。组合订阅也有同名「订阅流量信息」字段，填法一样。
 
@@ -1321,7 +1319,7 @@ Sub-Store 会拿 `expire` 判「订阅已过期」，所以这里写死为下一
 想每次都拿最新用量（Sub-Store 对流量信息有缓存）就在地址后加片段参数：
 
 ```text
-https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>#noCache
+https://bwh-traffic.aenerv7.workers.dev/#noCache
 ```
 
 `#headersCacheTtl=60` 也可以，单位秒。
@@ -1336,7 +1334,7 @@ https://bwh-traffic.aenerv7.workers.dev/<ACCESS_TOKEN>#noCache
 
 ```powershell
 ## 回显上游 HTTP 状态、返回字段、原始正文和算出来的 userinfo
-curl.exe "https://<worker 域名>/<ACCESS_TOKEN>?debug=1"
+curl.exe "https://<worker 域名>/?debug=1"
 
 ## 单元测试
 node --test bwh-traffic/worker.test.js

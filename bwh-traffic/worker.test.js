@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import worker from "./worker.js";
 
-const ENV = { ACCESS_TOKEN: "s3cret", BWH_VEID: " 123456 ", BWH_API_KEY: "private_x" };
+const ENV = { RELAY_TOKEN: "s3cret", BWH_VEID: " 123456 ", BWH_API_KEY: "private_x" };
 
 const SERVICE_INFO = {
   error: 0,
@@ -40,7 +40,7 @@ function parseLikeSubStore(text) {
 }
 
 // 用桩 fetch 顶掉上游，记录调用参数，返回可自定义的响应。
-async function call(env, { token = env.ACCESS_TOKEN, query = {}, upstream, accept } = {}) {
+async function call(env, { path = "/", query = {}, upstream, accept } = {}) {
   const calls = [];
   const original = globalThis.fetch;
 
@@ -59,10 +59,7 @@ async function call(env, { token = env.ACCESS_TOKEN, query = {}, upstream, accep
 
   try {
     const url = new URL("https://bwh-traffic.test/");
-
-    if (token !== undefined) {
-      url.pathname = `/${token}`;
-    }
+    url.pathname = path;
 
     for (const [key, value] of Object.entries(query)) {
       url.searchParams.set(key, value);
@@ -174,32 +171,19 @@ test("没有流量字段时列出实际字段", async () => {
   assert.match(await response.text(), /Keys: error, hostname/);
 });
 
-test("配置了口令就校验 token", async () => {
-  const bad = await call(ENV, { token: "wrong" });
+test("不需要口令：任意路径都回同一份 userinfo", async () => {
+  for (const path of ["/", "/whatever", "/s3cret", "/a/b/c"]) {
+    const { calls, response } = await call(ENV, { path });
 
-  assert.equal(bad.response.status, 403);
-  assert.equal(bad.calls.length, 0, "口令不符时不得请求上游");
+    assert.equal(response.status, 200, path);
+    assert.equal(await response.text(), USERINFO, path);
+    assert.equal(calls.length, 1, path);
+  }
 
-  const open = await call({ ...ENV, ACCESS_TOKEN: "" }, { token: undefined });
+  // 旧写法 /<token> 与查询串里的 token 都不再影响结果
+  const legacy = await call(ENV, { query: { token: "old" } });
 
-  assert.equal(open.response.status, 200);
-});
-
-test("口令只认路径首段，?token= 不再放行", async () => {
-  const ok = await call(ENV);
-
-  assert.equal(ok.response.status, 200);
-
-  // 路径为空（token 传 ""）、正确口令只出现在查询串里 → 仍然 403
-  const queryOnly = await call(ENV, { token: "", query: { token: ENV.ACCESS_TOKEN } });
-
-  assert.equal(queryOnly.response.status, 403);
-  assert.equal(queryOnly.calls.length, 0);
-
-  // 尾斜杠、多余路径段都不影响首段取值
-  const trailing = await call(ENV, { token: `${ENV.ACCESS_TOKEN}/` });
-
-  assert.equal(trailing.response.status, 200);
+  assert.equal(legacy.response.status, 200);
 });
 
 test("缺少必要配置时报 500", async () => {
@@ -214,18 +198,18 @@ test("缺少必要配置时报 500", async () => {
   assert.equal(await noKey.response.text(), "Missing BWH_API_KEY");
 });
 
-test("KIWIVM_BASE 指向中转，共享口令复用 ACCESS_TOKEN", async () => {
+test("KIWIVM_BASE 指向中转，中转口令走 RELAY_TOKEN", async () => {
   const env = { ...ENV, KIWIVM_BASE: "https://bwh-traffic.example.com/" };
   const { calls, response } = await call(env);
 
   assert.equal(response.status, 200);
   // 基地址末尾斜杠去掉后直接接 /getServiceInfo
   assert.equal(calls[0].url.startsWith("https://bwh-traffic.example.com/getServiceInfo?"), true);
-  assert.equal(calls[0].init.headers["x-relay-token"], ENV.ACCESS_TOKEN);
+  assert.equal(calls[0].init.headers["x-relay-token"], ENV.RELAY_TOKEN);
 });
 
-test("没有 ACCESS_TOKEN 时不带中转口令头", async () => {
-  const { calls } = await call({ ...ENV, ACCESS_TOKEN: "" }, { token: undefined });
+test("没有 RELAY_TOKEN 时不带中转口令头", async () => {
+  const { calls } = await call({ ...ENV, RELAY_TOKEN: "" });
 
   assert.equal(calls[0].init.headers["x-relay-token"], undefined);
 });
