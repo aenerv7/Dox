@@ -51,6 +51,18 @@ describe("article extraction", () => {
     expect(article.content).not.toContain('srcset');
   });
 
+  it("falls back to the response URL when no proxy header is present", async () => {
+    const response = new Response(articlePage('<img src="cover.jpg">'), {
+      headers: { "Content-Type": "text/html" },
+    });
+    Object.defineProperty(response, "url", { value: "https://example.com/posts/final/" });
+    runtimeFetch.fetchArticle.mockResolvedValue(response);
+
+    const article = await extractFullArticle("https://example.com/redirect");
+
+    expect(article.content).toContain('src="https://example.com/posts/final/cover.jpg"');
+  });
+
   it("keeps images that only expose srcset or data-srcset candidates", async () => {
     runtimeFetch.fetchArticle.mockResolvedValue(new Response(articlePage(`
       <img srcset="https://cdn.example/a-400.jpg 400w, https://cdn.example/a-1600.jpg 1600w">

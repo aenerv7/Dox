@@ -658,18 +658,28 @@ cd CapsLockOSD
 - `Dox Reader/Cloudflare Workers/`：Web 版（阅读器静态资源 + 无状态 Worker 代理），Cloudflare 项目名固定为 `dox-reader`。
 - `Firefox/Add-Ons/Dox Reader/`：Firefox WebExtension 版（Manifest V3，桌面版与 Android 版），扩展 ID `dox-reader@magi`，经 AMO listed 渠道发布。
 
-不维护 Dox Reader Backend、Durable Objects、服务端文章存储或定时抓取。
+两个目录共享同一套阅读器逻辑：`src/` 下除下表的实现文件（及其对应测试）和扩展独有的 `background.ts` 外应逐文件一致。修改 Web 版 `src/` 时必须把同一改动同步到扩展，反之亦然。
+
+| 文件 | Web 版 | 扩展版 |
+|---|---|---|
+| `src/runtime-fetch.ts` | 经同源 `/api/feed`、`/api/article`、`/api/webdav` 代理 | 直接 `fetch` 目标地址 |
+| `src/settings.ts` | 只用 `localStorage` | 优先 `browser.storage.local`，没有扩展存储时回退 `localStorage` |
+| `src/background.ts` | 不存在 | 点击工具栏按钮打开或聚焦阅读器标签页 |
+
+`model.ts`、`database.ts`、`repository.ts`、`app.tsx`、`article-extractor.ts`、`auto-refresh.ts`、`feed-service.ts`、`styles.css` 等其余文件及测试共用。两个 `package.json` 的产品版本保持同步（当前 `1.2.1`）。
+
+不维护 Dox Reader Backend、Durable Objects、服务端文章存储或定时抓取；仓库中不再有后端源码或后端模式字段。
 
 #### Web 版数据与网络边界
 
 - `src/repository.ts` 直接导出 `src/database.ts`，所有阅读数据写入 IndexedDB `dox-rss-reader`；保留原数据库名、同步协议和 localStorage 设置键 `doxReaderSettings`，兼容既有本地/WebDAV 数据。
-- `src/settings.ts` 只加载和保存 `DEFAULT_SETTINGS` 中的键，旧设置中的模式、服务端地址/令牌和未知字段不再进入运行时或后续保存。默认 `colorScheme` 为 `material`、`theme` 为 `system`，只作用于新用户或缺失字段，不覆盖已保存及同步的配色。
+- `src/settings.ts` 只加载和保存 `DEFAULT_SETTINGS` 中的键，旧设置中的废弃字段和未知字段不再进入运行时或后续保存。默认 `colorScheme` 为 `material`、`theme` 为 `system`，只作用于新用户或缺失字段，不覆盖已保存及同步的配色。
 - `src/webdav.ts` 与 `src/sync-model.ts` 负责订阅、文章状态、偏好和刷新时间的合并；使用逻辑版本及 ETag 条件写入，冲突时重新读取合并重试。正文、图片、凭据和布局不进同步文件。
 - `src/app.tsx` 启动先显示本地数据库，再进行 WebDAV 同步和到期刷新。保留同步防重入、修改延迟重试、批量已读锁和最低操作反馈时间。连接失败不阻塞缓存阅读。
 - `src/auto-refresh.ts` 按各源本机 `lastFetchedAt`（仅成功解析并保存后更新）判断到期，不使用同步的 `lastRefreshAllAt`。`autoRefreshHours` 为本机全局设置，默认 24、整数小时、0 关闭，不加入 WebDAV 偏好协议；启动、每分钟、页面恢复可见及联网时检查。失败重试独立冷却 5 分钟，不推进成功时间。页面关闭后不调度。
 - `src/feed-service.ts` 对源 ID 维护共享 Promise 与 FIFO 队列，所有刷新入口复用排队或进行中任务，总并发最多 4。队列订阅驱动单源按钮动画；自动刷新时全部刷新按钮仍可点击并接入现有任务，批次完成独立统计且去重。刷新期间同步与“全部标为已读”按钮置灰。右上角全局刷新按钮只在全局刷新（显示进度遮罩）时播放动画，单源刷新只转该源的按钮。不要恢复全局时间戳驱动的自动刷新。
 - WebDAV 设置不在打开对话框或编辑地址/凭据时自动检测。地址必须是可解析的 HTTPS URL，否则“立即同步”按钮置灰不可点；同步是唯一的连通性检查，同步失败即视为未连通并显示错误。编辑连接参数或关闭对话框后清除旧结果，避免过期状态覆盖当前输入。
-- `src/runtime-fetch.ts` 将浏览器网络请求路由到同源 `/api/feed`、`/api/article` 与 `/api/webdav`。只有用户在摘要文章中点击“获取全文”时才请求 `/api/article`；Readability 提取的正文和主图只写入本机 IndexedDB，不进入 WebDAV 同步。`worker/index.ts` 是无状态代理，不是个人资料库服务，不得引入数据库、后台抓取或 Backend 模式。
+- `src/runtime-fetch.ts` 将浏览器网络请求路由到同源 `/api/feed`、`/api/article` 与 `/api/webdav`。只有用户在摘要文章中点击“获取全文”时才请求 `/api/article`；Readability 提取的正文和主图只写入本机 IndexedDB，不进入 WebDAV 同步。`worker/index.ts` 是无状态代理，不是个人资料库服务，不得引入数据库或后台抓取。
 - `src/article-content.tsx` 用 Preact 白名单渲染正文；图片先按 `strict-origin-when-cross-origin` 只暴露部署 origin，加载失败后自动改用无 Referer 重试一次（有的图床拒绝空 Referer，如 sspai 的 CDN；有的只接受空 Referer）。`src/article-extractor.ts` 在提取前统一解析懒加载图片：`data-*` 地址属性、`srcset`/`data-srcset`、`<picture><source>`、`<noscript>` 兜底，并按最大候选取图。不要删掉这些兼容处理：正文有文字却没有图，通常来自图片地址未被解析或被图床拒绝。
 - Worker 校验同源请求标记、目标协议/主机/端口和每次重定向，阻止显式本机、内网及保留地址，限制响应体和超时；`/api/article` 的原网页响应上限为 8 MiB、超时 45 秒，WebDAV 要求 HTTPS，仅放行同步目录/文件及必要方法，凭据只随该请求转发。保留这些保护及对应测试；同源标记不等于用户鉴权。
 
@@ -694,12 +704,13 @@ npx wrangler deploy --dry-run
 
 - 图标：`public/manifest.json` 只引用 `public/icons/icon-*.png`。AMO 的商品图标只接受位图，manifest 只给 SVG 时 AMO 会退化为默认占位图。改图标先改 `public/icons/icon.svg`，再运行 `pwsh -File generate-icons.ps1` 重新生成 PNG（脚本按 SVG 的 96×96 坐标 1:1 绘制，不要手改 PNG）。
 
-- 数据边界：IndexedDB 数据库名保留 `dox-rss-reader`，`browser.storage.local` 保存设置与 WebDAV 凭据；不依赖开发者运营的后端，可选连接用户自建的 Dox Reader Backend。
+- 数据边界：IndexedDB 数据库名保留 `dox-rss-reader`，`browser.storage.local` 保存设置与 WebDAV 凭据；只用本地数据加可选 WebDAV，不连接任何服务端。`settings.ts` 加载和保存时只保留 `DEFAULT_SETTINGS` 的键，旧版本遗留的其它字段会被丢弃。
+- 与 Web 版共用阅读器逻辑：按需“获取全文”由 `article-extractor.ts` 在扩展内直接请求原文页面并用 `@mozilla/readability` 提取；自动刷新由 `auto-refresh.ts` 按各源 `lastFetchedAt` 在页面打开时判断，两者行为与 Web 版一致。`background.ts` 只负责打开或聚焦阅读器标签页。
 - 发布流程：`release.ps1` 依次运行 `npm run check`、`web-ext build`、生成 AMO 源码包并提交 listed 审核；审批后用 AMO API 下载签名 XPI，校验 manifest 的 `id`/`version` 与 Mozilla 签名，再覆盖为 `bb7581fa1bbf4b928862.xpi`。`updates.json` 键仍为旧扩展 ID `dox-rss-reader@dox.local`，仅作 1.0 之前（0.x）的自托管更新入口，脚本不再维护它。
 - 首次上架：manifest 固定了扩展 ID 时，`web-ext sign` 只会 `PUT addon/<id>/versions/<version>/`，不会创建 add-on，因此新 ID 必须先注册一次——用 AMO API `POST /api/v5/addons/addon/` 携带 `upload/` 返回的文件 uuid（或 Developer Hub 上传表单）。注册之后 `release.ps1` 即可按上面的流程工作。
 - 时钟与 JWT：AMO 会以 HTTP 401 拒绝 `iat` 超前的 JWT，并把 JWT 有效期（`exp - iat`）限制在 60 秒内。本机 `w32time` 未同步时系统时钟比 AMO 快约 18 秒，发布前先确认时钟同步，否则 `release.ps1` 的版本查询和 `web-ext sign` 都会失败。
 - 商品页字段：用 AMO API `PATCH /api/v5/addons/addon/<id>/` 可上传商品图标（multipart 字段 `icon`，已上传 `public/icons/icon-128.png`），但 `homepage` 既不会随 create 或版本提交写入，也不会被该 PATCH 采纳（返回 HTTP 200 但字段仍为空），只能在 Developer Hub 手工填写。AMO 对同一账号有请求频率限制，超限返回 HTTP 429 `Request was throttled`。
-- AMO 现状：`dox-reader@magi`（slug `dox-reader`，分类 `feeds-news-blogging`）于 2026-10-20 创建，先提交 1.1.8，随后依次被 1.1.9、1.1.10、1.1.11、1.1.12、1.1.13、1.1.14 取代；当前版本 1.1.14（版本 id `6605040`，2026-10-22 提交）为 listed 审核中，状态 `nominated`、文件 `unreviewed`，源码包已随版本上传（<https://addons.mozilla.org/firefox/downloads/source/6605040>）；审核页 <https://addons.mozilla.org/en-US/developers/addon/dox-reader/versions/6605040>，商品页 <https://addons.mozilla.org/en-US/firefox/addon/dox-reader/>。同一版本不要重复提交。`AMO_REVIEW_NOTES.md` 会作为审核备注上传，长度上限 3000 字符。
+- AMO 现状：`dox-reader@magi`（slug `dox-reader`，分类 `feeds-news-blogging`）于 2026-10-20 创建，先提交 1.1.8，随后依次被 1.1.9、1.1.10、1.1.11、1.1.12、1.1.13、1.1.14 取代。AMO 上最新提交版本仍是 1.1.14（版本 id `6605040`，2026-10-22 提交，listed 审核中，状态 `nominated`、文件 `unreviewed`）；仓库源码已与 Web 版同步为 1.2.1（1.2.0 引入全文提取、自动刷新并移除后端模式，1.2.1 只合并设置文案），发布前按流程提交新版本并更新本段状态。同一版本不要重复提交。`AMO_REVIEW_NOTES.md` 会作为审核备注上传，长度上限 3000 字符。
 - 维护约束：`public/manifest.json` 的 gecko `id` 固定为 `dox-reader@magi`，不得随发布变动；manifest 不得设置 `update_url`（listed 渠道由 AMO 更新）；版本号在 `package.json`、`public/manifest.json` 与 `package-lock.json` 三处保持一致；`amo-listing.json` 的 `homepage` 与 manifest 的 `homepage_url` 都指向 `Firefox/Add-Ons/Dox Reader`；模块目录不设独立 `.gitignore`，`node_modules/`、`dist/`、`web-ext-artifacts/`、`*.log`、`.env.release` 由根 `.gitignore` 排除。
 
 验证：

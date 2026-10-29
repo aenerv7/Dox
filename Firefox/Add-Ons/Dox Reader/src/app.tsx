@@ -3,7 +3,6 @@ import {
   BookOpen,
   Check,
   CheckCheck,
-  CircleHelp,
   Cloud,
   CloudOff,
   Download,
@@ -33,13 +32,13 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import { renderArticleContent } from "./article-content";
+import { extractFullArticle, needsFullArticle } from "./article-extractor";
 import { compareFeedNames } from "./feed-order";
 import {
   addFeed,
   clearAllData,
   getFeedUnreadCounts,
   getItemCounts,
-  getLastRefreshAllAt,
   hasLocalReaderData,
   listFeeds,
   listItems,
@@ -50,11 +49,11 @@ import {
   updateFeed,
   setItemState,
   setLastRefreshAllAt,
+  updateItemContent,
   updateSyncedPreferences,
-  getItem,
 } from "./repository";
-import { backendEnabled, backendOffline, backendCall, connectBackend, pullBackend, requestBackendRefresh, testBackend, type BackendConfig, type BackendStatus } from "./backend";
-import { refreshFeed, refreshFeeds } from "./feed-service";
+import { refreshFeed, refreshFeeds, subscribeFeedRefreshes } from "./feed-service";
+import { AUTO_REFRESH_CHECK_MS, dueFeedIds } from "./auto-refresh";
 import type { FeedRefreshProgress } from "./feed-service";
 import { needsInitialArticleRefresh } from "./initial-sync";
 import { formatItemSource, matchesItemView } from "./item-list";
@@ -72,7 +71,6 @@ type ResizeTarget = "feeds" | "items";
 interface RefreshDisplayProgress {
   completed: number;
   total: number;
-  activeFeedIds: readonly string[];
   activeFeedNames: string[];
 }
 
@@ -116,7 +114,6 @@ const FEED_PANE_MAX = 0.32;
 const ITEM_PANE_MIN = 0.22;
 const ITEM_PANE_MAX = 0.5;
 const READER_PANE_MIN = 0.3;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_ASYNC_FEEDBACK_MS = 400;
 const SYNC_DEBOUNCE_MS = 1400;
 const ALL_READ_ACTION = "all";
@@ -127,12 +124,6 @@ function feedReadAction(feedId: string): string {
 
 function itemReadAction(itemId: string): string {
   return `item:${itemId}`;
-}
-
-function formatBackendStatus(status: BackendStatus | null): string {
-  if (status?.job.running) return "后台正在抓取";
-  if (status?.nextFetchAt) return `下次抓取 ${new Date(status.nextFetchAt).toLocaleString()}`;
-  return "暂无抓取计划";
 }
 
 async function keepFeedbackVisible(startedAt: number): Promise<void> {
@@ -210,7 +201,6 @@ function displayRefreshProgress(
   return {
     completed: progress.completed,
     total: progress.total,
-    activeFeedIds: progress.activeFeedIds,
     activeFeedNames: progress.activeFeedIds.map((feedId) => feedNames.get(feedId) || "未知订阅源"),
   };
 }
@@ -222,7 +212,6 @@ export function App() {
   const [feedUnread, setFeedUnread] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<Filter>("unread");
   const [query, setQuery] = useState("");
-  const [visibleLimit,setVisibleLimit]=useState(200);
   const [retainedUnreadIds, setRetainedUnreadIds] = useState<ReadonlySet<string>>(() => new Set());
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [mobilePane, setMobilePane] = useState<MobilePane>("items");
@@ -230,26 +219,27 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [editingFeed, setEditingFeed] = useState<FeedRecord | null>(null);
   const [settings, setSettingsState] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshingFeedIds, setRefreshingFeedIds] = useState<ReadonlySet<string>>(new Set());
+  const refreshing = refreshingFeedIds.size > 0;
   const [refreshScope, setRefreshScope] = useState<"all" | string | null>(null);
   const [refreshProgress, setRefreshProgress] = useState<RefreshDisplayProgress | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [readBusy, setReadBusy] = useState<Record<string, boolean>>({});
+  const [articleBusy, setArticleBusy] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [ready, setReady] = useState(false);
-  const [backendNotice, setBackendNotice] = useState('');
-  const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null);
   const syncTimer = useRef<number | null>(null);
   const syncBusy = useRef(false);
   const settingsSyncBusy = useRef(false);
+  const articleRequestBusy = useRef(false);
   const readBusyKeys = useRef(new Set<string>());
+  const allRefreshBusy = useRef(false);
+  const autoRefreshBusy = useRef(false);
+  const autoRefreshAttempts = useRef(new Map<string, number>());
   const itemListRef = useRef<HTMLDivElement>(null);
 
+  // 首屏只读取本机数据库，不等待网络同步。
   const loadData = useCallback(async () => {
-    if (backendEnabled()) {
-      try {setBackendStatus(await pullBackend());setBackendNotice('');}
-      catch(error) {setBackendNotice('后端连接失败，仅显示已缓存内容：'+(error instanceof Error?error.message:String(error)));}
-    }
     const [nextFeeds, nextItems, nextCounts, nextFeedUnread] = await Promise.all([
       listFeeds(),
       listItems("all"),
@@ -257,16 +247,12 @@ export function App() {
       getFeedUnreadCounts(),
     ]);
     setFeeds(nextFeeds);
-    setItems(current => {
-      const bodies=new Map(current.map(item=>[item.id,item.content]));
-      return nextItems.map(item=>({...item,content:item.content||bodies.get(item.id)||''}));
-    });
+    setItems(nextItems);
     setCounts(nextCounts);
     setFeedUnread(nextFeedUnread);
   }, []);
 
   const performSync = useCallback(async (currentSettings = settings, quiet = false) => {
-    if(currentSettings.storageMode==='backend') {await loadData();return currentSettings;}
     if (!currentSettings.webdavUrl) return currentSettings;
     if (syncBusy.current) {
       return currentSettings;
@@ -289,13 +275,8 @@ export function App() {
       let initialRefresh: Awaited<ReturnType<typeof refreshFeeds>> | null = null;
       let initialRefreshError = "";
       if (needsInitialArticleRefresh(localHadReaderData, syncedFeeds.length)) {
-        setRefreshing(true);
-        setRefreshScope("all");
         try {
-          initialRefresh = await refreshFeeds(
-            syncedFeeds.map((feed) => feed.id),
-            (progress) => setRefreshProgress(displayRefreshProgress(progress, syncedFeeds)),
-          );
+          initialRefresh = await handleRefresh(undefined, true, syncedFeeds) ?? null;
           await setLastRefreshAllAt(Date.now());
           try {
             await syncWithWebDav(syncedSettings);
@@ -305,9 +286,6 @@ export function App() {
         } catch (error) {
           initialRefreshError = error instanceof Error ? error.message : String(error);
         } finally {
-          setRefreshing(false);
-          setRefreshScope(null);
-          setRefreshProgress(null);
           await loadData();
         }
       }
@@ -335,7 +313,6 @@ export function App() {
   }, [loadData, settings]);
 
   const queueSync = useCallback(() => {
-    if(backendEnabled()) return;
     if (!settings.webdavUrl) return;
     if (syncTimer.current !== null) window.clearTimeout(syncTimer.current);
     // 同步期间的新修改延后重试，不能因防重入而丢失。
@@ -350,17 +327,17 @@ export function App() {
     syncTimer.current = window.setTimeout(syncWhenIdle, SYNC_DEBOUNCE_MS);
   }, [performSync, settings]);
 
+  useEffect(() => subscribeFeedRefreshes(ids => setRefreshingFeedIds(new Set(ids))), []);
+
   useEffect(() => {
     void (async () => {
       const saved = await loadSettings();
       setSettingsState(saved);
       applyAppearance(saved);
-      try {await connectBackend(saved);} catch(error) {setToast(error instanceof Error?error.message:String(error));setReady(true);return;}
       await migrateLegacyEntities();
       await loadData();
       setReady(true);
-      if (saved.storageMode === "local" && saved.webdavUrl) await performSync(saved, true);
-      await maybeAutoRefresh();
+      if (saved.webdavUrl) await performSync(saved, true);
     })();
     return () => {
       if (syncTimer.current !== null) window.clearTimeout(syncTimer.current);
@@ -368,16 +345,47 @@ export function App() {
   }, [loadData]);
 
   useEffect(() => {
+    if (!ready || settings.autoRefreshHours === 0) return;
+    let disposed = false;
+    const check = async () => {
+      if (disposed || document.hidden || !navigator.onLine || autoRefreshBusy.current) return;
+      autoRefreshBusy.current = true;
+      try {
+        const currentFeeds = await listFeeds();
+        if (disposed) return;
+        const now = Date.now();
+        const dueIds = new Set(dueFeedIds(currentFeeds, settings.autoRefreshHours, now, autoRefreshAttempts.current));
+        if (dueIds.size === 0) return;
+        for (const id of dueIds) autoRefreshAttempts.current.set(id, now);
+        try {
+          await handleRefresh(undefined, true, currentFeeds.filter(feed => dueIds.has(feed.id)));
+        } finally {
+          for (const id of dueIds) autoRefreshAttempts.current.set(id, Date.now());
+        }
+      } catch (error) {
+        if (!disposed) setToast(`自动刷新失败：${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+        autoRefreshBusy.current = false;
+      }
+    };
+    const trigger = () => { void check(); };
+    trigger();
+    const timer = window.setInterval(trigger, AUTO_REFRESH_CHECK_MS);
+    document.addEventListener("visibilitychange", trigger);
+    window.addEventListener("online", trigger);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", trigger);
+      window.removeEventListener("online", trigger);
+    };
+  }, [ready, settings.autoRefreshHours, feeds]);
+
+  useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 4200);
     return () => window.clearTimeout(timer);
   }, [toast]);
-
-  useEffect(() => {
-    if(!ready || settings.storageMode!=='backend') return;
-    const timer=window.setInterval(()=>{if(!document.hidden&&!refreshing) void loadData();},60000);
-    return ()=>window.clearInterval(timer);
-  }, [ready,settings.storageMode,refreshing,loadData]);
 
   function runAction(action:Promise<unknown>) {void action.catch(error=>setToast(error instanceof Error?error.message:String(error)));}
 
@@ -386,8 +394,6 @@ export function App() {
     setRetainedUnreadIds(new Set());
     if (itemListRef.current) itemListRef.current.scrollTop = 0;
   }, [filter]);
-
-  useEffect(()=>setVisibleLimit(200),[filter,query]);
 
   const visibleItems = useMemo(() => {
     return items.filter((item) => matchesItemView(item, filter, query, retainedUnreadIds));
@@ -408,13 +414,9 @@ export function App() {
         : "正在连接订阅源";
 
   async function chooseItem(item: ItemRecord) {
-    if(backendEnabled()) {
-      const full=await getItem(item.id);
-      if(full) setItems(current=>current.map(entry=>entry.id===item.id?full:entry));
-    }
     setSelectedItemId(item.id);
     setMobilePane("reader");
-    if (!item.read && !(backendEnabled() && backendOffline())) {
+    if (!item.read) {
       if (filter === "unread") {
         setRetainedUnreadIds((current) => new Set(current).add(item.id));
       }
@@ -484,61 +486,65 @@ export function App() {
     }
   }
 
-  // 正在抓取的订阅源按钮播放动画，自动刷新与手动刷新一致。
-  function isFeedRefreshing(feedId: string): boolean {
-    return refreshScope === feedId || Boolean(refreshProgress?.activeFeedIds.includes(feedId));
+  async function handleFetchFullArticle(item: ItemRecord) {
+    if (!item.url || articleRequestBusy.current) return;
+    articleRequestBusy.current = true;
+    setArticleBusy(item.id);
+    try {
+      const extracted = await extractFullArticle(item.url);
+      const updated = await updateItemContent(item.id, extracted.content, item.url);
+      if (!updated) throw new Error("文章已删除或地址已变更，请重新打开文章");
+      setItems((current) => current.map((entry) => entry.id === item.id && entry.url === item.url
+        ? { ...entry, content: updated.content, contentSource: updated.contentSource, feedContent: updated.feedContent }
+        : entry));
+      setToast(`已提取全文（${extracted.textLength.toLocaleString()} 字）`);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : String(error));
+    } finally {
+      articleRequestBusy.current = false;
+      setArticleBusy(null);
+    }
   }
 
-  async function handleRefresh(feedId?: string, auto = false) {
-    const currentFeeds = auto ? await listFeeds() : feeds;
+  async function handleRefresh(feedId?: string, auto = false, currentFeeds = feeds) {
     if (!currentFeeds.length) {
       if (!auto) setShowAdd(true);
       return;
     }
-    setRefreshing(true);
-    setRefreshScope(feedId ?? "all");
+    const all = !feedId && !auto;
+    if (all && allRefreshBusy.current) return;
+    if (all) {
+      allRefreshBusy.current = true;
+      setRefreshScope("all");
+    }
     const targets = feedId ? [feedId] : currentFeeds.map((feed) => feed.id);
     try {
-      if(backendEnabled()) {
-        const status=await requestBackendRefresh(targets,feedId?undefined:progress=>setRefreshProgress(displayRefreshProgress(progress,currentFeeds)));
-        setBackendStatus(status);await loadData();
-        setToast(status.job.running?'后端仍在抓取，关闭页面也会继续':'后端抓取完成：新增 '+status.job.updated+' 篇，失败 '+status.job.errors.length+' 个');
-        return;
-      }
       const result = await refreshFeeds(
         targets,
-        feedId
-          ? undefined
-          : (progress) => setRefreshProgress(displayRefreshProgress(progress, currentFeeds)),
+        all ? (progress) => setRefreshProgress(displayRefreshProgress(progress, currentFeeds)) : undefined,
       );
       await loadData();
-      if (feedId) {
-        setToast(result.errors.length
-          ? `刷新失败：${result.errors[0]}`
-          : `刷新完成：读取 ${result.updated} 篇文章`);
-      } else {
-        setToast(`全部刷新完成：成功 ${result.succeeded} 个，失败 ${result.errors.length} 个，读取 ${result.updated} 篇文章`);
-        await setLastRefreshAllAt(Date.now());
-        queueSync();
+      if (!auto) {
+        if (feedId) {
+          setToast(result.errors.length
+            ? `刷新失败：${result.errors[0]}`
+            : `刷新完成：读取 ${result.updated} 篇文章`);
+        } else {
+          setToast(`全部刷新完成：成功 ${result.succeeded} 个，失败 ${result.errors.length} 个，读取 ${result.updated} 篇文章`);
+          await setLastRefreshAllAt(Date.now());
+          queueSync();
+        }
       }
+      return result;
     } catch (error) {
       setToast(`刷新失败：${error instanceof Error ? error.message : String(error)}`);
     } finally {
-      setRefreshing(false);
-      setRefreshScope(null);
-      if (!feedId) setRefreshProgress(null);
+      if (all) {
+        allRefreshBusy.current = false;
+        setRefreshScope(null);
+        setRefreshProgress(null);
+      }
     }
-  }
-
-  async function maybeAutoRefresh() {
-    if(backendEnabled()) return;
-    const [feedCount, lastRefreshAllAt] = await Promise.all([
-      listFeeds().then((list) => list.length),
-      getLastRefreshAllAt(),
-    ]);
-    if (!feedCount) return;
-    if (lastRefreshAllAt > 0 && Date.now() - lastRefreshAllAt < ONE_DAY_MS) return;
-    await handleRefresh(undefined, true);
   }
 
   async function handleAddFeed(url: string) {
@@ -546,17 +552,13 @@ export function App() {
     setShowAdd(false);
     setFilter(feed.id);
     setMobilePane("items");
-    setRefreshing(true);
-    setRefreshScope(feed.id);
     try {
-      if(backendEnabled()) {setToast('订阅已添加，后端正在抓取');}
-      else {const count=await refreshFeed(feed.id);setToast('已添加订阅，获取 '+count+' 篇文章');}
+      const count = await refreshFeed(feed.id);
+      setToast(`已添加订阅，获取 ${count} 篇文章`);
     } catch (error) {
       setToast(error instanceof Error ? error.message : String(error));
     }
     await loadData();
-    setRefreshing(false);
-    setRefreshScope(null);
     queueSync();
   }
 
@@ -618,25 +620,18 @@ export function App() {
     setToast("订阅已更新");
     queueSync();
     if (updated.url !== previous.url) {
-      if (backendEnabled()) await loadData();
-      else void handleRefresh(updated.id);
+      void handleRefresh(updated.id);
     }
   }
 
-  async function handleSaveSettings(next: AppSettings, config?:BackendConfig) {
-    const changedMode=next.storageMode!==settings.storageMode || next.backendUrl!==settings.backendUrl || next.backendToken!==settings.backendToken;
-    if(next.storageMode==='backend') {
-      await testBackend(next);
-      if(config) await backendCall('configure',{config},next);
-    } else await updateSyncedPreferences(preferenceValues(next));
+  async function handleSaveSettings(next: AppSettings) {
+    await updateSyncedPreferences(preferenceValues(next));
     await saveSettings(next);
-    if(changedMode) {window.location.reload();return;}
     setSettingsState(next);
     applyAppearance(next);
     setShowSettings(false);
     setToast("设置已保存");
-    if(next.storageMode==='backend') await loadData();
-    else if (next.webdavUrl) void performSync(next, true);
+    if (next.webdavUrl) void performSync(next, true);
   }
 
   async function handleSettingsSync(next: AppSettings): Promise<AppSettings> {
@@ -741,12 +736,11 @@ export function App() {
   }
 
   async function handleClearData() {
-    if (!confirm(backendEnabled()?'清除当前后端在本机的缓存？后端文章不会被删除。':"清除本机的订阅、文章和阅读状态？WebDAV 文件不会被删除。")) return;
+    if (!confirm("清除本机的订阅、文章和阅读状态？WebDAV 文件不会被删除。")) return;
     await clearAllData();
     setFilter("all");
     setSelectedItemId(null);
-    if(backendEnabled()) {setFeeds([]);setItems([]);setCounts({total:0,unread:0,starred:0});setFeedUnread({});}
-    else await loadData();
+    await loadData();
     setShowSettings(false);
     setToast("本机数据已清除");
   }
@@ -770,13 +764,13 @@ export function App() {
           <span>Dox Reader</span>
         </button>
         <div class="topbar-actions">
-          {settings.storageMode === "local" && <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing" || refreshing} onClick={() => void performSync()}>
+          <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing" || refreshing} onClick={() => void performSync()}>
             {syncIcon}
-          </button>}
+          </button>
           <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
             {isReadBusy(ALL_READ_ACTION) ? <LoaderCircle size={18} class="spin" /> : <CheckCheck size={18} />}
           </button>
-          <button class="icon-button" title="刷新所有订阅" disabled={refreshing || !feeds.length} onClick={() => void handleRefresh()}>
+          <button class="icon-button" title="刷新所有订阅" disabled={refreshScope === "all" || !feeds.length} onClick={() => void handleRefresh()}>
             <RefreshCw size={18} class={refreshScope === "all" ? "spin" : ""} />
           </button>
           <button class="icon-button" title="添加订阅" onClick={() => setShowAdd(true)}>
@@ -817,8 +811,8 @@ export function App() {
                   <button class="feed-action" title="全部标为已读" disabled={refreshing || isReadLocked() || count === 0} onClick={() => runAction(handleMarkFeedRead(feed))}>
                     {isReadBusy(feedReadAction(feed.id)) ? <LoaderCircle size={14} class="spin" /> : <ListChecks size={14} />}
                   </button>
-                  <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshing} onClick={() => void handleRefresh(feed.id)}>
-                    <RefreshCw size={14} class={isFeedRefreshing(feed.id) ? "spin" : ""} />
+                  <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshingFeedIds.has(feed.id)} onClick={() => void handleRefresh(feed.id)}>
+                    <RefreshCw size={14} class={refreshingFeedIds.has(feed.id) ? "spin" : ""} />
                   </button>
                   <button class="feed-action" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(feed)}>
                     <Pencil size={14} />
@@ -844,8 +838,8 @@ export function App() {
               <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || selectedFeedUnread === 0} onClick={() => runAction(handleMarkFeedRead(selectedFeed))}>
                 {isReadBusy(feedReadAction(selectedFeed.id)) ? <LoaderCircle size={16} class="spin" /> : <ListChecks size={16} />}
               </button>
-              <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshing} onClick={() => void handleRefresh(selectedFeed.id)}>
-                <RefreshCw size={16} class={isFeedRefreshing(selectedFeed.id) ? "spin" : ""} />
+              <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshingFeedIds.has(selectedFeed.id)} onClick={() => void handleRefresh(selectedFeed.id)}>
+                <RefreshCw size={16} class={refreshingFeedIds.has(selectedFeed.id) ? "spin" : ""} />
               </button>
               <button class="icon-button" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(selectedFeed)}>
                 <Pencil size={16} />
@@ -862,7 +856,7 @@ export function App() {
           {query && <button title="清除搜索" onClick={() => setQuery("")}><X size={15} /></button>}
         </label>
         <div class={`item-list ${settings.showItemSnippet ? "" : "compact"}`} ref={itemListRef}>
-          {(settings.storageMode==='backend'?visibleItems.slice(0,visibleLimit):visibleItems).map((item) => {
+          {visibleItems.map((item) => {
             const itemFeed = feedsById.get(item.feedId);
             const source = formatItemSource(filter, itemFeed ? feedName(itemFeed) : "", sourceHost(item));
             return <button class={`item-row ${selectedItemId === item.id ? "selected" : ""} ${item.read ? "read" : ""}`} key={item.id} onClick={() => runAction(chooseItem(item))}>
@@ -880,7 +874,6 @@ export function App() {
               </div>
             </button>;
           })}
-          {settings.storageMode==='backend' && visibleItems.length>visibleLimit && <button class="secondary-button" onClick={()=>setVisibleLimit(limit=>limit+200)}>加载更多（已显示 {visibleLimit} / {visibleItems.length}）</button>}
           {!visibleItems.length && ready && (
             <div class="empty-state">
               <Inbox size={30} />
@@ -894,11 +887,15 @@ export function App() {
       <main class="reader-pane">
         {selectedItem ? (
           <Article
+            key={selectedItem.id}
             item={selectedItem}
             feed={feeds.find((entry) => entry.id === selectedItem.feedId)}
             onBack={() => setMobilePane("items")}
             onToggleStar={() => runAction(toggleStar(selectedItem))}
             onToggleRead={() => runAction(toggleRead(selectedItem))}
+            onFetchFullArticle={() => runAction(handleFetchFullArticle(selectedItem))}
+            articleBusy={articleBusy === selectedItem.id}
+            articleLocked={articleBusy !== null}
             readBusy={isReadBusy(itemReadAction(selectedItem.id))}
             readLocked={isReadLocked()}
           />
@@ -956,12 +953,12 @@ export function App() {
                 <span>已完成 {refreshProgress.completed} / {refreshProgress.total} 个订阅源</span>
               </div>
             </div>
-            {settings.storageMode === "local" && <div class="global-refresh-source">
+            <div class="global-refresh-source">
               <span>{refreshProgress.activeFeedNames.length ? "正在检查" : "状态"}</span>
               <strong title={refreshSourceLabel}>{refreshSourceLabel}</strong>
-            </div>}
+            </div>
             <progress
-              class={`global-refresh-progress ${settings.storageMode === "backend" ? "backend-refresh-progress" : ""}`}
+              class="global-refresh-progress"
               aria-label="刷新订阅进度"
               max={refreshProgress.total}
               value={refreshProgress.completed}
@@ -981,8 +978,6 @@ export function App() {
       {showSettings && (
         <SettingsDialog
           settings={settings}
-          backendNotice={backendNotice}
-          backendStatus={backendStatus}
           syncing={syncStatus === "syncing"}
           onClose={() => setShowSettings(false)}
           onSave={handleSaveSettings}
@@ -1011,12 +1006,22 @@ function Article(props: {
   onBack: () => void;
   onToggleStar: () => void;
   onToggleRead: () => void;
+  onFetchFullArticle: () => void;
+  articleBusy: boolean;
+  articleLocked: boolean;
   readBusy: boolean;
   readLocked: boolean;
 }) {
+  const [showFeedContent, setShowFeedContent] = useState(false);
+  const hasFullArticle = props.item.contentSource === "article";
+  const displayContent = showFeedContent ? props.item.feedContent ?? props.item.content : props.item.content;
   const content = useMemo(
-    () => renderArticleContent(props.item.content, props.item.url),
-    [props.item.content, props.item.url],
+    () => renderArticleContent(displayContent, props.item.url),
+    [displayContent, props.item.url],
+  );
+  const canFetchFullArticle = useMemo(
+    () => !hasFullArticle && needsFullArticle(props.item.content, props.item.url),
+    [hasFullArticle, props.item.content, props.item.url],
   );
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -1046,6 +1051,23 @@ function Article(props: {
           <h1>{props.item.title}</h1>
           <time>{new Intl.DateTimeFormat("zh-CN", { dateStyle: "long", timeStyle: "short" }).format(props.item.publishedAt)}</time>
         </header>
+        {canFetchFullArticle && (
+          <div class="article-enhance">
+            <button class="secondary-button" disabled={props.articleLocked} aria-busy={props.articleBusy} onClick={props.onFetchFullArticle}>
+              {props.articleBusy ? <LoaderCircle size={16} class="spin" /> : <BookOpen size={16} />}
+              {props.articleBusy ? "正在提取全文" : "获取全文"}
+            </button>
+            <span>从原网页提取正文和主图</span>
+          </div>
+        )}
+        {hasFullArticle && (
+          <div class="article-enhance">
+            <button class="secondary-button" onClick={() => setShowFeedContent(value => !value)}>
+              <BookOpen size={16} />{showFeedContent ? "显示全文" : "显示 RSS 内容"}
+            </button>
+            <span>全文已缓存到本机</span>
+          </div>
+        )}
         <div class="article-body">{content.length ? content : <p>{props.item.snippet}</p>}</div>
         {props.item.url && <a class="original-link" href={props.item.url} target="_blank" rel="noopener noreferrer">阅读原文 <ExternalLink size={15} /></a>}
       </div>
@@ -1120,11 +1142,9 @@ function EditFeedDialog(props: {
 
 function SettingsDialog(props: {
   settings: AppSettings;
-  backendNotice: string;
-  backendStatus: BackendStatus | null;
   syncing: boolean;
   onClose: () => void;
-  onSave: (settings: AppSettings, config?:BackendConfig) => Promise<void>;
+  onSave: (settings: AppSettings) => Promise<void>;
   onSync: (settings: AppSettings) => Promise<AppSettings>;
   onImport: (file: File) => Promise<void>;
   onExport: () => void;
@@ -1132,61 +1152,29 @@ function SettingsDialog(props: {
 }) {
   const [draft, setDraft] = useState(props.settings);
   const [showPassword, setShowPassword] = useState(false);
-  const [showBackendToken, setShowBackendToken] = useState(false);
   const syncing = props.syncing;
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
   const webdavReady = isWebdavUrlValid(draft.webdavUrl);
-  const [backendConfig,setBackendConfig]=useState<BackendConfig|null>(null);
-  const [backendTestStatus,setBackendTestStatus]=useState<BackendStatus|null>(null);
-  const [saving,setSaving]=useState(false);
-  const [backendInfo,setBackendInfo]=useState('');
-  const [backendLoading, setBackendLoading] = useState(false);
-  const [backendRetry, setBackendRetry] = useState(0);
-  const editingSavedBackend = draft.storageMode === props.settings.storageMode
-    && draft.backendUrl === props.settings.backendUrl
-    && draft.backendToken === props.settings.backendToken;
-  const backendDisplayNotice = editingSavedBackend ? props.backendNotice : '';
-  const backendDisplayStatus = editingSavedBackend
-    ? props.backendStatus ?? backendTestStatus
-    : backendTestStatus;
-  useEffect(() => {
-    let cancelled = false;
-    setBackendConfig(null);
-    setBackendTestStatus(null);
-    setBackendInfo('');
-    if (draft.storageMode !== 'backend' || !draft.backendUrl.trim() || !draft.backendToken.trim()) {
-      setBackendLoading(false);
+  const save = async () => {
+    if (!Number.isSafeInteger(draft.autoRefreshHours) || draft.autoRefreshHours < 0) {
+      setMessage("自动刷新间隔请输入大于或等于 0 的整数小时，0 表示关闭");
       return;
     }
-    setBackendLoading(true);
-    setBackendInfo('正在读取后端设置…');
-    const timer = window.setTimeout(() => {
-      void testBackend(draft).then(status => {
-        if (cancelled) return;
-        setBackendConfig(status.config);
-        setBackendTestStatus(status);
-        setBackendInfo('连接成功 · 已用 ' + (status.storageBytes / 1024 / 1024).toFixed(1) + ' MB');
-      }).catch(error => {
-        if (!cancelled) setBackendInfo(error instanceof Error ? error.message : String(error));
-      }).finally(() => {
-        if (!cancelled) setBackendLoading(false);
-      });
-    }, 300);
-    return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [draft.storageMode, draft.backendUrl, draft.backendToken, backendRetry]);
-  const save=async()=>{
-    setSaving(true);setMessage('');
+    setSaving(true);
+    setMessage("");
     try {
-      if (draft.storageMode === 'backend' && (!backendConfig || backendLoading)) throw new Error('请先等待后端设置读取成功');
-      await props.onSave(draft,draft.storageMode==='backend'?backendConfig??undefined:undefined);
+      await props.onSave(draft);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
     }
-    catch(error){setMessage(error instanceof Error?error.message:String(error));}
-    finally{setSaving(false);}
   };
   const fileInput = useRef<HTMLInputElement>(null);
   const update = (patch: Partial<AppSettings>) => {
     if ("webdavUrl" in patch || "webdavUsername" in patch || "webdavPassword" in patch) {
-      setMessage('');
+      setMessage("");
     }
     setDraft((current) => ({ ...current, ...patch }));
   };
@@ -1214,33 +1202,6 @@ function SettingsDialog(props: {
         <div class="dialog-title"><div><Settings size={20} /><h2>设置</h2></div><button class="icon-button" title="关闭" onClick={closeWithoutSaving}><X size={18} /></button></div>
         <div class="settings-scroll">
           <section class="settings-section">
-            <div class="section-heading"><Cloud size={18}/><div><h3>数据模式</h3><p>本地数据和后端缓存独立保存，切换不会合并或删除原有数据。</p></div></div>
-            <div class="segmented data-mode-switch" aria-label="数据模式">
-              <button class={draft.storageMode==='local'?'active':''} onClick={()=>{update({storageMode:'local'});setShowBackendToken(false);}}>本地</button>
-              <div class="data-mode-backend">
-                <button class={draft.storageMode==='backend'?'active':''} onClick={()=>update({storageMode:'backend'})}>Dox Reader Backend</button>
-                <a class="icon-button small backend-help" href="https://github.com/aenerv7/Dox/blob/main/Firefox/Add-Ons/Dox%20Reader/README.md" target="_blank" rel="noopener noreferrer" title="后端模式说明" aria-label="Dox Reader 后端模式说明"><CircleHelp size={15} aria-hidden="true" /></a>
-              </div>
-            </div>
-            {draft.storageMode==='backend' && <>
-              <label class="field"><span>地址</span><input type="url" value={draft.backendUrl} placeholder="https://dox-reader-backend.example.workers.dev" onInput={event=>{update({backendUrl:event.currentTarget.value});setBackendConfig(null);setBackendTestStatus(null);setBackendInfo('');}}/></label>
-              <div class="field">
-                <label for="backend-token">访问令牌</label>
-                <div class="password-field">
-                  <input id="backend-token" type={showBackendToken ? "text" : "password"} autoComplete="off" value={draft.backendToken} onInput={event=>{update({backendToken:event.currentTarget.value});setBackendConfig(null);setBackendTestStatus(null);setBackendInfo('');}}/>
-                  <button type="button" class="password-toggle" title={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-label={showBackendToken ? "隐藏访问令牌" : "查看访问令牌"} aria-pressed={showBackendToken} onClick={()=>setShowBackendToken(visible=>!visible)}>{showBackendToken ? <EyeOff size={17}/> : <Eye size={17}/>}</button>
-                </div>
-              </div>
-              <button class="secondary-button" disabled={backendLoading||saving||!draft.backendUrl||!draft.backendToken} onClick={()=>setBackendRetry(value=>value+1)}>{backendLoading?'正在连接':'重新连接'}</button>
-              {backendInfo && <div class="connection-result">{backendInfo}</div>}
-              {(backendDisplayNotice || backendDisplayStatus) && <div class="backend-fetch-status" role="status">{backendDisplayNotice || formatBackendStatus(backendDisplayStatus)}</div>}
-                <div class="field-row">
-                  <label class="field"><span>抓取间隔（分钟）</span><input type="number" min="30" max="10080" step="1" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.intervalMinutes ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,intervalMinutes:Number(event.currentTarget.value)});}}/></label>
-                  <label class="field"><span>全库最新文章上限</span><input type="number" min="100" max="10000" step="100" placeholder="—" disabled={!backendConfig || backendLoading} value={backendConfig?.maxArticles ?? ''} onInput={event=>{if(backendConfig) setBackendConfig({...backendConfig,maxArticles:Number(event.currentTarget.value)});}}/></label>
-                </div>
-            </>}
-          </section>
-          {draft.storageMode==='local' && <section class="settings-section">
             <div class="section-heading"><Cloud size={18} /><div><h3>WebDAV 同步</h3><p>订阅、文章状态与偏好设置</p></div></div>
             <label class="field"><span>WebDAV URL 前缀</span><input type="url" value={draft.webdavUrl} onInput={(event) => update({ webdavUrl: event.currentTarget.value })} placeholder="https://dav.example.com/remote.php/dav/files/user/" /></label>
             <div class="field-row">
@@ -1251,9 +1212,13 @@ function SettingsDialog(props: {
             <div class="inline-actions">
               <button class="secondary-button" aria-busy={syncing} disabled={syncing || !webdavReady} onClick={() => void handleSync()}>{syncing ? <LoaderCircle size={16} class="spin" /> : <Upload size={16} />}{syncing ? "正在同步" : "立即同步"}</button>
             </div>
-          </section>}
+          </section>
           <section class="settings-section">
-            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色 · {draft.storageMode==='local'?'可通过 WebDAV 同步':'保存在当前设备'}</p></div></div>
+            <div class="section-heading"><RefreshCw size={18} /><div><h3>自动刷新</h3><p>按当前设备每个订阅源上次成功更新的时间判断，仅在页面打开时刷新，失败后至少间隔 5 分钟重试。默认 24 小时，0 表示关闭。</p></div></div>
+            <label class="field"><span>刷新间隔（小时）</span><input type="number" min="0" step="1" aria-label="自动刷新间隔（小时）" value={Number.isFinite(draft.autoRefreshHours) ? draft.autoRefreshHours : ""} onInput={(event) => update({ autoRefreshHours: event.currentTarget.value === "" ? NaN : event.currentTarget.valueAsNumber })} /></label>
+          </section>
+          <section class="settings-section">
+            <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色 · 可通过 WebDAV 同步</p></div></div>
             <div class="segmented" aria-label="主题">
               {(["system", "light", "dark"] as const).map((theme) => <button key={theme} class={draft.theme === theme ? "active" : ""} onClick={() => update({ theme })}>{theme === "system" ? "跟随系统" : theme === "light" ? "浅色" : "深色"}</button>)}
             </div>
@@ -1319,8 +1284,7 @@ function SettingsDialog(props: {
             <button class="danger-button" onClick={() => void props.onClear()}><Trash2 size={16} />清除本机数据</button>
           </section>
         </div>
-        {message && draft.storageMode==='backend' && <div class="connection-result">{message}</div>}
-        <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving||(draft.storageMode==='backend'&&(!backendConfig||backendLoading))} onClick={()=>void save()}><Check size={17} />{saving?'正在保存':'保存'}</button></div>
+        <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving} onClick={() => void save()}><Check size={17} />{saving ? '正在保存' : '保存'}</button></div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 # Dox Reader for Firefox
 
-Dox Reader 的 Firefox WebExtension 版本，支持 Firefox 桌面版和 Android 版。扩展使用 Manifest V3，直接请求用户添加的 RSS/Atom 地址和用户配置的 HTTPS WebDAV 服务，不依赖开发者运营的后端。
+Dox Reader 的 Firefox WebExtension 版本，支持 Firefox 桌面版和 Android 版。扩展使用 Manifest V3，直接请求用户添加的 RSS/Atom 地址、原文页面和用户配置的 HTTPS WebDAV 服务，不使用开发者运营的服务端。
 
 ## 安装
 
@@ -33,9 +33,11 @@ npm run package
 
 ## 数据与权限
 
-- IndexedDB 保存订阅和文章缓存，`browser.storage.local` 保存设置与 WebDAV 凭据。
-- WebDAV 同步文档位于用户提供的 URL 前缀下的 `Dox Reader/state.json`。
-- `http://*/*` 与 `https://*/*` host 权限用于访问用户自行添加的订阅源和 WebDAV 地址。
+- IndexedDB 保存订阅、文章和提取的全文，`browser.storage.local` 保存设置与 WebDAV 凭据。
+- WebDAV 同步文档位于用户提供的 URL 前缀下的 `Dox Reader/state.json`，只包含订阅、已读/收藏状态、刷新时间和外观/阅读偏好；正文、图片、凭据和本机布局不上传。
+- 只有点击“获取全文”时才请求原文页面；Readability 提取的正文和主图只写入本机 IndexedDB。
+- 自动刷新按每个订阅源上次成功更新的时间单独判断，间隔在设置中以整数小时配置，0 关闭；仅在阅读器页面打开时运行。
+- `http://*/*` 与 `https://*/*` host 权限用于访问用户自行添加的订阅源、原文页面和 WebDAV 地址。
 - 应用不包含广告、分析或远程可执行代码。
 
 ## 发布
@@ -60,9 +62,3 @@ pwsh -File release.ps1 -SkipSign
 发布脚本会测试、构建并提交 AMO listed 审核，公开资料保存在 `amo-listing.json`。待审核时正常退出，不发布未签名包，也不自动提交或推送；审核通过后重新运行 `npm run release:push`，下载并校验 AMO 的签名 XPI，覆盖为本目录下的 `bb7581fa1bbf4b928862.xpi`。目录里的 `updates.json` 只是 1.0 之前（0.x）自托管更新入口，键为旧扩展 ID `dox-rss-reader@dox.local`，脚本不再维护它。使用 `-Push` 前，暂存区必须为空。
 
 统一开发规范见仓库根文档 [`../../DEVELOPMENT.md`](../../DEVELOPMENT.md)；审核与隐私信息见 [`AMO_REVIEW_NOTES.md`](AMO_REVIEW_NOTES.md) 和 [`PRIVACY.md`](PRIVACY.md)。
-
-## 本地与后端模式（1.1.0）
-
-设置 → 数据模式：默认「纯本地」，保留现有 RSS/WebDAV 功能；选择「自建后端」后填写自己的 Dox Reader Backend HTTPS 根地址和访问令牌，等待自动读取后端设置。可调整抓取间隔（默认 60 分钟）及全库最新文章上限（默认 10000 篇，含收藏），保存后生效。关闭全部客户端也会继续抓取，刷新按钮可手动触发后端抓取。
-
-本地与每个后端的缓存独立，切换不会自动迁移或删除数据；可用 OPML 导出/导入订阅。后端模式下 WebDAV 不启用，外观保存在本机；离线可读已缓存内容，状态修改需要联网。调低保留上限会删除远端旧文章。后端需自行部署与运维，源码不再随仓库提供。

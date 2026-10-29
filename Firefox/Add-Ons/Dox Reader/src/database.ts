@@ -190,21 +190,26 @@ export async function getFeed(id: string): Promise<FeedRecord | undefined> {
 
 export async function saveParsedFeed(feedId: string, parsed: ParsedFeed, expectedUrl?: string): Promise<void> {
   const now = Date.now();
-  const ids = parsed.items.map((item) => item.id);
-  const [existingItems, states] = await Promise.all([
-    db.items.bulkGet(ids),
-    db.itemStates.bulkGet(ids),
-  ]);
-  const records = parsed.items.map((item, index): ItemRecord => ({
-    ...item,
-    read: states[index]?.read.value ?? existingItems[index]?.read ?? false,
-    starred: states[index]?.starred.value ?? existingItems[index]?.starred ?? false,
-    fetchedAt: now,
-  }));
-
-  await db.transaction("rw", db.feeds, db.items, async () => {
+  await db.transaction("rw", db.feeds, db.items, db.itemStates, async () => {
     const feed = await db.feeds.get(feedId);
     if (!feed || feed.deleted || (expectedUrl !== undefined && feed.url !== expectedUrl)) return;
+    const [existingItems, states] = await Promise.all([
+      db.items.bulkGet(parsed.items.map(item => item.id)),
+      db.itemStates.bulkGet(parsed.items.map(item => item.id)),
+    ]);
+    const records = parsed.items.map((item, index): ItemRecord => {
+      const existing = existingItems[index];
+      const keepArticle = existing?.contentSource === "article" && existing.url === item.url;
+      return {
+        ...item,
+        content: keepArticle ? existing.content : item.content,
+        contentSource: keepArticle ? "article" : "feed",
+        feedContent: keepArticle ? item.content : undefined,
+        read: states[index]?.read.value ?? existing?.read ?? false,
+        starred: states[index]?.starred.value ?? existing?.starred ?? false,
+        fetchedAt: now,
+      };
+    });
     await db.items.bulkPut(records);
     await db.feeds.update(feedId, {
       title: parsed.title,
@@ -271,6 +276,20 @@ export async function getItem(id: string): Promise<ItemRecord | undefined> {
   return db.items.get(id);
 }
 
+export async function updateItemContent(id: string, content: string, expectedUrl: string): Promise<ItemRecord | undefined> {
+  return db.transaction("rw", db.items, async () => {
+    const item = await db.items.get(id);
+    if (!item || item.url !== expectedUrl) return undefined;
+    const updated: ItemRecord = {
+      ...item,
+      content,
+      contentSource: "article",
+      feedContent: item.feedContent ?? item.content,
+    };
+    await db.items.put(updated);
+    return updated;
+  });
+}
 export async function setItemState(
   id: string,
   patch: Partial<Pick<ItemRecord, "read" | "starred">>,
@@ -426,8 +445,8 @@ export async function applySyncDocument(document: SyncDocument): Promise<void> {
         version: subscription.version,
         addedAt: existing?.addedAt ?? now,
         updatedAt: now,
-        lastFetchedAt: existing?.lastFetchedAt,
-        error: existing?.error,
+        lastFetchedAt: existing?.url === subscription.url ? existing.lastFetchedAt : undefined,
+        error: existing?.url === subscription.url ? existing.error : undefined,
       });
       if (subscription.deleted) await db.items.where("feedId").equals(subscription.id).delete();
     }

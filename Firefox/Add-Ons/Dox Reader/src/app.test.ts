@@ -7,20 +7,22 @@ import { DEFAULT_SETTINGS } from "./model";
 import type { FeedRecord, ItemRecord } from "./model";
 import * as repository from "./repository";
 import { syncWithWebDav } from "./webdav";
+import { extractFullArticle } from "./article-extractor";
 
 vi.mock("./repository", () => ({
   listFeeds: vi.fn(), listItems: vi.fn(), getItemCounts: vi.fn(),
   getFeedUnreadCounts: vi.fn(), getLastRefreshAllAt: vi.fn(() => Date.now()),
   migrateLegacyEntities: vi.fn(), hasLocalReaderData: vi.fn(() => true),
   setItemState: vi.fn(), markAllRead: vi.fn(), markFeedRead: vi.fn(),
-  updateSyncedPreferences: vi.fn(),
+  updateSyncedPreferences: vi.fn(), updateItemContent: vi.fn(),
+}));
+vi.mock("./article-extractor", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./article-extractor")>(),
+  extractFullArticle: vi.fn(),
 }));
 vi.mock("./settings", () => ({
   loadSettings: vi.fn(() => ({ ...DEFAULT_SETTINGS, webdavUrl: "https://dav.example/" })),
   saveSettings: vi.fn(), applyAppearance: vi.fn(),
-}));
-vi.mock("./backend", () => ({
-  backendEnabled: () => false, backendOffline: () => false, connectBackend: vi.fn(),
 }));
 vi.mock("./webdav", async (importOriginal) => ({
   ...await importOriginal<typeof import("./webdav")>(),
@@ -29,11 +31,11 @@ vi.mock("./webdav", async (importOriginal) => ({
 
 const feeds = ["A", "B"].map(id => ({
   id, title: id, customName: "", url: `https://${id}.example/feed`,
-  siteUrl: "", folder: "", addedAt: 0, updatedAt: 0, deleted: false, version: [0, "test"],
+  siteUrl: "", folder: "", addedAt: 0, updatedAt: 0, lastFetchedAt: Date.now(), deleted: false, version: [0, "test"],
 })) as FeedRecord[];
 const items = feeds.map(feed => ({
   id: feed.id, feedId: feed.id, title: `文章 ${feed.id}`, read: false,
-  starred: false, content: "", snippet: "", url: "", author: "", publishedAt: 0,
+  starred: false, content: "<p>RSS 摘要</p>", snippet: "RSS 摘要", url: `https://example.com/${feed.id}`, author: "", publishedAt: 0,
   fetchedAt: 0, guid: feed.id,
 })) as ItemRecord[];
 const syncResult = { subscriptions: 2, itemStates: 2, etag: null };
@@ -78,6 +80,85 @@ afterEach(() => {
 });
 
 describe("pending reader actions", () => {
+  it("always shows sync and disables it without a valid HTTPS URL", async () => {
+    await click('.topbar button[title="设置"]');
+    const syncButton = () => root.querySelector<HTMLButtonElement>('.settings-section:first-child .inline-actions button')!;
+    const address = root.querySelector<HTMLInputElement>('.settings-dialog input[type="url"]')!;
+    const input = async (value: string) => {
+      await act(async () => {
+        address.value = value;
+        address.dispatchEvent(new Event('input', { bubbles: true }));
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+    };
+    expect(syncButton().disabled).toBe(false);
+    for (const value of ['', '   ', 'https', 'http://dav.example/']) {
+      await input(value);
+      expect(syncButton().disabled).toBe(true);
+    }
+    await input('https://dav.example/new/');
+    expect(syncButton().disabled).toBe(false);
+    for (const selector of ['input[autocomplete="username"]', '#webdav-password']) {
+      await act(async () => {
+        const field = root.querySelector<HTMLInputElement>(selector)!;
+        field.value = 'changed';
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+    }
+    expect(syncWithWebDav).not.toHaveBeenCalled();
+    await click('.settings-section:first-child .inline-actions button');
+    expect(syncWithWebDav).toHaveBeenCalledTimes(1);
+    expect(syncWithWebDav).toHaveBeenCalledWith(expect.objectContaining({
+      webdavUrl: 'https://dav.example/new/', webdavUsername: 'changed', webdavPassword: 'changed',
+    }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(root.querySelector('.connection-result')).toBeNull();
+  });
+
+  it("extracts only on click, shares the request lock and can switch back to RSS", async () => {
+    const pending = deferred<{ content: string; textLength: number }>();
+    vi.mocked(extractFullArticle).mockReturnValueOnce(pending.promise);
+    const fullContent = '<p>提取的完整正文</p><img src="https://example.com/cover.jpg" onerror="alert(1)"><script>alert(1)</script>';
+    vi.mocked(repository.updateItemContent).mockResolvedValueOnce({
+      ...items[0], content: fullContent, contentSource: "article", feedContent: items[0].content,
+    });
+    const enhance = '.article-enhance button';
+    await click('.item-row');
+    expect(extractFullArticle).not.toHaveBeenCalled();
+    await click(enhance);
+    expect(button(enhance).disabled).toBe(true);
+    expect(button(enhance).getAttribute('aria-busy')).toBe('true');
+    await click('.item-row:nth-child(2)');
+    expect(button(enhance).disabled).toBe(true);
+    expect(button(enhance).querySelector('.spin')).toBeNull();
+    await click('.item-row:first-child');
+    expect(button(enhance).querySelector('.spin')).not.toBeNull();
+    expect(extractFullArticle).toHaveBeenCalledTimes(1);
+    await act(async () => { pending.resolve({ content: fullContent, textLength: 900 }); await pending.promise; });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(repository.updateItemContent).toHaveBeenCalledWith('A', fullContent, items[0].url);
+    expect(root.querySelector('.article-body')?.textContent).toContain('提取的完整正文');
+    expect(root.querySelector('.article-body script')).toBeNull();
+    expect(root.querySelector('.article-body img')?.hasAttribute('onerror')).toBe(false);
+    expect(button(enhance).textContent).toContain('显示 RSS 内容');
+    await click(enhance);
+    expect(root.querySelector('.article-body')?.textContent).toBe('RSS 摘要');
+    await click(enhance);
+    expect(root.querySelector('.article-body')?.textContent).toContain('提取的完整正文');
+    expect(syncWithWebDav).not.toHaveBeenCalled();
+  });
+
+  it("keeps RSS content and allows retry when full-text extraction fails", async () => {
+    vi.mocked(extractFullArticle).mockRejectedValueOnce(new Error('原文返回 HTTP 403'));
+    await click('.item-row');
+    await click('.article-enhance button');
+    expect(root.querySelector('.article-body')?.textContent).toBe('RSS 摘要');
+    expect(root.textContent).toContain('原文返回 HTTP 403');
+    expect(button('.article-enhance button').disabled).toBe(false);
+    expect(repository.updateItemContent).not.toHaveBeenCalled();
+  });
+
   it("keeps feed A busy across A/B/A and releases the lock on failure", async () => {
     const pending = deferred<number>();
     vi.mocked(repository.markFeedRead).mockReturnValueOnce(pending.promise);

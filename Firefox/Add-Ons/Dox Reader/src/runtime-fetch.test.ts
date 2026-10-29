@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchFeed, fetchWebDav } from "./runtime-fetch";
+import { fetchArticle, fetchFeed, fetchWebDav } from "./runtime-fetch";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -16,6 +16,17 @@ describe("Firefox runtime requests", () => {
     const headers = new Headers(init?.headers);
     expect(url).toBe("https://feeds.example/posts.xml");
     expect(headers.get("Accept")).toBe("application/rss+xml");
+  });
+
+  it("fetches original article pages directly", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response("<html/>"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchArticle("https://example.com/posts/1", { cache: "no-store" });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://example.com/posts/1");
+    expect(init?.cache).toBe("no-store");
   });
 
   it("sends WebDAV credentials directly to the configured server", async () => {

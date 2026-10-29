@@ -6,21 +6,34 @@ function hasExtensionStorage(): boolean {
   return typeof browser !== "undefined" && Boolean(browser.storage?.local);
 }
 
+// Keep only keys still present in AppSettings, then repair invalid values.
+function localSettings(saved?: Partial<AppSettings>): AppSettings {
+  const result = { ...DEFAULT_SETTINGS };
+  for (const key of Object.keys(result) as (keyof AppSettings)[]) {
+    if (saved && Object.hasOwn(saved, key)) Object.assign(result, { [key]: saved[key] });
+  }
+  if (!Number.isSafeInteger(result.autoRefreshHours) || result.autoRefreshHours < 0) {
+    result.autoRefreshHours = DEFAULT_SETTINGS.autoRefreshHours;
+  }
+  return result;
+}
+
 export async function loadSettings(): Promise<AppSettings> {
   if (hasExtensionStorage()) {
     const result = await browser.storage.local.get(STORAGE_KEY);
-    return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEY] as Partial<AppSettings> | undefined) };
+    return localSettings(result[STORAGE_KEY] as Partial<AppSettings> | undefined);
   }
   const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) as Partial<AppSettings> } : DEFAULT_SETTINGS;
+  return localSettings(raw ? JSON.parse(raw) as Partial<AppSettings> : undefined);
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
+  const normalized = localSettings(settings);
   if (hasExtensionStorage()) {
-    await browser.storage.local.set({ [STORAGE_KEY]: settings });
+    await browser.storage.local.set({ [STORAGE_KEY]: normalized });
     return;
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }
 
 function accentContrast(hex: string): string {

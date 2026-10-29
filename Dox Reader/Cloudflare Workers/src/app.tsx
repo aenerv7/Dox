@@ -1214,9 +1214,8 @@ function SettingsDialog(props: {
             </div>
           </section>
           <section class="settings-section">
-            <div class="section-heading"><RefreshCw size={18} /><div><h3>自动刷新</h3><p>按每个订阅源上次成功更新的时间判断 · 当前设备</p></div></div>
+            <div class="section-heading"><RefreshCw size={18} /><div><h3>自动刷新</h3><p>按当前设备每个订阅源上次成功更新的时间判断，仅在页面打开时刷新，失败后至少间隔 5 分钟重试。默认 24 小时，0 表示关闭。</p></div></div>
             <label class="field"><span>刷新间隔（小时）</span><input type="number" min="0" step="1" aria-label="自动刷新间隔（小时）" value={Number.isFinite(draft.autoRefreshHours) ? draft.autoRefreshHours : ""} onInput={(event) => update({ autoRefreshHours: event.currentTarget.value === "" ? NaN : event.currentTarget.valueAsNumber })} /></label>
-            <p>默认 24 小时，0 表示关闭。仅在页面打开时刷新；失败后至少间隔 5 分钟重试。</p>
           </section>
           <section class="settings-section">
             <div class="section-heading"><Settings size={18} /><div><h3>外观</h3><p>明暗模式与配色 · 可通过 WebDAV 同步</p></div></div>

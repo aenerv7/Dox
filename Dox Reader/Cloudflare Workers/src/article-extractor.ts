@@ -128,7 +128,7 @@ export async function extractFullArticle(url: string): Promise<ExtractedArticle>
   try { html = new TextDecoder(charset).decode(bytes); }
   catch { html = new TextDecoder().decode(bytes); }
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const base = httpUrl(response.headers.get("X-Dox-Upstream-URL") || "") || url;
+  const base = httpUrl(response.headers.get("X-Dox-Upstream-URL") || response.url || "") || url;
   const image = metadataImage(doc, base);
   // Ignore untrusted <base> elements. Resolve links against the validated final URL.
   doc.querySelectorAll("base").forEach(node => node.remove());

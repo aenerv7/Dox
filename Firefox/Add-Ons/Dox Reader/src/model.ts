@@ -24,6 +24,9 @@ export interface ItemRecord {
   author: string;
   publishedAt: number;
   content: string;
+  /** Extracted HTML is local only; feedContent preserves the RSS fallback. */
+  contentSource?: "feed" | "article";
+  feedContent?: string;
   snippet: string;
   read: boolean;
   starred: boolean;
@@ -110,28 +113,25 @@ export interface SyncedPreferences {
 }
 
 export interface AppSettings extends PreferenceValues {
-  storageMode: "local" | "backend";
-  backendUrl: string;
-  backendToken: string;
   webdavUrl: string;
   webdavUsername: string;
   webdavPassword: string;
+  /** Hours since each feed's last successful fetch; zero disables automatic refresh. Local to this device. */
+  autoRefreshHours: number;
   feedPaneRatio: number;
   itemPaneRatio: number;
   layoutLocked: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  storageMode: "local",
-  backendUrl: "",
-  backendToken: "",
   webdavUrl: "",
   webdavUsername: "",
   webdavPassword: "",
   theme: "system",
-  colorScheme: "ink",
+  colorScheme: "material",
   customAccent: "",
   showItemSnippet: true,
+  autoRefreshHours: 24,
   feedPaneRatio: 0.17,
   itemPaneRatio: 0.27,
   layoutLocked: false,

@@ -37,7 +37,7 @@
 
 ## Dox Reader
 
-Web 版源码位于 [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%20Workers)，Cloudflare Worker 项目名为 `dox-reader`；Firefox 扩展源码位于 [`Firefox/Add-Ons/Dox Reader`](./Firefox/Add-Ons/Dox%20Reader)，扩展 ID 为 `dox-reader@magi`，桌面版与 Android 版均最低支持 Firefox 142。Dox Reader Backend 已移除，不再提供。
+Web 版源码位于 [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%20Workers)，Cloudflare Worker 项目名为 `dox-reader`；Firefox 扩展源码位于 [`Firefox/Add-Ons/Dox Reader`](./Firefox/Add-Ons/Dox%20Reader)，扩展 ID 为 `dox-reader@magi`，桌面版与 Android 版均最低支持 Firefox 142。两个版本使用同一套阅读器逻辑，功能一致：扩展直接请求订阅源和原文页面，Web 版经同源 Worker 代理；都不依赖服务端存储或定时抓取。
 
 - RSS/Atom 订阅、文章正文和阅读状态保存在当前浏览器的 IndexedDB，可阅读已缓存文章。对于只有摘要的订阅，打开文章后点击“获取全文”可按需从原网页提取正文和主图；提取结果只保存在本机。
 - 默认外观为 Material 3，亮暗模式跟随系统；已有本机设置或 WebDAV 同步的个人配色保持不变。

@@ -5,12 +5,12 @@
   },
   "slug": "dox-reader",
   "summary": {
-    "en-US": "RSS/Atom reader with local mode, WebDAV sync, and an optional self-hosted personal backend.",
-    "zh-CN": "RSS/Atom 阅读器：可选纯本地与自建后端，本地支持 WebDAV 同步。"
+    "en-US": "Local RSS/Atom reader with WebDAV sync, full-text extraction and automatic refresh.",
+    "zh-CN": "RSS/Atom 阅读器：本地保存，支持 WebDAV 同步、全文提取与自动刷新。"
   },
   "description": {
-    "en-US": "Read your RSS and Atom subscriptions in a dedicated reader tab. Dox Reader keeps subscriptions, downloaded articles, read state and starred items in your browser. The reader interface is currently in Simplified Chinese.\n\nFeatures:\n- Organize feeds and browse unread, all or starred articles.\n- Search cached articles and import or export subscriptions using OPML.\n- Customize the reading layout, colors and typography.\n- Optionally sync subscriptions, read/starred state and preferences through your own HTTPS WebDAV server. Article bodies stay on each device in local mode.\n\nNo Dox Reader account or developer-operated backend is required. The extension contains no advertising or analytics. Broad website access is needed to request the feed addresses and WebDAV server you choose; it does not inspect your browsing history. Article images can load from their original hosts.\n\nRequires Firefox 142 or later on desktop or Android. Questions and bug reports: https://github.com/aenerv7/Dox/issues\n\nOptional Backend mode connects to your own Dox Reader Backend on Cloudflare. It archives feed articles, synchronizes subscriptions/read/starred state, and fetches hourly even when all clients are closed. Configure the fetch interval and global article retention in Settings; defaults are 60 minutes and the latest 10000 articles, including starred items. Local mode remains independent. Backend mode needs a Dox Reader Backend that you deploy and operate yourself; it is not distributed with this extension and no shared service is provided. You only supply that backend's HTTPS root URL and access token.",
-    "zh-CN": "在独立阅读器标签页中阅读 RSS 和 Atom 订阅。Dox Reader 将订阅、下载的文章、已读与收藏状态保存在浏览器本地，当前阅读器界面为简体中文。\n\n主要功能：\n- 按未读、全部文章或收藏浏览内容，管理订阅源。\n- 搜索缓存文章，通过 OPML 导入和导出订阅。\n- 调整阅读布局、配色和字体。\n- 可选连接自己的 HTTPS WebDAV 服务，同步订阅、已读与收藏状态和偏好；本地模式下文章正文保留在各设备本地。\n\n无需 Dox Reader 账号或开发者运营的后端，不含广告或分析。访问网站权限用于请求你添加的订阅地址和 WebDAV 服务，不用于读取浏览历史。文章图片可能从原始图片服务器加载。\n\n支持 Firefox 142 及以上桌面版和 Android 版。问题反馈：https://github.com/aenerv7/Dox/issues\n\n可选连接部署在自己 Cloudflare 账号的 Dox Reader Backend，统一保存文章、订阅及已读/收藏状态，关闭所有客户端仍会定时抓取。设置中可调整抓取间隔和全库保留上限，默认 60 分钟和最新 10000 篇（含收藏）。纯本地模式保持独立。后端需自行部署与运维，不再随扩展分发，也不提供公共后端；扩展只需填写该后端的 HTTPS 根地址和访问令牌。"
+    "en-US": "Read your RSS and Atom subscriptions in a dedicated reader tab. Dox Reader keeps subscriptions, downloaded articles, read state and starred items in your browser. The reader interface is currently in Simplified Chinese.\n\nFeatures:\n- Organize feeds and browse unread, all or starred articles.\n- Search cached articles and import or export subscriptions using OPML.\n- Customize the reading layout, colors and typography.\n- Fetch the full text of summary-only articles on demand and keep it on the device.\n- Refresh feeds automatically at a per-device interval.\n- Optionally sync subscriptions, read/starred state, refresh metadata and preferences through your own HTTPS WebDAV server. Article bodies and images stay on each device.\n\nNo Dox Reader account or developer-operated service is required. The extension contains no advertising or analytics. Broad website access is needed to request the feed addresses, article pages and WebDAV server you choose; it does not inspect your browsing history. Article images can load from their original hosts.\n\nRequires Firefox 142 or later on desktop or Android. Questions and bug reports: https://github.com/aenerv7/Dox/issues",
+    "zh-CN": "在独立阅读器标签页中阅读 RSS 和 Atom 订阅。Dox Reader 将订阅、下载的文章、已读与收藏状态保存在浏览器本地，当前阅读器界面为简体中文。\n\n主要功能：\n- 按未读、全部文章或收藏浏览内容，管理订阅源。\n- 搜索缓存文章，通过 OPML 导入和导出订阅。\n- 调整阅读布局、配色和字体。\n- 对只有摘要的文章按需提取全文，结果只保存在本机。\n- 按本机设置的间隔自动刷新订阅。\n- 可选连接自己的 HTTPS WebDAV 服务，同步订阅、已读与收藏状态、刷新时间和偏好；文章正文与图片保留在各设备本地。\n\n无需 Dox Reader 账号或开发者运营的服务，不含广告或分析。访问网站权限用于请求你添加的订阅地址、原文页面和 WebDAV 服务，不用于读取浏览历史。文章图片可能从原始图片服务器加载。\n\n支持 Firefox 142 及以上桌面版和 Android 版。问题反馈：https://github.com/aenerv7/Dox/issues"
   },
   "homepage": {
     "en-US": "https://github.com/aenerv7/Dox/tree/main/Firefox/Add-Ons/Dox%20Reader"
@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Add raster extension icons so the Dox Reader icon shows correctly in Firefox and on this listing. The backend help link in Settings now opens the extension README instead of the removed backend deployment guide.",
-      "zh-CN": "新增位图扩展图标，Firefox 与商店页面均能正确显示图标；设置中的后端帮助链接改为打开扩展 README，不再指向已移除的后端部署文档。"
+      "en-US": "Merge the automatic-refresh explanation into the Settings section heading. No behavior change.",
+      "zh-CN": "把自动刷新说明合并到设置分区标题中，行为不变。"
     }
   }
 }
