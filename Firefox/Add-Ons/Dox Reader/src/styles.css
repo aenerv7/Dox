@@ -1284,7 +1284,9 @@ body.layout-resizing {
   border-bottom: 1px solid var(--border);
 }
 
+/* Align setting controls with the section title text (18px icon + 10px gap). */
 .settings-section > :not(.section-heading) {
+  max-width: calc(100% - 28px);
   margin-left: 28px;
 }
 
@@ -1293,6 +1295,7 @@ body.layout-resizing {
 }
 
 .section-heading > svg {
+  flex: 0 0 auto;
   margin-top: 1px;
   color: var(--text-soft);
 }
@@ -1844,15 +1847,10 @@ body.layout-resizing {
     grid-template-columns: 1fr;
   }
 
-  /* 竖屏窄屏下，设置分区收窄内边距并去掉内容缩进，
-     让字段占满可用宽度，避免 min(330/430px, 100%) + 28px
-     缩进把内容挤出视口（此前配色宫格最右列会被裁掉）。 */
+  /* 竖屏窄屏下，设置分区收窄内边距；字段保留标题缩进，
+     max-width 已扣除缩进量，配色宫格不会被裁掉。 */
   .settings-section {
     padding: 18px 16px;
-  }
-
-  .settings-section > :not(.section-heading) {
-    margin-left: 0;
   }
 
   .scheme-grid {

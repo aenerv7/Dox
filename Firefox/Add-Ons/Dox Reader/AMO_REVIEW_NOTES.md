@@ -1,10 +1,10 @@
 # AMO Reviewer Notes
 
-Version 1.2.1 only merges the automatic-refresh explanation into the Settings section heading; no behavior change. It builds on 1.2.0, which removed the retired Backend mode and brought the extension in line with the web version: optional on-demand full-text extraction, per-feed automatic refresh, shared refresh queuing and the same local-only data model. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
+Version 1.2.2 only aligns settings controls with the section title text on narrow screens; no behavior change. It builds on 1.2.0, which removed the retired Backend mode and brought the extension in line with the web version: optional on-demand full-text extraction, per-feed automatic refresh, shared refresh queuing and the same local-only data model. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
 
 ## Build
 
-Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.2.1.zip.
+Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.2.2.zip.
 
 ## Data and network
 

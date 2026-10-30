@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Merge the automatic-refresh explanation into the Settings section heading. No behavior change.",
-      "zh-CN": "把自动刷新说明合并到设置分区标题中，行为不变。"
+      "en-US": "Align settings controls with the section title text on narrow screens. No behavior change.",
+      "zh-CN": "窄屏下让设置项与分区标题文本对齐，行为不变。"
     }
   }
 }
