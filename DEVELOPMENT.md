@@ -28,6 +28,7 @@
    - 3.15 [Thunderbird（用户层配置）](#315-thunderbird用户层配置)
    - 3.16 [strelaysrv（VPS 私有中继状态页）](#316-strelaysrvvps-私有中继状态页)
    - 3.17 [Firefox（用户层配置）](#317-firefox用户层配置)
+   - 3.18 [foo_vespertine_analyze（foobar2000 假 Hi-Res 检查）](#318-foo_vespertine_analyzefoobar2000-假-hi-res-检查)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -45,6 +46,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 |---|---|---|
 | C / Win32 API | `SizerWin/*.c`、`SizerWin/*.rc`、`SizerWin/*.manifest`、`CapsLockOSD/` | 原生 Windows 窗口调整工具与 OSD 提示 |
 | C++20 / Win32 API | `DeepSeek Harness/Launcher/` | DeepSeek Harness 本地托盘监督器 |
+| C++17 / C++20 + foobar2000 SDK | `foo_vespertine_analyze/` | foobar2000 假 Hi-Res 检查组件（核心是纯 C++17，胶水层用 foobar2000 SDK + Win32 API） |
 | Python 3.11+ / 标准库 | `Firefox/` | Firefox / Zen 默认应用重复项清理 |
 | Swift 5.9 | `SizerSwift/**` | macOS 菜单栏窗口调整工具 |
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
@@ -59,6 +61,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `SizerWin/` | 活跃 | 纯 C + Win32 API 版窗口调整工具 |
 | `SizerSwift/` | 活跃 | macOS 原生菜单栏窗口调整工具，Swift Package Manager 项目 |
 | `CapsLockOSD/` | 活跃 | Windows 原生 Caps Lock 状态屏幕提示 |
+| `foo_vespertine_analyze/` | 活跃 | foobar2000 组件：频谱与位深取证，判假 Hi-Res（分析核心移植自 macOS 应用 Vespertine） |
 | `Dox Reader/Cloudflare Workers/` | 活跃 | 本地 IndexedDB + WebDAV 同步的 Web RSS 阅读器，无状态 Cloudflare Worker 代理 |
 | `Firefox/Add-Ons/Dox Reader/` | 活跃 | Dox Reader 的 Firefox WebExtension（Manifest V3，AMO listed，扩展 ID `dox-reader@magi`）源码、发布脚本与签名产物 |
 | `Firefox/Add-Ons/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
@@ -87,6 +90,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `SizerSwift/.build/`、`SizerSwift/build/`
 - `SizerWin/SizerWin.exe`、`SizerWin/SizerWin_new.exe`、`SizerWin/*.obj`、`SizerWin/*.res`、`SizerWin/SizerWin.ini`
 - `DeepSeek Harness/Launcher/bin/`
+- `foo_vespertine_analyze/build/`、`foo_vespertine_analyze/.vs/`、`foo_vespertine_analyze/*.user`、`foo_vespertine_analyze/test/swift-parity/.build/`
 - `Firefox/__pycache__/`
 - `Firefox/Add-Ons/Dox Reader/.env.release`（AMO API 发布凭据）
 - `sub-store/.upstream/`、`sub-store/build/`
@@ -98,6 +102,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `SizerWin/SizerWin.c`、`SizerWin/SizerWin.manifest`
 - `SizerSwift/Sources/main.swift`、`SizerSwift/build.sh`、`SizerSwift/INSTALL.md`
 - `CapsLockOSD/`（C++ 源与资源脚本）
+- `foo_vespertine_analyze/src/core/*.h`、`foo_vespertine_analyze/src/core/*.cpp`（纯 C++17 取证核心）、`foo_vespertine_analyze/src/*.h`、`foo_vespertine_analyze/src/*.cpp`（foobar2000 胶水层）、`foo_vespertine_analyze/foo_vespertine_analyze.vcxproj`、`foo_vespertine_analyze/test/core_test.cpp`、`foo_vespertine_analyze/test/parity.sh`
 - `CSS/font-face.css`
 - `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
 - `Firefox/Add-Ons/Dox Reader/src/*.ts`、`Firefox/Add-Ons/Dox Reader/src/*.tsx`、`Firefox/Add-Ons/Dox Reader/public/manifest.json`、`Firefox/Add-Ons/Dox Reader/release.ps1`
@@ -1393,6 +1398,83 @@ Caddy 的 `handle /status*` 仍反代到 `127.0.0.1:16090`，其余请求使用 
 - 用临时 Firefox 配置实测：启动后通过 `about:config` 核对代表项；验证字体回退、垂直标签页、悬停侧栏和拼写检查；对照设置页检查密码、表单、Sync 与退出清理选项，不在真实用户数据上测试清理。
 - 验证重启覆盖和卸载后重置流程；macOS 核对部署前后应用包签名检查结果不变。当前未执行 Firefox 真实启动或 macOS 签名验证。
 
+### 3.18 foo_vespertine_analyze（foobar2000 假 Hi-Res 检查）
+
+foobar2000 组件，检查文件是否名不副实：容器写着 24-bit / 96 kHz，内容却是 16-bit 零填充或 44.1 kHz 上采样。用户说明见根 [README.md 的 foo_vespertine_analyze 小节](./README.md#foo_vespertine_analyze)。
+
+分析逻辑是 macOS 应用 [Vespertine](https://github.com/szeremeta1/Vespertine)（GPL-3.0-or-later）的 `VespertineAnalysis` 包 `FileAnalysis.swift` + `SpectralForensics.swift` + `Spectrum.swift` 三个文件的 C++ 移植，判定顺序、阈值、置信度上限和英文结论文字全部照抄。**上游参照代码不在本仓库内**：验证时需要的 Vespertine 检出目录只在本机（`/Users/Gorilla/Workspace/_ref/Vespertine`），`test/swift-parity/Package.swift` 里写的是该绝对路径，换机器必须手工改或从 GitHub 重新克隆并 sparse checkout `Packages/VespertineAnalysis`。
+
+#### 模块边界
+
+| 位置 | 约束 |
+|---|---|
+| `src/core/` | 纯 C++17，不 include 任何 Windows / foobar2000 头文件，不依赖 MSVC 扩展。可在 macOS / Linux 用 clang++ 直接编测（`test/parity.sh` 就这么做） |
+| `src/` | foobar2000 SDK + Win32 胶水层，只能在 Windows 上用 MSVC 编 |
+| `test/` | 合成信号自测与 Swift 对照，不参与组件构建 |
+
+#### 文件
+
+| 文件 | 行数 | 内容 |
+|---|---|---|
+| `src/core/core.h` | 246 | `PortableFFT`、`SpectrumAnalyzer`、`SpectralForensics`/`ForensicsAccumulator`、`AnalysisAccumulator`、`FileAnalyzer`、`Verdict` 与 `FileAnalysis`/`AnalysisError` 的公开接口 |
+| `src/core/spectrum.cpp` | 121 | 迭代 radix-2 FFT、Hann 窗、dBFS 归一 |
+| `src/core/spectral_forensics.cpp` | 516 | 100 Hz 带谱、噪声底、截止「墙」、台阶/shelf、镜像相关 |
+| `src/core/file_analysis.cpp` | 514 | 位深零填充检测、带宽估计、判定分支与全部英文文案 |
+| `src/core/report_text.h` / `.cpp` | 47 / 163 | 报告表格三列文本与底部详情文本 |
+| `src/app.h` | 39 | `TrackClaim`、UTF-8/UTF-16 转换、`kMaxSeconds`/`kMaxSampleRate` |
+| `src/claim.cpp` | 41 | 从 `file_info` 读声称的编码/位深/采样率/声道 |
+| `src/scan.h` / `scan.cpp` | 18 / 165 | 后台扫描 `threaded_process_callback`、解码循环 |
+| `src/report_window.h` / `.cpp` | 17 / 288 | Win32 报告窗口（ListView + 只读 EDIT）、暗色模式 |
+| `src/main.cpp` | 139 | 右键菜单、主菜单、`initquit` 清理、组件版本声明 |
+| `foo_vespertine_analyze.vcxproj` | 283 | 6 个配置：Debug/Release × Win32/x64/ARM64EC |
+| `test/core_test.cpp` | 410 | 11 个已知答案用例 + 分块无关性断言 + `--dump` 导出 |
+| `test/parity.sh` | — | 编 C++ 核心、跑 Swift 参照、逐字节 diff |
+| `test/swift-parity/` | — | SwiftPM 包，直接引用上游 Vespertine 源码 |
+| `LICENSE` | — | GPL-3.0 全文，与上游一致 |
+
+#### 数据流
+
+`contextmenu_item_simple` / `mainmenu_commands` → `startScan(metadb_handle_list_cref)` → `analyze_process`（`threaded_process_callback`，`run_modeless` + `flag_show_progress_dual|flag_show_item|flag_show_abort`）→ 逐曲 `input_entry::g_open_for_decoding()` + `initialize(subsong, input_flag_simpledecode|input_flag_no_postproc)` → `audio_chunk` → 转 float → `AnalysisAccumulator::addInterleaved()` → `finish()` → `ReportRow` 列表 → `on_done` 里 `showReportWindow()`。扫描结果保存在文件级静态变量里，窗口关掉后 `Show last report` 仍能重开。
+
+#### 构建
+
+- 需要 Visual Studio 2022（v143 工具集）、Windows 10 SDK 和 foobar2000 SDK **2026-10-01**（`SDK-2026-10-01.7z`，BSD-3-Clause，与 GPL-3.0-or-later 兼容）。SDK 解压目录里要有 `foobar2000/`、`pfc/`、`libPPUI/`。
+- 工程读 MSBuild 属性 `Fb2kSdkDir`（默认 `$(MSBuildThisFileDirectory)..\..\foobar2000-sdk`），可直接用 VS 打开单个 `.vcxproj`，不需要 `.sln`。
+- 输出 `build\$(Platform)\$(Configuration)\foo_vespertine_analyze.dll`，复制到 foobar2000 的 `user-components\foo_vespertine_analyze\`。
+- 链接 `$(Fb2kSdkDir)\foobar2000\shared\shared-$(Platform).lib` 与 `comctl32.lib`，并引用 SDK 自带的 `pfc`、`libPPUI`、`foobar2000_component_client`、`helpers`、`SDK` 五个工程。
+
+#### 验证
+
+```sh
+cd foo_vespertine_analyze
+test/parity.sh
+```
+
+`parity.sh`（macOS / Linux，需 clang++ 与 Swift 6.2+）合成 11 个已知答案信号（真 16-bit、零填充 24-bit、真 24-bit、16 kHz 墙、20 kHz 墙、上采样镜像、上采样墙、合成高频 shelf、数字静音、太短、极安静），同一份 PCM 同时喂给 C++ 核心与上游 Swift 实现（`forcePortableFFT: true`），逐字节比对每个频谱数值（9 位有效数字）与英文结论全文。当前 11 个用例全部 `identical`。
+
+`core_test.cpp` 同时断言：分块大小不影响结果（同一信号按 511 帧分块与一次性喂入结果一致）、`Looks genuine` 时报告第二列与第三列必须完全相同。
+
+Windows 端没有自动化测试，只能真机加载组件：选中混合批次（真 Hi-Res、16-bit 零填充、MP3 转的 24/96、上采样）检查三列文本、单选与底部详情、取消扫描、单文件解码失败的表现、亮/暗两套配色。
+
+#### 维护约束
+
+- **`FloatingPointModel` 必须是 `Precise`**，不能沿用 SDK 样例的 `Fast`：分析结果必须与参照实现逐位一致，浮点重排会直接让 `parity.sh` 失败。
+- **英文结论文案不能改**。`file_analysis.cpp` 里的文案与阈值是上游实现的逐字复制，改字就会让 `parity.sh` 出现 `DIFFERS`；要改先改上游或接受对照基线失效。
+- 声称的位深取容器里的 `%bitspersample%`（`file_info::info_get_int`），不要取 `decoded_bitspersample`，也不要取 `audio_chunk` 的格式：前者是解码后的，后者是后处理后的。
+- 解码 flags 必须带 `input_flag_no_postproc`。否则装了会改 PCM 的输入组件（如 HDCD 解码器）时，「低位全 0」判定会被污染。
+- foobar2000 64-bit 的 `audio_sample` 是 `double`（Win32 才是 `float`，见 SDK `shared/audio_math.h:11-14`），进核心前必须统一转 `float`；24-bit 以内整数 PCM 与 float32 源转换无损。
+- 不要引 `helpers/*.cpp`（`input_helper` 等）：工程只链接 `shared-$(Platform).lib`，需要那些 helper 就得把它们编进来。只用纯头文件接口 `input_entry::g_open_for_decoding()`。
+- 两个 group 工厂的参数顺序相反：`contextmenu_group_popup_factory(guid, parent, name, priority)`、`mainmenu_group_popup_factory(guid, parent, priority, name)`。
+- 暗色钩子要在**每次创建窗口**时重新 `AddDialogWithControls()`（`WM_DESTROY` 里把单例置空），否则重新打开的报告窗口是暗框亮内容。
+- 不提供原生 ARM64 配置：SDK 只有 `shared-ARM64EC.lib`，且 `component_client`、`helpers`、`SDK` 三个工程本身也只有 ARM64EC 配置，硬加 ARM64 会在链接阶段失败。
+- `shared/fb2kdebug.h:44` 的 `uBugCheck` 是 `PFC_NORETURN`，所以 `switch` 不必写 `default` 也不会触发 C4715（工程把 4715 当成错误）。
+- 本组件没有在真机 MSVC 上编译过（开发机是 macOS），SDK 调用是逐条对照头文件核对的；首次在 Windows 构建时先清编译错误再谈行为。
+
+#### 未实现
+
+- 写标签与自动播放列表：`file_info_filter::apply_filter()` + `metadb_io_v2::update_info_async()` 就能把结论写成 `%vespertine_verdict%` 之类，便于做 autoplaylist。
+- CSV 导出、Atmos / DTS 格式识别、多核并行扫描（`fb2k::splitTask`）。
+
 ## 4. 开发环境与构建命令速查
 
 | 模块 | 需要的环境 | 主要命令 |
@@ -1400,6 +1482,7 @@ Caddy 的 `handle /status*` 仍反代到 `127.0.0.1:16090`，其余请求使用 
 | SizerWin | VS Build Tools / Windows SDK `cl.exe`+`rc.exe`，可选 CMake | `cd SizerWin; .\build.ps1` |
 | SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; ./build.sh --install`（只构建用 `swift build -c release`） |
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
+| foo_vespertine_analyze | VS 2022（v143）+ foobar2000 SDK 2026-10-01；验证需 macOS/Linux 的 clang++ 与 Swift 6.2+ | `msbuild foo_vespertine_analyze\foo_vespertine_analyze.vcxproj /p:Configuration=Release /p:Platform=x64`；`cd foo_vespertine_analyze; ./test/parity.sh` |
 | Dox Reader（Web 版） | Node.js 24+；Cloudflare 账号 | `cd "Dox Reader/Cloudflare Workers"; npm ci; npm run check`；部署须授权 |
 | Firefox/Add-Ons/Dox Reader（Dox Reader 扩展） | Node.js 24+；发布另需 AMO API 凭据 | `cd "Firefox/Add-Ons/Dox Reader"; npm ci; npm run check`；`pwsh -File release.ps1 -SkipSign` |
 | Firefox/Add-Ons/AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js` |

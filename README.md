@@ -20,6 +20,7 @@
 | [`Firefox/Add-Ons/AutoSortBookmarks`](./Firefox/Add-Ons/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py) | 清理让「设置 > 默认应用」重复显示 Firefox 或 Zen 的注册表项 |
 | [`Firefox/user.js`](./Firefox/user.js) | Firefox 用户层偏好配置（字体、侧栏、表单与隐私选项；不修改应用包） |
+| [`foo_vespertine_analyze`](./foo_vespertine_analyze) | foobar2000 组件：找出假 Hi-Res 文件（位深填充、有损来源、合成高频、上采样） |
 | [`Scripts`](./Scripts) | Windows 批处理工具、Edge 关联清理辅助脚本和 FFmpeg 安装脚本 |
 | [`Scripts/Flatten.bat`](./Scripts/Flatten.bat) | Windows 目录展平工具 |
 | [`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) | 下载最新 FFmpeg full 构建并就地升级 `PATH` 中已有的那份安装 |
@@ -239,6 +240,39 @@ cmake --build build --config Release
 - `build.ps1` / `build.bat` / `CMakeLists.txt` - 构建入口。
 
 架构、实现细节与维护约束见仓库根文档 [`DEVELOPMENT.md`](DEVELOPMENT.md)。
+
+### foo_vespertine_analyze
+
+foobar2000 组件（原生 DLL，Win32 / x64 / ARM64EC），检查文件是不是**假的 Hi-Res**：容器写着 24-bit / 96 kHz，内容却是 16-bit 填充或 44.1 kHz 上采样来的。
+
+分析逻辑移植自 macOS 应用 [Vespertine](https://github.com/szeremeta1/Vespertine)：判定顺序、阈值和结论文字都原样保留，C++ 实现在 11 个已知答案用例上与上游 Swift 实现输出逐字节一致。Vespertine 的播放引擎（CoreAudio、AUSpatialMixer、SwiftUI）在 Windows 上没有对应实现，但它的分析部分与平台无关。
+
+结论按 Vespertine 的顺序判定，每条带置信度：
+
+| 结论 | 含义 |
+|---|---|
+| `Looks genuine` | 没发现可疑之处 |
+| `Zero-padded (fake bit depth)` | 低位全是 0，16-bit 内容装在 24-bit 容器里（硬证据，置信度 100%） |
+| `Upsampled` | Nyquist 之上是镜像副本，或截止点落在 19.6–24.5 kHz |
+| `Possible lossy origin` | 有编码器式的陡峭截止「墙」，多半来自 MP3/AAC |
+| `High frequencies synthesized` | 高频是合成补的：台阶 + 平坦 shelf + 电平跟随音乐 |
+| `Not applicable` | 数字静音、太短或解码失败，判不了 |
+
+报告窗口是一个三列单选列表：绝对路径、声称的格式和数据、可能的实际格式和数据；没问题时后两列完全一样，一眼就能看出哪些行不对劲。选中某行，底部显示这一条的完整分析结果（结论、置信度、Vespertine 的说明文字和测到的数字）。
+
+用法：
+
+- 选中曲目 → 右键 → `Vespertine` → `Check for fake hi-res`
+- 主菜单 `View` → `Vespertine` → 分析当前播放列表里选中的曲目
+- `Show last report` 重新打开上一次的报告窗口
+
+扫描在后台线程进行，可随时中止；单曲解码失败只影响那一行（显示 `Not applicable` 并写出原因）。
+
+构建需要 Visual Studio 2022（v143）和 foobar2000 SDK 2026-10-01：把 SDK 解压后改工程属性里的 `Fb2kSdkDir`，选 `Release | x64` 生成，产物 `foo_vespertine_analyze.dll` 放进 foobar2000 的 `user-components\foo_vespertine_analyze\`。
+
+已知限制：只做频谱与位深取证，不识别 Dolby Atmos 等格式；不写标签、不做自动播放列表；采样率高于 768 kHz 的文件直接跳过；32-bit 版 foobar2000 可用但慢，大批次建议用 64-bit 版。
+
+模块边界、移植约定和验证步骤见仓库根文档 [`DEVELOPMENT.md`](DEVELOPMENT.md#318-foo_vespertine_analyzefoobar2000-假-hi-res-检查)。
 
 ## SizerSwift
 

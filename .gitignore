@@ -22,6 +22,12 @@ CapsLockOSD/*.obj
 CapsLockOSD/*.res
 CapsLockOSD/CapsLockOSD.ini
 
+# foo_vespertine_analyze（VS 构建产物、本地工程设置与 Swift 对照包）
+foo_vespertine_analyze/build/
+foo_vespertine_analyze/.vs/
+foo_vespertine_analyze/*.user
+foo_vespertine_analyze/test/swift-parity/.build/
+
 # Dox Reader（本地依赖与构建产物）
 Dox Reader/**/node_modules/
 Dox Reader/**/dist/
