@@ -39,6 +39,9 @@
 .PARAMETER RebuildCache
     重建当前用户的图标缓存（会重启 explorer.exe）。
 
+.PARAMETER Help
+    显示用法后退出，不读盘、不做任何改动。
+
 .EXAMPLE
     .\Fix-DriveIcon.ps1
 
@@ -57,7 +60,10 @@ param(
 
     [string]$SetIcon,
 
-    [switch]$RebuildCache
+    [switch]$RebuildCache,
+
+    [Alias('h')]
+    [switch]$Help
 )
 
 Set-StrictMode -Version Latest
@@ -401,7 +407,42 @@ function Rebuild-IconCache {
     Write-Host ' 完成' -ForegroundColor Green
 }
 
+function Show-Usage {
+    Write-Host @'
+用法:
+  .\Fix-DriveIcon.ps1 [-Drive <盘符>] [-Repair] [-SetIcon <ico>] [-RebuildCache] [-Help]
+
+  默认只读诊断，不改动任何东西。
+
+图标来源（脚本按此顺序检查）:
+  1. 注册表 DriveIcons\<盘符>\DefaultIcon（HKLM 先于 HKCU）
+  2. 盘根 autorun.inf 的 [Autorun] Icon=
+  3. 卷类型的内置图标：DriveType 3 硬盘、2 可移动磁盘
+
+参数:
+  -Drive <盘符>   只查指定盘，如 P 或 P,Q；省略则查所有卷
+  -Repair         删除失效的注册表覆盖项，注释 autorun.inf 里失效的 Icon=；
+                  改动前备份到 %TEMP% 和 <盘根>\autorun.inf.bak
+  -SetIcon <ico>  把 .ico 复制到盘根并写入 autorun.inf；需要 -Drive
+  -RebuildCache   重建当前用户的图标缓存，会重启 explorer.exe
+  -Help, -h       显示本说明后退出
+
+示例:
+  .\Fix-DriveIcon.ps1
+  .\Fix-DriveIcon.ps1 -Drive P -Repair
+  .\Fix-DriveIcon.ps1 -Drive Q -SetIcon .\disk.ico
+
+参数或运行错误时以非零码退出。
+'@
+}
+
 # ---------------- main ----------------
+
+# 帮助必须先退出：-Help 与 -RebuildCache 之类组合不能真的执行
+if ($Help) {
+    Show-Usage
+    return
+}
 
 if ($RebuildCache) {
     Rebuild-IconCache
