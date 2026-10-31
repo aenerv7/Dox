@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Align settings controls with the section title text on narrow screens. No behavior change.",
-      "zh-CN": "窄屏下让设置项与分区标题文本对齐，行为不变。"
+      "en-US": "Fix WebDAV sync and read actions on plain-HTTP deployments, keep mark-read usable during background refresh, and time out stalled feed requests.",
+      "zh-CN": "修复 HTTP 部署下的 WebDAV 同步与阅读操作，后台刷新时标记已读仍可用，并为卡住的订阅请求增加超时。"
     }
   }
 }

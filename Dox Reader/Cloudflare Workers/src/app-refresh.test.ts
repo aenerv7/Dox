@@ -19,7 +19,7 @@ vi.mock('./database', () => ({ getFeed: vi.fn(), saveParsedFeed: vi.fn(), setFee
 vi.mock('./runtime-fetch', () => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed-parser', () => ({ parseFeedXml: vi.fn(async () => ({ title: 'Feed', siteUrl: '', items: [] })) }));
 vi.mock('./webdav', () => ({ syncWithWebDav: vi.fn(), isWebdavUrlValid: (value: string) => value.startsWith('https://') }));
-import { getItemCounts, listFeeds } from './repository';
+import { getFeedUnreadCounts, getItemCounts, listFeeds } from './repository';
 
 let root: HTMLDivElement;
 let feeds: FeedRecord[];
@@ -104,6 +104,28 @@ describe('automatic refresh integration', () => {
     await act(async () => { releases.splice(0).forEach(release => release()); });
     await settle();
     expect(root.querySelector('button[title="刷新 A"] .spin')).toBeNull();
+  });
+
+  it('keeps mark-read usable while a single feed refreshes', async () => {
+    vi.mocked(getItemCounts).mockResolvedValue({ total: 2, unread: 2, starred: 0 });
+    vi.mocked(getFeedUnreadCounts).mockResolvedValue({ A: 1, B: 1 });
+    feeds.forEach(feed => { feed.lastFetchedAt = Date.now(); });
+    await mount();
+    expect(fetchFeed).not.toHaveBeenCalled();
+
+    await click('button[title="刷新 A"]');
+    const rows = () => root.querySelectorAll('.feed-row');
+    const markAll = () => root.querySelector<HTMLButtonElement>('button[title="全部标为已读"]')!;
+    const feedMark = (index: number) =>
+      rows()[index].querySelector<HTMLButtonElement>('button[title="全部标为已读"]')!;
+    expect(markAll().disabled).toBe(false);
+    expect(feedMark(0).disabled).toBe(false);
+    expect(feedMark(1).disabled).toBe(false);
+
+    await act(async () => { releases.splice(0).forEach(release => release()); });
+    await settle();
+    expect(markAll().disabled).toBe(false);
+    expect(feedMark(0).disabled).toBe(false);
   });
 
   it('greys out sync and mark-all-read while refreshing', async () => {

@@ -767,7 +767,7 @@ export function App() {
           <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing" || refreshing} onClick={() => void performSync()}>
             {syncIcon}
           </button>
-          <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
+          <button class="icon-button" title="全部标为已读" disabled={refreshScope === "all" || isReadLocked() || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
             {isReadBusy(ALL_READ_ACTION) ? <LoaderCircle size={18} class="spin" /> : <CheckCheck size={18} />}
           </button>
           <button class="icon-button" title="刷新所有订阅" disabled={refreshScope === "all" || !feeds.length} onClick={() => void handleRefresh()}>
@@ -808,16 +808,16 @@ export function App() {
                   <span>{feedName(feed)}</span>
                 </button>
                 <div class="feed-row-actions">
-                  <button class="feed-action" title="全部标为已读" disabled={refreshing || isReadLocked() || count === 0} onClick={() => runAction(handleMarkFeedRead(feed))}>
+                  <button class="feed-action" title="全部标为已读" disabled={isReadLocked() || count === 0} onClick={() => runAction(handleMarkFeedRead(feed))}>
                     {isReadBusy(feedReadAction(feed.id)) ? <LoaderCircle size={14} class="spin" /> : <ListChecks size={14} />}
                   </button>
                   <button class="feed-action" title={`刷新 ${feedName(feed)}`} disabled={refreshingFeedIds.has(feed.id)} onClick={() => void handleRefresh(feed.id)}>
                     <RefreshCw size={14} class={refreshingFeedIds.has(feed.id) ? "spin" : ""} />
                   </button>
-                  <button class="feed-action" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(feed)}>
+                  <button class="feed-action" title="编辑订阅" disabled={refreshingFeedIds.has(feed.id)} onClick={() => setEditingFeed(feed)}>
                     <Pencil size={14} />
                   </button>
-                  <button class="feed-action feed-delete" title="删除订阅" disabled={refreshing} onClick={() => runAction(handleRemoveFeed(feed))}><Trash2 size={14} /></button>
+                  <button class="feed-action feed-delete" title="删除订阅" disabled={refreshingFeedIds.has(feed.id)} onClick={() => runAction(handleRemoveFeed(feed))}><Trash2 size={14} /></button>
                 </div>
               </div>
             );
@@ -835,16 +835,16 @@ export function App() {
           </div>
           {selectedFeed && (
             <div class="items-header-actions">
-              <button class="icon-button" title="全部标为已读" disabled={refreshing || isReadLocked() || selectedFeedUnread === 0} onClick={() => runAction(handleMarkFeedRead(selectedFeed))}>
+              <button class="icon-button" title="全部标为已读" disabled={isReadLocked() || selectedFeedUnread === 0} onClick={() => runAction(handleMarkFeedRead(selectedFeed))}>
                 {isReadBusy(feedReadAction(selectedFeed.id)) ? <LoaderCircle size={16} class="spin" /> : <ListChecks size={16} />}
               </button>
               <button class="icon-button" title={`更新 ${feedName(selectedFeed)}`} disabled={refreshingFeedIds.has(selectedFeed.id)} onClick={() => void handleRefresh(selectedFeed.id)}>
                 <RefreshCw size={16} class={refreshingFeedIds.has(selectedFeed.id) ? "spin" : ""} />
               </button>
-              <button class="icon-button" title="编辑订阅" disabled={refreshing} onClick={() => setEditingFeed(selectedFeed)}>
+              <button class="icon-button" title="编辑订阅" disabled={refreshingFeedIds.has(selectedFeed.id)} onClick={() => setEditingFeed(selectedFeed)}>
                 <Pencil size={16} />
               </button>
-              <button class="icon-button feed-delete" title="删除订阅" disabled={refreshing} onClick={() => runAction(handleRemoveFeed(selectedFeed))}>
+              <button class="icon-button feed-delete" title="删除订阅" disabled={refreshingFeedIds.has(selectedFeed.id)} onClick={() => runAction(handleRemoveFeed(selectedFeed))}>
                 <Trash2 size={16} />
               </button>
             </div>
