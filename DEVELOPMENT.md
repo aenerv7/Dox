@@ -671,7 +671,7 @@ cd CapsLockOSD
 | `src/settings.ts` | 只用 `localStorage` | 优先 `browser.storage.local`，没有扩展存储时回退 `localStorage` |
 | `src/background.ts` | 不存在 | 点击工具栏按钮打开或聚焦阅读器标签页 |
 
-`model.ts`、`database.ts`、`repository.ts`、`app.tsx`、`article-extractor.ts`、`auto-refresh.ts`、`feed-service.ts`、`styles.css` 等其余文件及测试共用。两个 `package.json` 的产品版本保持同步（当前 `1.2.3`）。
+`model.ts`、`database.ts`、`repository.ts`、`app.tsx`、`article-extractor.ts`、`auto-refresh.ts`、`feed-service.ts`、`styles.css` 等其余文件及测试共用。两个 `package.json` 的产品版本保持同步（当前 `1.2.4`）。
 
 不维护 Dox Reader Backend、Durable Objects、服务端文章存储或定时抓取；仓库中不再有后端源码或后端模式字段。
 
@@ -683,7 +683,7 @@ cd CapsLockOSD
 - `src/webdav.ts` 与 `src/sync-model.ts` 负责订阅、文章状态、偏好和刷新时间的合并；使用逻辑版本及 ETag 条件写入，冲突时重新读取合并重试。正文、图片、凭据和布局不进同步文件。
 - `src/app.tsx` 启动先显示本地数据库，再进行 WebDAV 同步和到期刷新。保留同步防重入、修改延迟重试、批量已读锁和最低操作反馈时间。连接失败不阻塞缓存阅读。
 - `src/auto-refresh.ts` 按各源本机 `lastFetchedAt`（仅成功解析并保存后更新）判断到期，不使用同步的 `lastRefreshAllAt`。`autoRefreshHours` 为本机全局设置，默认 24、整数小时、0 关闭，不加入 WebDAV 偏好协议；启动、每分钟、页面恢复可见及联网时检查。失败重试独立冷却 5 分钟，不推进成功时间。页面关闭后不调度。
-- `src/feed-service.ts` 对源 ID 维护共享 Promise 与 FIFO 队列，所有刷新入口复用排队或进行中任务，总并发最多 4。队列订阅驱动单源按钮动画；自动刷新时全部刷新按钮仍可点击并接入现有任务，批次完成独立统计且去重。刷新期间同步按钮置灰；全局刷新时“全部标为已读”也置灰，单源或自动刷新只禁用该源的编辑、删除按钮，标记已读不依赖刷新状态。单源抓取 45 秒超时，避免挂起的请求长期锁住刷新状态。右上角全局刷新按钮只在全局刷新（显示进度遮罩）时播放动画，单源刷新只转该源的按钮。不要恢复全局时间戳驱动的自动刷新。
+- `src/feed-service.ts` 对源 ID 维护共享 Promise 与 FIFO 队列，所有刷新入口复用排队或进行中任务，总并发最多 4。队列订阅驱动单源按钮动画；自动刷新时全部刷新按钮仍可点击并接入现有任务，批次完成独立统计且去重。刷新期间同步按钮置灰；单源或自动刷新只禁用该源的编辑、删除按钮，标记已读不依赖刷新状态；工具栏不提供全局已读按钮，已读操作只按订阅源发起。单源抓取 45 秒超时，避免挂起的请求长期锁住刷新状态。右上角全局刷新按钮只在全局刷新（显示进度遮罩）时播放动画，单源刷新只转该源的按钮。不要恢复全局时间戳驱动的自动刷新。
 - WebDAV 设置不在打开对话框或编辑地址/凭据时自动检测。地址必须是可解析的 HTTPS URL，否则“立即同步”按钮置灰不可点；同步是唯一的连通性检查，同步失败即视为未连通并显示错误。编辑连接参数或关闭对话框后清除旧结果，避免过期状态覆盖当前输入。
 - `src/runtime-fetch.ts` 将浏览器网络请求路由到同源 `/api/feed`、`/api/article` 与 `/api/webdav`。只有用户在摘要文章中点击“获取全文”时才请求 `/api/article`；Readability 提取的正文和主图只写入本机 IndexedDB，不进入 WebDAV 同步。`worker/index.ts` 是无状态代理，不是个人资料库服务，不得引入数据库或后台抓取。
 - `src/article-content.tsx` 用 Preact 白名单渲染正文；图片先按 `strict-origin-when-cross-origin` 只暴露部署 origin，加载失败后自动改用无 Referer 重试一次（有的图床拒绝空 Referer，如 sspai 的 CDN；有的只接受空 Referer）。`src/article-extractor.ts` 在提取前统一解析懒加载图片：`data-*` 地址属性、`srcset`/`data-srcset`、`<picture><source>`、`<noscript>` 兜底，并按最大候选取图。不要删掉这些兼容处理：正文有文字却没有图，通常来自图片地址未被解析或被图床拒绝。

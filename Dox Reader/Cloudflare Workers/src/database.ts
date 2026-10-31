@@ -356,11 +356,6 @@ export async function markFeedRead(feedId: string): Promise<number> {
   return markItemsRead(items);
 }
 
-export async function markAllRead(): Promise<number> {
-  const items = await db.items.filter((item) => !item.read).toArray();
-  return markItemsRead(items);
-}
-
 export async function getLastRefreshAllAt(): Promise<number> {
   const record = await db.meta.get("lastRefreshAllAt");
   return typeof record?.value === "number" ? record.value : 0;

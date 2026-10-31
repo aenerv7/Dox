@@ -2,7 +2,6 @@ import {
   ArrowLeft,
   BookOpen,
   Check,
-  CheckCheck,
   Cloud,
   CloudOff,
   Download,
@@ -42,7 +41,6 @@ import {
   hasLocalReaderData,
   listFeeds,
   listItems,
-  markAllRead,
   markFeedRead,
   migrateLegacyEntities,
   removeFeed,
@@ -116,7 +114,6 @@ const ITEM_PANE_MAX = 0.5;
 const READER_PANE_MIN = 0.3;
 const MIN_ASYNC_FEEDBACK_MS = 400;
 const SYNC_DEBOUNCE_MS = 1400;
-const ALL_READ_ACTION = "all";
 
 function feedReadAction(feedId: string): string {
   return `feed:${feedId}`;
@@ -562,25 +559,6 @@ export function App() {
     queueSync();
   }
 
-  async function handleMarkAllRead() {
-    if (!beginReadAction(ALL_READ_ACTION)) {
-      return;
-    }
-    const startedAt = Date.now();
-    try {
-      const count = await markAllRead();
-      if (!count) {
-        return;
-      }
-      await loadData();
-      queueSync();
-      setToast(`已将 ${count} 篇文章全部标为已读`);
-    } finally {
-      await keepFeedbackVisible(startedAt);
-      endReadAction(ALL_READ_ACTION);
-    }
-  }
-
   async function handleMarkFeedRead(feed: FeedRecord) {
     const action = feedReadAction(feed.id);
     if (!beginReadAction(action)) {
@@ -766,9 +744,6 @@ export function App() {
         <div class="topbar-actions">
           <button class="icon-button" title="同步" aria-busy={syncStatus === "syncing"} disabled={!settings.webdavUrl || syncStatus === "syncing" || refreshing} onClick={() => void performSync()}>
             {syncIcon}
-          </button>
-          <button class="icon-button" title="全部标为已读" disabled={refreshScope === "all" || isReadLocked() || unreadCount === 0} onClick={() => runAction(handleMarkAllRead())}>
-            {isReadBusy(ALL_READ_ACTION) ? <LoaderCircle size={18} class="spin" /> : <CheckCheck size={18} />}
           </button>
           <button class="icon-button" title="刷新所有订阅" disabled={refreshScope === "all" || !feeds.length} onClick={() => void handleRefresh()}>
             <RefreshCw size={18} class={refreshScope === "all" ? "spin" : ""} />
