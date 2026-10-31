@@ -23,6 +23,7 @@
 | [`foo_vespertine_analyze`](./foo_vespertine_analyze) | foobar2000 组件：找出假 Hi-Res 文件（位深填充、有损来源、合成高频、上采样） |
 | [`Scripts`](./Scripts) | Windows 批处理工具、Edge 关联清理辅助脚本和 FFmpeg 安装脚本 |
 | [`Scripts/Flatten.bat`](./Scripts/Flatten.bat) | Windows 目录展平工具 |
+| [`Scripts/PowerShell/Fix-DriveIcon.ps1`](./Scripts/PowerShell/Fix-DriveIcon.ps1) | 诊断并修复「此电脑」里显示不对的磁盘图标 |
 | [`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) | 下载最新 FFmpeg full 构建并就地升级 `PATH` 中已有的那份安装 |
 | [`Scripts/RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
 | [`Scripts/RemoveMSEdgeAll.bat`](./Scripts/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
@@ -849,6 +850,23 @@ Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/Shad
 两个 BAT 需与 `EdgeAssociations.ps1` 一起使用。`-audit-associations` 只读检查旧关联残留，`-repair-associations` 备份并修复已识别的父项权限异常；这两个入口不执行卸载。正常清理不再修改 `UserChoice` 权限，受保护或无法判断的选择会保留并报告。
 
 两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留；卸载后扫描各用户 URL 协议和文件扩展名的选择记录，仅清理确认失效、无 Hash 且无冲突的 Edge 选择值。关联审计、修复入口、退出码与验证方式见下文[「Edge 关联清理与旧权限残留」](#edge-关联清理与旧权限残留)；职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+
+### 磁盘图标
+
+[`Scripts/PowerShell/Fix-DriveIcon.ps1`](./Scripts/PowerShell/Fix-DriveIcon.ps1) 诊断并修复「此电脑」里显示不对的磁盘图标。默认只读，不改任何东西。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Drive P -Repair
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Drive Q -SetIcon .\disk.ico
+```
+
+- 图标来源固定三层：注册表 `DriveIcons\<盘符>\DefaultIcon` → 盘根 `autorun.inf` 的 `Icon=` → 卷类型的内置图标（`DriveType 3` 硬盘、`2` 可移动磁盘），脚本逐层报告命中了哪一层
+- `-Drive` 只查指定盘（`P` 或 `P,Q`），省略则检查所有卷
+- `-Repair` 删除指向不存在文件的注册表覆盖项（先 `reg export` 备份），注释 `autorun.inf` 里失效的 `Icon=`（先备份 `.bak`）
+- `-SetIcon` 把 `.ico` 复制到盘根并写入 `autorun.inf`，图标跟着盘走，换电脑也不丢
+- `-RebuildCache` 重建当前用户图标缓存，会重启 `explorer.exe`
+- 需要 PowerShell 5.1+；卷被外壳芯片报告为「可移动磁盘」时类型改不了，只能用 `-SetIcon` 覆盖
 
 ### FFmpeg
 

@@ -72,6 +72,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `Scripts/Userscripts/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
 | `Scripts/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版）、Flatten 和 FFmpeg 安装脚本 |
 | `Scripts/rename-apk.ps1` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
+| `Scripts/PowerShell/Fix-DriveIcon.ps1` | 活跃 | 诊断并修复「此电脑」磁盘图标的 PowerShell 脚本 |
 | `sub-store/` | 活跃 | Sub-Store 后端在 Cloudflare Workers 上的适配（D1 持久化、路径口令鉴权） |
 | `sub-store-front-end/` | 活跃 | Sub-Store-Front-End 静态资源 Worker |
 | `bwh-traffic/` | 活跃 | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
@@ -109,7 +110,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/user.js`、`Thunderbird/user.js`（个人配置目录偏好文件）
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
 - `Scripts/Userscripts/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
-- `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`、`Scripts/rename-apk.ps1`
+- `Scripts/PowerShell/InstallFFmpeg.ps1`、`Scripts/PowerShell/EdgeAssociations.ps1`、`Scripts/PowerShell/rename-apk.ps1`、`Scripts/PowerShell/Fix-DriveIcon.ps1`
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
 - `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
 - `bwh-traffic/worker.js`、`bwh-traffic/wrangler.jsonc`
@@ -814,7 +815,7 @@ node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 
 ### 3.9 Scripts（Edge 清理与 FFmpeg 安装）
 
-`Scripts/` 收纳 Windows 批处理工具、Edge 清理辅助脚本和 FFmpeg 安装脚本。
+`Scripts/` 收纳 Windows 批处理工具、Edge 清理辅助脚本、FFmpeg 安装脚本和磁盘图标脚本。
 
 #### Edge 清理（RemoveMSEdge）
 
@@ -969,6 +970,31 @@ pwsh -NoProfile -File .\Scripts\InstallFFmpeg.ps1 -Directory $env:TEMP\ff-check
 | 篡改期望摘要 | 报 SHA-256 mismatch，重下 `$ArchiveRetries` 次后失败，目标目录不新增文件 |
 | 断开网络 / 无该资源 | 明确报错，不静默跳过校验 |
 | 结束后的临时目录 | `%TEMP%` 下无 `dox-ffmpeg-*` 残留 |
+
+#### 磁盘图标（Fix-DriveIcon.ps1）
+
+`Scripts/PowerShell/Fix-DriveIcon.ps1` 诊断并修复「此电脑」里的盘图标。默认只读，`-Repair` / `-SetIcon` / `-RebuildCache` 才落盘。需要 PowerShell 5.1+。
+
+图标来源固定三层，脚本按同一顺序判定并报告命中的那一层：
+
+```text
+DriveIcons\<盘符>\DefaultIcon   (HKLM 先于 HKCU)
+        │ 指不到文件
+        ▼
+<盘根>\autorun.inf  →  [Autorun] Icon=
+        │ 文件不存在 / ICO 损坏
+        ▼
+内置图标：DriveType 3 硬盘    DriveType 2 可移动磁盘
+```
+
+- 诊断逐盘输出盘符、`DriveType`、文件系统、卷标和命中的覆盖层。
+- `Icon=` 指向的文件要过 ICO 结构校验：6 字节头、`16 × n` 字节目录项、每帧 `offset + size` 不越界、宽度字节 `0` 按 256 处理。只看文件在不在会把截断的图标当成正常。
+- `-Repair` 只动两类已确认失效的项：删除指向不存在文件的 `DefaultIcon` 键（先 `reg export` 到 `%TEMP%`），把失效的 `Icon=` 注释掉（先备份 `<盘根>\autorun.inf.bak`）。HKLM 键需要管理员权限，删不掉只提示、不中断。
+- `-SetIcon` 校验 `.ico` 后复制为盘根 `driveicon.ico`（隐藏），写入或替换 `[Autorun]` 里的 `Icon=`，保留 `open=` 等其余段落。
+- `-RebuildCache` 删除 `%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache*` 后重启 `explorer.exe`。
+- 边界：只写盘根两个文件、`%TEMP%` 备份和 `DriveIcons` 覆盖项，不碰数据；`DriveType` 由外壳固件决定，脚本不修改。
+
+验证：`powershell -File` 与 `pwsh -File` 各跑一次全盘诊断；用 `subst` 建临时盘验证 `-Repair`（失效 `Icon=` 被注释、生成 `.bak`）与 `-SetIcon`（生成 `driveicon.ico`，诊断转为 OK）。不要为验证改动真实数据盘的根目录。
 
 ### 3.10 DeepSeek Harness Launcher
 
@@ -1521,6 +1547,7 @@ Windows 端在 2026-10-30 用 VS 2026（v145）走通过一遍完整流程：`co
 | Scripts（Edge 清理） | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
 | Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\InstallFFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
 | ApkRename（APK 改名脚本） | PowerShell，apktool/Java 等工具 | `.\Scripts\rename-apk.ps1 [-SetupTools]` |
+| Scripts（磁盘图标） | PowerShell 5.1+ | `.\Scripts\PowerShell\Fix-DriveIcon.ps1 [-Drive P] [-Repair] [-SetIcon 图标] [-RebuildCache]` |
 
 ---
 
