@@ -48,6 +48,11 @@ Firefox/Add-Ons/**/.env.release
 # Firefox registry scripts
 Firefox/__pycache__/
 
+# Firefox 本机构建产物、原版备份与校验报告
+Firefox/build/
+Firefox/backups/
+Firefox/validation.json
+
 # DeepSeek Harness Launcher（构建产物）
 DeepSeek Harness/Launcher/bin/
 
