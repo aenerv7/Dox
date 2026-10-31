@@ -7,15 +7,18 @@
 .DESCRIPTION
     Windows 决定一个盘显示什么图标，顺序固定：
 
-        1. 注册表 DriveIcons\<盘符>\DefaultIcon   （HKLM 优先于 HKCU）
-        2. <盘根>\autorun.inf 的 [Autorun] Icon=
-        3. 按卷类型的内置图标
+        1. 注册表 Applications\Explorer.exe\Drives\<盘符>\DefaultIcon
+           应用级覆盖，只对 explorer.exe 生效。挂虚拟盘的程序（手机/平板助手等）
+           会写这里，软件卸载后残留就会让对应盘符变成空白图标。
+        2. 注册表 DriveIcons\<盘符>\DefaultIcon   （HKLM 优先于 HKCU）
+        3. <盘根>\autorun.inf 的 [Autorun] Icon=
+        4. 按卷类型的内置图标
              DriveType 3 本地磁盘   -> 硬盘图标
              DriveType 2 可移动磁盘 -> U 盘图标
 
     所以「图标不对」只有四种原因，本脚本逐条检查：
 
-        - 覆盖项指向不存在的文件
+        - 覆盖项（应用级或 DriveIcons）指向不存在的文件
         - autorun.inf 指向不存在或损坏的 .ico
         - 图标缓存损坏
         - 卷被识别成另一种 DriveType（外壳芯片决定，改不了）
@@ -26,7 +29,8 @@
     盘符，如 P 或 P,Q。省略则检查所有卷。
 
 .PARAMETER Repair
-    清理失效的注册表覆盖项，注释掉 autorun.inf 里失效的 Icon= 行。
+    清理失效的注册表覆盖项（DriveIcons 和应用级 Applications\Explorer.exe\Drives），
+    注释掉 autorun.inf 里失效的 Icon= 行。
     改动前都会备份到 %TEMP% 和 <盘根>\autorun.inf.bak。
 
 .PARAMETER SetIcon
@@ -59,7 +63,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# 两个覆盖机制，键结构都是 <root>\<盘符>\DefaultIcon，按优先级排列：
+# 应用级覆盖只影响 explorer.exe，卸载残留最常见
 $OverrideRoots = @(
+    'HKCU:\Software\Classes\Applications\Explorer.exe\Drives'
+    'HKLM:\SOFTWARE\Classes\Applications\Explorer.exe\Drives'
     'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\DriveIcons'
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\DriveIcons'
 )
@@ -147,6 +155,19 @@ function Test-IconFile {
     return $result
 }
 
+# 覆盖值可能指向 .ico，也可能指向 DLL/EXE 里的图标资源（如 imageres.dll,-108）
+function Test-IconRef {
+    param([string]$Path)
+
+    if (-not $Path) {
+        return $false
+    }
+    if ([System.IO.Path]::GetExtension($Path) -ieq '.ico') {
+        return (Test-IconFile -Path $Path).Valid
+    }
+    return Test-Path -LiteralPath $Path -PathType Leaf
+}
+
 # Icon= 的值可能是 "x.ico,0"，路径里也可能带引号
 function Split-IconRef {
     param([string]$Value)
@@ -194,10 +215,10 @@ function Get-AutorunIcon {
     return $result
 }
 
-function Get-RegistryIcon {
+function Get-RegistryIcons {
     param([string]$Letter)
 
-    foreach ($root in $OverrideRoots) {
+    $found = foreach ($root in $OverrideRoots) {
         $key = Join-Path $root "$Letter\DefaultIcon"
         if (-not (Test-Path -LiteralPath $key)) {
             continue
@@ -207,16 +228,22 @@ function Get-RegistryIcon {
         $ref = Split-IconRef -Value $raw
         $target = [Environment]::ExpandEnvironmentVariables($ref.Path)
 
-        return [pscustomobject]@{
+        $source = 'DriveIcons'
+        if ($root -match 'Applications') {
+            $source = '应用级'
+        }
+
+        [pscustomobject]@{
+            Source = $source
             Hive   = $root.Split(':')[0]
             Key    = $key
             Raw    = $raw
             Target = $target
-            Broken = -not (Test-IconFile -Path $target).Valid
+            Broken = -not (Test-IconRef -Path $target)
         }
     }
 
-    return $null
+    return @($found)
 }
 
 function Get-Drives {
@@ -248,14 +275,14 @@ function Show-IconState {
 
     $problems = @()
 
-    $registry = Get-RegistryIcon -Letter $letter
-    if ($registry) {
+    $overrides = @(Get-RegistryIcons -Letter $letter)
+    foreach ($override in $overrides) {
         $mark = 'OK  '
-        if ($registry.Broken) {
+        if ($override.Broken) {
             $mark = '损坏'
             $problems += 'registry'
         }
-        Write-Host ("  注册表覆盖 {0}  {1} -> {2}" -f $mark, $registry.Hive, $registry.Raw)
+        Write-Host ("  注册表覆盖 {0}  {1}  {2} -> {3}" -f $mark, $override.Hive, $override.Source, $override.Raw)
     }
 
     $autorun = Get-AutorunIcon -Root "$letter`:\"
@@ -272,32 +299,44 @@ function Show-IconState {
         }
     }
 
-    if (-not $registry -and -not $autorun.IconPath) {
+    if ($overrides.Count -eq 0 -and -not $autorun.IconPath) {
         Write-Host ("  无覆盖项，用内置图标（DriveType {0}）" -f $Volume.DriveType)
     }
 
     return [pscustomobject]@{
-        Letter   = $letter
-        Problems = $problems
-        Autorun  = $autorun
-        Registry = $registry
+        Letter    = $letter
+        Problems  = $problems
+        Autorun   = $autorun
+        Overrides = $overrides
     }
 }
 
 function Repair-IconState {
     param($State)
 
-    if ($State.Registry -and $State.Registry.Broken) {
-        $backup = Join-Path $env:TEMP ("DriveIcons_{0}_{1}.reg" -f $State.Letter, (Get-Date -Format 'yyyyMMddHHmmss'))
-        $hivePath = $State.Registry.Key -replace 'HKLM:\\', 'HKLM\' -replace 'HKCU:\\', 'HKCU\'
+    foreach ($override in $State.Overrides) {
+        if (-not $override.Broken) {
+            continue
+        }
+
+        $backup = Join-Path $env:TEMP ("DriveIcons_{0}_{1}.reg" -f $State.Letter, (Get-Date -Format 'yyyyMMddHHmmssfff'))
+        $hivePath = $override.Key -replace 'HKLM:\\', 'HKLM\' -replace 'HKCU:\\', 'HKCU\'
         & reg.exe export $hivePath $backup /y | Out-Null
 
         # HKLM 覆盖项需要管理员权限，删不掉时保留原样并提示
         try {
-            Remove-Item -LiteralPath $State.Registry.Key -Recurse -Force
-            Write-Host ("  已删除失效覆盖项 {0}\{1}" -f $State.Registry.Hive, $State.Letter) -ForegroundColor Green
+            Remove-Item -LiteralPath $override.Key -Recurse -Force
+
+            # DefaultIcon 删掉后 <盘符> 键可能空着，顺手清掉
+            $letterKey = Split-Path $override.Key -Parent
+            $item = Get-Item -LiteralPath $letterKey
+            if ($item.ValueCount -eq 0 -and $item.SubKeyCount -eq 0) {
+                Remove-Item -LiteralPath $letterKey -Force
+            }
+
+            Write-Host ("  已删除失效覆盖项 {0}\{1}  {2}" -f $override.Hive, $override.Source, $override.Key) -ForegroundColor Green
         } catch {
-            Write-Host ("  无法删除 {0}\{1}，需要管理员权限" -f $State.Registry.Hive, $State.Letter) -ForegroundColor Yellow
+            Write-Host ("  无法删除 {0}\{1}，需要管理员权限" -f $override.Hive, $override.Key) -ForegroundColor Yellow
         }
     }
 
