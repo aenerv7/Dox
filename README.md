@@ -857,11 +857,13 @@ Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/Shad
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Help
 powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Drive P -Repair
 powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Drive Q -SetIcon .\disk.ico
 ```
 
 - 图标来源固定三层：注册表 `DriveIcons\<盘符>\DefaultIcon` → 盘根 `autorun.inf` 的 `Icon=` → 卷类型的内置图标（`DriveType 3` 硬盘、`2` 可移动磁盘），脚本逐层报告命中了哪一层
+- `-Help`（或 `-h`）打印用法、参数说明和示例后退出，不读盘、不做任何改动
 - `-Drive` 只查指定盘（`P` 或 `P,Q`），省略则检查所有卷
 - `-Repair` 删除指向不存在文件的注册表覆盖项（先 `reg export` 备份），注释 `autorun.inf` 里失效的 `Icon=`（先备份 `.bak`）
 - `-SetIcon` 把 `.ico` 复制到盘根并写入 `autorun.inf`，图标跟着盘走，换电脑也不丢

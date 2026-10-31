@@ -992,9 +992,10 @@ DriveIcons\<盘符>\DefaultIcon   (HKLM 先于 HKCU)
 - `-Repair` 只动两类已确认失效的项：删除指向不存在文件的 `DefaultIcon` 键（先 `reg export` 到 `%TEMP%`），把失效的 `Icon=` 注释掉（先备份 `<盘根>\autorun.inf.bak`）。HKLM 键需要管理员权限，删不掉只提示、不中断。
 - `-SetIcon` 校验 `.ico` 后复制为盘根 `driveicon.ico`（隐藏），写入或替换 `[Autorun]` 里的 `Icon=`，保留 `open=` 等其余段落。
 - `-RebuildCache` 删除 `%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache*` 后重启 `explorer.exe`。
+- `-Help`（别名 `-h`）是 main 的第一个分支，打印用法后直接 `return`：`-Help -RebuildCache`、`-Help -SetIcon 缺失路径` 都不能真的执行，也不再校验盘符。对应 Batch 脚本「帮助在动手前退出」的约定。
 - 边界：只写盘根两个文件、`%TEMP%` 备份和 `DriveIcons` 覆盖项，不碰数据；`DriveType` 由外壳固件决定，脚本不修改。
 
-验证：`powershell -File` 与 `pwsh -File` 各跑一次全盘诊断；用 `subst` 建临时盘验证 `-Repair`（失效 `Icon=` 被注释、生成 `.bak`）与 `-SetIcon`（生成 `driveicon.ico`，诊断转为 OK）。不要为验证改动真实数据盘的根目录。
+验证：`powershell -File` 与 `pwsh -File` 各跑一次全盘诊断；用 `subst` 建临时盘验证 `-Repair`（失效 `Icon=` 被注释、生成 `.bak`）与 `-SetIcon`（生成 `driveicon.ico`，诊断转为 OK）；`-Help`、`-Help -RebuildCache` 都以 0 退出且不动 explorer。不要为验证改动真实数据盘的根目录。
 
 ### 3.10 DeepSeek Harness Launcher
 
@@ -1547,7 +1548,7 @@ Windows 端在 2026-10-30 用 VS 2026（v145）走通过一遍完整流程：`co
 | Scripts（Edge 清理） | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
 | Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\InstallFFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
 | ApkRename（APK 改名脚本） | PowerShell，apktool/Java 等工具 | `.\Scripts\rename-apk.ps1 [-SetupTools]` |
-| Scripts（磁盘图标） | PowerShell 5.1+ | `.\Scripts\PowerShell\Fix-DriveIcon.ps1 [-Drive P] [-Repair] [-SetIcon 图标] [-RebuildCache]` |
+| Scripts（磁盘图标） | PowerShell 5.1+ | `.\Scripts\PowerShell\Fix-DriveIcon.ps1 [-Drive P] [-Repair] [-SetIcon 图标] [-RebuildCache] [-Help]` |
 
 ---
 
