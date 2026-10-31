@@ -1,5 +1,5 @@
 //
-// foo_vespertine_analyze — 假 hi-res 检测核心。
+// foo_vespertine_analyze — 假 Hi-Res 检测核心。
 //
 // Vespertine 分析包（Packages/VespertineAnalysis/Sources/VespertineAnalysisCore,
 // GPL-3.0-or-later）的忠实 C++17 移植：

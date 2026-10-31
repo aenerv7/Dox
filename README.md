@@ -258,17 +258,24 @@ foobar2000 组件（原生 DLL，Win32 / x64 / ARM64EC），检查文件是不�
 | `High frequencies synthesized` | 高频是合成补的：台阶 + 平坦 shelf + 电平跟随音乐 |
 | `Not applicable` | 数字静音、太短或解码失败，判不了 |
 
-报告窗口是一个三列单选列表：绝对路径、声称的格式和数据、可能的实际格式和数据；没问题时后两列完全一样，一眼就能看出哪些行不对劲。选中某行，底部显示这一条的完整分析结果（结论、置信度、Vespertine 的说明文字和测到的数字）。
+报告窗口是一个三列单选列表：绝对路径、声称的格式和数据、可能的实际格式和数据；没问题时后两列完全一样，一眼就能看出哪些行不对劲。选中某行，底部显示这一条的完整分析结果（结论、置信度、Vespertine 的说明文字和测到的数字），下面是这次解码的**长期频谱图**：对数频率轴、dBFS 纵轴，检测到截止频率时用虚线标出该位置。
 
 用法：
 
-- 选中曲目 → 右键 → `Vespertine` → `Check for fake hi-res`
+- 选中曲目 → 右键 → `Vespertine` → `Check for fake Hi-Res`
 - 主菜单 `View` → `Vespertine` → 分析当前播放列表里选中的曲目
 - `Show last report` 重新打开上一次的报告窗口
 
 扫描在后台线程进行，可随时中止；单曲解码失败只影响那一行（显示 `Not applicable` 并写出原因）。
 
-构建需要 Visual Studio 2022（v143）和 foobar2000 SDK 2026-10-01：把 SDK 解压后改工程属性里的 `Fb2kSdkDir`，选 `Release | x64` 生成，产物 `foo_vespertine_analyze.dll` 放进 foobar2000 的 `user-components\foo_vespertine_analyze\`。
+构建需要 foobar2000 SDK 2026-10-01 和 Visual Studio（2022 及更新版本均可）：把 SDK 解压到工程默认查找的 `..\..\foobar2000-sdk`（或改工程属性里的 `Fb2kSdkDir`），然后：
+
+```powershell
+cd foo_vespertine_analyze
+.\package.ps1
+```
+
+产物是 `build\x64\Release\foo_vespertine_analyze.fb2k-component`，拖进 foobar2000 窗口（或 Preferences → Components → Install）即可安装，落在 `user-components-x64\foo_vespertine_analyze\`。32-bit 版用 `.\package.ps1 -Platform Win32`。
 
 已知限制：只做频谱与位深取证，不识别 Dolby Atmos 等格式；不写标签、不做自动播放列表；采样率高于 768 kHz 的文件直接跳过；32-bit 版 foobar2000 可用但慢，大批次建议用 64-bit 版。
 
