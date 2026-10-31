@@ -8,6 +8,8 @@ export interface FeedRefreshProgress {
   activeFeedIds: readonly string[];
 }
 
+const FEED_FETCH_TIMEOUT_MS = 45_000;
+
 export async function refreshFeed(feedId: string): Promise<number> {
   const existing = refreshJobs.get(feedId);
   if (existing) return existing;
@@ -72,6 +74,7 @@ async function fetchAndSaveFeed(feedId: string): Promise<number> {
       },
       cache: "no-store",
       redirect: "follow",
+      signal: AbortSignal.timeout(FEED_FETCH_TIMEOUT_MS),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const parsed = await parseFeedXml(
