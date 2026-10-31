@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Fix WebDAV sync and read actions on plain-HTTP deployments, keep mark-read usable during background refresh, and time out stalled feed requests.",
-      "zh-CN": "修复 HTTP 部署下的 WebDAV 同步与阅读操作，后台刷新时标记已读仍可用，并为卡住的订阅请求增加超时。"
+      "en-US": "Remove the global mark-all-read button; marking read remains available per subscription.",
+      "zh-CN": "移除工具栏的全局全部标为已读按钮，仍可按订阅源标记已读。"
     }
   }
 }

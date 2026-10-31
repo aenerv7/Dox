@@ -115,35 +115,34 @@ describe('automatic refresh integration', () => {
 
     await click('button[title="刷新 A"]');
     const rows = () => root.querySelectorAll('.feed-row');
-    const markAll = () => root.querySelector<HTMLButtonElement>('button[title="全部标为已读"]')!;
     const feedMark = (index: number) =>
       rows()[index].querySelector<HTMLButtonElement>('button[title="全部标为已读"]')!;
-    expect(markAll().disabled).toBe(false);
     expect(feedMark(0).disabled).toBe(false);
     expect(feedMark(1).disabled).toBe(false);
 
     await act(async () => { releases.splice(0).forEach(release => release()); });
     await settle();
-    expect(markAll().disabled).toBe(false);
     expect(feedMark(0).disabled).toBe(false);
   });
 
-  it('greys out sync and mark-all-read while refreshing', async () => {
+  it('greys out sync while a global refresh runs', async () => {
     vi.mocked(getItemCounts).mockResolvedValue({ total: 2, unread: 2, starred: 0 });
+    vi.mocked(getFeedUnreadCounts).mockResolvedValue({ A: 1, B: 1 });
     feeds.forEach(feed => { feed.lastFetchedAt = Date.now(); });
     await mount({ ...DEFAULT_SETTINGS, webdavUrl: 'https://dav.example/' });
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     const sync = () => root.querySelector<HTMLButtonElement>('button[title="同步"]')!;
-    const markAll = () => root.querySelector<HTMLButtonElement>('button[title="全部标为已读"]')!;
+    const feedMark = () =>
+      root.querySelector<HTMLButtonElement>('.feed-row:first-child button[title="全部标为已读"]')!;
     expect(sync().disabled).toBe(false);
-    expect(markAll().disabled).toBe(false);
+    expect(feedMark().disabled).toBe(false);
     await click('button[title="刷新所有订阅"]');
     expect(sync().disabled).toBe(true);
-    expect(markAll().disabled).toBe(true);
+    expect(feedMark().disabled).toBe(false);
     await act(async () => { releases.splice(0).forEach(release => release()); });
     await settle();
     expect(sync().disabled).toBe(false);
-    expect(markAll().disabled).toBe(false);
+    expect(feedMark().disabled).toBe(false);
   });
 
   it('checks while the page stays open and stops scheduling when disabled in settings', async () => {
