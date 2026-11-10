@@ -1,10 +1,10 @@
 # AMO Reviewer Notes
 
-Version 1.2.4 removes the global mark-all-read button from the toolbar; marking read stays available per subscription. It builds on 1.2.3, which fixed WebDAV sync and read actions on plain-HTTP deployments, kept mark-read usable during background refresh, and timed out stalled feed requests after 45 seconds. It also builds on 1.2.0, which removed the retired Backend mode and brought the extension in line with the web version: optional on-demand full-text extraction, per-feed automatic refresh, shared refresh queuing and the same local-only data model. Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
+Version 1.2.5 makes full-text images more reliable: it resolves lazy-loaded and srcset image URLs, upgrades http image URLs to https (https pages block them), falls back to the original URL, and retries once without a referrer. It builds on 1.2.4 (global mark-all-read button removed), 1.2.3 (WebDAV sync and read actions on plain-HTTP deployments) and 1.2.0 (Backend mode removed, on-demand full-text extraction, per-feed automatic refresh, shared refresh queue, local-only data model). Firefox desktop/Android 142+, Simplified Chinese UI. The listed extension has no update_url or remote executable code.
 
 ## Build
 
-Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.2.4.zip.
+Ubuntu 24.04, Node.js 24+, npm 11+. From the source archive root run npm ci followed by npm run package. This runs Vitest, TypeScript, Vite and web-ext build. Public npm dependencies are locked; credentials are not needed. Output is web-ext-artifacts/dox_reader-1.2.5.zip.
 
 ## Data and network
 
