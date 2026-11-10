@@ -672,7 +672,9 @@ cd CapsLockOSD
 | `src/settings.ts` | 只用 `localStorage` | 优先 `browser.storage.local`，没有扩展存储时回退 `localStorage` |
 | `src/background.ts` | 不存在 | 点击工具栏按钮打开或聚焦阅读器标签页 |
 
-`model.ts`、`database.ts`、`repository.ts`、`app.tsx`、`article-extractor.ts`、`auto-refresh.ts`、`feed-service.ts`、`styles.css` 等其余文件及测试共用。两个 `package.json` 的产品版本保持同步（当前 `1.2.5`）。
+`model.ts`、`database.ts`、`repository.ts`、`app.tsx`、`article-extractor.ts`、`auto-refresh.ts`、`feed-service.ts`、`styles.css`、`vitest.setup.ts` 等其余文件及测试共用。两个 `package.json` 的产品版本保持同步（当前 `1.2.5`）。
+
+两个模块的 `vitest.setup.ts` 只做一件事：Node 26 默认启用实验性 webstorage，未配置 `--localstorage-file` 时 `globalThis.localStorage` 是返回 `undefined` 的 getter，会遮蔽 happy-dom 注入的同名全局；setup 在它缺失时补一个真实 Storage。不要删掉，否则依赖 `localStorage` 的测试在 Node 26 上必然失败。
 
 不维护 Dox Reader Backend、Durable Objects、服务端文章存储或定时抓取；仓库中不再有后端源码或后端模式字段。
 
