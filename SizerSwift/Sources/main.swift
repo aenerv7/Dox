@@ -1327,9 +1327,38 @@ enum WindowOps {
 
 // MARK: - 自定义尺寸对话框
 
+/// 只接受数字（等价 SizerWin 的 `ES_NUMBER`）：非数字的按键与粘贴在编辑期就被丢弃。
+/// 只在三参数的 `isPartialStringValid` 里放行或拒绝，不给通过的输入改选区，
+/// 所以不会像在 `controlTextDidBeginEditing` 里全选那样把光标顶掉。
+/// 区间仍由 `CustomSizeDialog.read(field:)` 在提交时判定。
+final class DigitsOnlyFormatter: Formatter {
+    override func string(for obj: Any?) -> String? {
+        if let number = obj as? Int { return String(number) }
+        return obj as? String
+    }
+
+    override func getObjectValue(
+        _ obj: AutoreleasingUnsafeMutablePointer<AnyObject?>?,
+        for string: String,
+        errorDescription error: AutoreleasingUnsafeMutablePointer<NSString?>?
+    ) -> Bool {
+        obj?.pointee = string as NSString
+        return true
+    }
+
+    /// 四参数版本默认转调这个方法；空串放行，否则退格就删不到东西。
+    override func isPartialStringValid(
+        _ partialString: String,
+        newEditingString newString: AutoreleasingUnsafeMutablePointer<NSString?>?,
+        errorDescription error: AutoreleasingUnsafeMutablePointer<NSString?>?
+    ) -> Bool {
+        partialString.allSatisfy { $0.isASCII && $0.isNumber }
+    }
+}
+
 /// 原生对话框：宽度/高度预填当前尺寸，Return = 调整尺寸，⌘Return = 调整并居中，Esc = 取消。
-/// 数值区间 1...32767，非法输入响铃并全选，与 SizerWin 一致。
-final class CustomSizeDialog: NSObject, NSTextFieldDelegate {
+/// 输入框只收数字，数值区间 1...32767，非法输入响铃并全选，与 SizerWin 一致。
+final class CustomSizeDialog: NSObject {
     static let minimumValue = 1
     static let maximumValue = 32767
 
@@ -1417,17 +1446,13 @@ final class CustomSizeDialog: NSObject, NSTextFieldDelegate {
         field.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         field.alignment = .center
         field.focusRingType = .default
-        field.delegate = self
+        field.formatter = DigitsOnlyFormatter()
         field.frame = NSRect(x: 0, y: 108 - top - 16 - 6 - 22, width: 260, height: 22)
         field.autoresizingMask = [.width]
         label.autoresizingMask = [.width]
         container.addSubview(label)
         container.addSubview(field)
         return field
-    }
-
-    func controlTextDidBeginEditing(_ notification: Notification) {
-        if let field = notification.object as? NSTextField { field.selectText(nil) }
     }
 
     @objc private func resizeClicked() { submit(centre: false) }

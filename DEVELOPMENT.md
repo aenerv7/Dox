@@ -364,7 +364,7 @@ macOS 原生菜单栏窗口调整工具，Swift 编写，最低 macOS 13，打�
 - **自动**：窗口缩放到所在屏幕工作区（`visibleFrame`）的 `3/4` 并居中。
 - **居中 / 水平居中 / 垂直居中**：保持尺寸，仅移动位置。
 - **预设分辨率**：按 `WxH` 列表设置；按住 `⌥ Option` 点击预设同时居中，菜单标题实时变为「调整并居中 1920x1080」。
-- **自定义尺寸**：`NSAlert` + accessoryView 输入宽高，`Return` 调整尺寸、`⌘Return` 调整并居中、`Esc` 取消，区间 `1...32767`，非法输入响铃 + 全选 + 不关闭。
+- **自定义尺寸**：`NSAlert` + accessoryView 输入宽高，`Return` 调整尺寸、`⌘Return` 调整并居中、`Esc` 取消，输入框只接受数字（对应 SizerWin 的 `ES_NUMBER`：非数字按键与含非数字的整段粘贴都被丢弃），区间 `1...32767`，非法输入响铃 + 全选 + 不关闭。
 - **动画**：所有位置与尺寸变化都是 0.25 秒缓动过渡，不是瞬移。
 - 菜单栏常驻图标，无 Dock 图标；`SMAppService` 开机自启动；英语/繁中/简中；多显示器。
 
@@ -483,6 +483,7 @@ SizerSwift.app/
 - 拖拽回退只能可靠移动窗口，不能可靠调整尺寸，不要在文档里承诺回退路径可 resize。
 - `HotkeyBinding` 的 `Equatable`/`Hashable` 只比较 `keyCode` + `modifiers`，带上 `spec` 会让 `ctrl+opt+c` 与 `control+opt+c` 被当成两个绑定。
 - 预设不做超出屏幕边界校正（与 SizerWin 一致）。
+- **自定义尺寸对话框不要在 `controlTextDidBeginEditing` 里全选**：`NSAlert` 里该通知要等到用户第一次按键或点击才发出（开场的 `widthField.selectText(nil)` 已经负责全选），此时在钩子里重置选区会把用户刚点出来的光标换成整串选中，紧随其后的那个按键就落到选区之后，表现成「输入框显示 163，末尾补一个 4，结果前面的 163 被选中」。开场全选、以及 Tab 切进另一个输入框时的全选都是 AppKit 默认行为，不需要委托钩子，所以 `CustomSizeDialog` 不实现 `NSTextFieldDelegate`；数字过滤交给 `DigitsOnlyFormatter`（`Formatter` 只重写三参数的 `isPartialStringValid`，拒绝输入时 AppKit 原封不动保留文本与选区）。
 - `MenuCommand` 携带的 `TargetWindow` 会过期：`WindowOps.perform` 执行前用 `refreshed()` 重读几何，并用 `PlacementMath.isSane` 拒绝非有限值（NaN/±inf）。所有 `CGFloat → Int` 都必须走 `PlacementMath.safeInt`：AX 几何来自目标应用，一个上报 `inf` 的应用会让 `Int(_:)` 陷阱转换直接干掉进程。
 - 事件 tap 装在 `.commonModes` 上，意味着菜单跟踪模式里快捷键仍会触发：`MenuBar.showMenuAtCursor()` 需要 `isShowingMenu` 重入保护，`NSMenu.popUp` 不支持嵌套。
 - macOS 没有 `SW_SHOWNORMAL` 对应的「缩放（zoom）」状态可查，所以缩放窗口不会被拒绝（平台差异，与 SizerWin 拒绝最大化窗口不同）。
@@ -505,7 +506,7 @@ SizerSwift.app/
 - `Geometry` 坐标往返、工作区、`screen(for:)` 命中与最近屏幕回退。
 - `MenuBar.rebuild` 的菜单结构（项数、分隔线位置、快捷键显示）与 ⌥ 标题跟随。
 
-真机验证重点：授权后 `⌥⌘C` 居中、`⌃⌥⌘C` 自动、水平/垂直居中、预设、⌥+预设「调整并居中」、自定义尺寸三种提交方式；动画是否 0.25 秒缓动且不卡顿；多显示器与菜单栏/Dock 变化后工作区正确；全屏与最小化窗口不响应；桌面与菜单栏不误处理；不暴露 AX 窗口的应用能拖拽回退居中；改 ini 后重新打开菜单即时生效；删掉 `[Hotkeys]` 里的键重启后补回；登录项切换；三种语言文案。
+真机验证重点：授权后 `⌥⌘C` 居中、`⌃⌥⌘C` 自动、水平/垂直居中、预设、⌥+预设「调整并居中」、自定义尺寸三种提交方式（含在数字末尾补位只追加、不重置选区）、敲字母/空格无反应；动画是否 0.25 秒缓动且不卡顿；多显示器与菜单栏/Dock 变化后工作区正确；全屏与最小化窗口不响应；桌面与菜单栏不误处理；不暴露 AX 窗口的应用能拖拽回退居中；改 ini 后重新打开菜单即时生效；删掉 `[Hotkeys]` 里的键重启后补回；登录项切换；三种语言文案。
 
 ### 3.4 CapsLockOSD
 
