@@ -40,35 +40,35 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -189,7 +189,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <PreprocessorDefinitions>_WINDOWS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_UNICODE;UNICODE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Fb2kSdkDir)\foobar2000;$(Fb2kSdkDir);$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -210,7 +210,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <PreprocessorDefinitions>_WINDOWS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_UNICODE;UNICODE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Fb2kSdkDir)\foobar2000;$(Fb2kSdkDir);$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -230,7 +230,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <PreprocessorDefinitions>_WINDOWS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_UNICODE;UNICODE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Fb2kSdkDir)\foobar2000;$(Fb2kSdkDir);$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -252,6 +252,7 @@
     <ClCompile Include="src\core\spectral_forensics.cpp" />
     <ClCompile Include="src\core\file_analysis.cpp" />
     <ClCompile Include="src\core\report_text.cpp" />
+    <ClCompile Include="src\spectrum_view.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app.h" />
@@ -259,19 +260,14 @@
     <ClInclude Include="src\report_window.h" />
     <ClInclude Include="src\core\core.h" />
     <ClInclude Include="src\core\report_text.h" />
+    <ClInclude Include="src\spectrum_view.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(Fb2kSdkDir)\pfc\pfc.vcxproj">
       <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
     </ProjectReference>
-    <ProjectReference Include="$(Fb2kSdkDir)\libPPUI\libPPUI.vcxproj">
-      <Project>{7729eb82-4069-4414-964b-ad399091a03f}</Project>
-    </ProjectReference>
     <ProjectReference Include="$(Fb2kSdkDir)\foobar2000\foobar2000_component_client\foobar2000_component_client.vcxproj">
       <Project>{71ad2674-065b-48f5-b8b0-e1f9d3892081}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(Fb2kSdkDir)\foobar2000\helpers\foobar2000_sdk_helpers.vcxproj">
-      <Project>{ee47764e-a202-4f85-a767-abdab4aff35f}</Project>
     </ProjectReference>
     <ProjectReference Include="$(Fb2kSdkDir)\foobar2000\SDK\foobar2000_SDK.vcxproj">
       <Project>{e8091321-d79d-4575-86ef-064ea1a4a20d}</Project>

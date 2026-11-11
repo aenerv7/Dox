@@ -72,6 +72,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `Scripts/Userscripts/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
 | `Scripts/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版）、Flatten 和 FFmpeg 安装脚本 |
 | `Scripts/rename-apk.ps1` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
+| `Scripts/PowerShell/Fix-DriveIcon.ps1` | 活跃 | 诊断并修复「此电脑」磁盘图标的 PowerShell 脚本 |
 | `sub-store/` | 活跃 | Sub-Store 后端在 Cloudflare Workers 上的适配（D1 持久化、路径口令鉴权） |
 | `sub-store-front-end/` | 活跃 | Sub-Store-Front-End 静态资源 Worker |
 | `bwh-traffic/` | 活跃 | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
@@ -102,14 +103,14 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `SizerWin/SizerWin.c`、`SizerWin/SizerWin.manifest`
 - `SizerSwift/Sources/main.swift`、`SizerSwift/build.sh`、`SizerSwift/INSTALL.md`
 - `CapsLockOSD/`（C++ 源与资源脚本）
-- `foo_vespertine_analyze/src/core/*.h`、`foo_vespertine_analyze/src/core/*.cpp`（纯 C++17 取证核心）、`foo_vespertine_analyze/src/*.h`、`foo_vespertine_analyze/src/*.cpp`（foobar2000 胶水层）、`foo_vespertine_analyze/foo_vespertine_analyze.vcxproj`、`foo_vespertine_analyze/test/core_test.cpp`、`foo_vespertine_analyze/test/parity.sh`
+- `foo_vespertine_analyze/src/core/*.h`、`foo_vespertine_analyze/src/core/*.cpp`（纯 C++17 取证核心）、`foo_vespertine_analyze/src/*.h`、`foo_vespertine_analyze/src/*.cpp`（foobar2000 胶水层）、`foo_vespertine_analyze/foo_vespertine_analyze.vcxproj`、`foo_vespertine_analyze/package.ps1`、`foo_vespertine_analyze/test/core_test.cpp`、`foo_vespertine_analyze/test/parity.sh`
 - `CSS/font-face.css`
 - `Firefox/Add-Ons/AutoSortBookmarks/manifest.json`、`background.js`、`sorter.js`
 - `Firefox/Add-Ons/Dox Reader/src/*.ts`、`Firefox/Add-Ons/Dox Reader/src/*.tsx`、`Firefox/Add-Ons/Dox Reader/public/manifest.json`、`Firefox/Add-Ons/Dox Reader/release.ps1`
 - `Firefox/user.js`、`Thunderbird/user.js`（个人配置目录偏好文件）
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
 - `Scripts/Userscripts/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
-- `Scripts/InstallFFmpeg.ps1`、`Scripts/EdgeAssociations.ps1`、`Scripts/rename-apk.ps1`
+- `Scripts/PowerShell/InstallFFmpeg.ps1`、`Scripts/PowerShell/EdgeAssociations.ps1`、`Scripts/PowerShell/rename-apk.ps1`、`Scripts/PowerShell/Fix-DriveIcon.ps1`
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
 - `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
 - `bwh-traffic/worker.js`、`bwh-traffic/wrangler.jsonc`
@@ -672,21 +673,24 @@ cd CapsLockOSD
 | `src/settings.ts` | 只用 `localStorage` | 优先 `browser.storage.local`，没有扩展存储时回退 `localStorage` |
 | `src/background.ts` | 不存在 | 点击工具栏按钮打开或聚焦阅读器标签页 |
 
-`model.ts`、`database.ts`、`repository.ts`、`app.tsx`、`article-extractor.ts`、`auto-refresh.ts`、`feed-service.ts`、`styles.css` 等其余文件及测试共用。两个 `package.json` 的产品版本保持同步（当前 `1.2.1`）。
+`model.ts`、`database.ts`、`repository.ts`、`app.tsx`、`article-extractor.ts`、`auto-refresh.ts`、`feed-service.ts`、`styles.css`、`vitest.setup.ts` 等其余文件及测试共用。两个 `package.json` 的产品版本保持同步（当前 `1.2.5`）。
+
+两个模块的 `vitest.setup.ts` 只做一件事：Node 26 默认启用实验性 webstorage，未配置 `--localstorage-file` 时 `globalThis.localStorage` 是返回 `undefined` 的 getter，会遮蔽 happy-dom 注入的同名全局；setup 在它缺失时补一个真实 Storage。不要删掉，否则依赖 `localStorage` 的测试在 Node 26 上必然失败。
 
 不维护 Dox Reader Backend、Durable Objects、服务端文章存储或定时抓取；仓库中不再有后端源码或后端模式字段。
 
 #### Web 版数据与网络边界
 
 - `src/repository.ts` 直接导出 `src/database.ts`，所有阅读数据写入 IndexedDB `dox-rss-reader`；保留原数据库名、同步协议和 localStorage 设置键 `doxReaderSettings`，兼容既有本地/WebDAV 数据。
+- `src/database.ts` 的 ID 生成不直接依赖 `crypto.randomUUID`（仅安全上下文可用）：缺失时用 `crypto.getRandomValues` 生成 UUID v4，保证 HTTP 部署也能添加订阅和写同步版本。
 - `src/settings.ts` 只加载和保存 `DEFAULT_SETTINGS` 中的键，旧设置中的废弃字段和未知字段不再进入运行时或后续保存。默认 `colorScheme` 为 `material`、`theme` 为 `system`，只作用于新用户或缺失字段，不覆盖已保存及同步的配色。
 - `src/webdav.ts` 与 `src/sync-model.ts` 负责订阅、文章状态、偏好和刷新时间的合并；使用逻辑版本及 ETag 条件写入，冲突时重新读取合并重试。正文、图片、凭据和布局不进同步文件。
 - `src/app.tsx` 启动先显示本地数据库，再进行 WebDAV 同步和到期刷新。保留同步防重入、修改延迟重试、批量已读锁和最低操作反馈时间。连接失败不阻塞缓存阅读。
 - `src/auto-refresh.ts` 按各源本机 `lastFetchedAt`（仅成功解析并保存后更新）判断到期，不使用同步的 `lastRefreshAllAt`。`autoRefreshHours` 为本机全局设置，默认 24、整数小时、0 关闭，不加入 WebDAV 偏好协议；启动、每分钟、页面恢复可见及联网时检查。失败重试独立冷却 5 分钟，不推进成功时间。页面关闭后不调度。
-- `src/feed-service.ts` 对源 ID 维护共享 Promise 与 FIFO 队列，所有刷新入口复用排队或进行中任务，总并发最多 4。队列订阅驱动单源按钮动画；自动刷新时全部刷新按钮仍可点击并接入现有任务，批次完成独立统计且去重。刷新期间同步与“全部标为已读”按钮置灰。右上角全局刷新按钮只在全局刷新（显示进度遮罩）时播放动画，单源刷新只转该源的按钮。不要恢复全局时间戳驱动的自动刷新。
+- `src/feed-service.ts` 对源 ID 维护共享 Promise 与 FIFO 队列，所有刷新入口复用排队或进行中任务，总并发最多 4。队列订阅驱动单源按钮动画；自动刷新时全部刷新按钮仍可点击并接入现有任务，批次完成独立统计且去重。刷新期间同步按钮置灰；单源或自动刷新只禁用该源的编辑、删除按钮，标记已读不依赖刷新状态；工具栏不提供全局已读按钮，已读操作只按订阅源发起。单源抓取 45 秒超时，避免挂起的请求长期锁住刷新状态。右上角全局刷新按钮只在全局刷新（显示进度遮罩）时播放动画，单源刷新只转该源的按钮。不要恢复全局时间戳驱动的自动刷新。
 - WebDAV 设置不在打开对话框或编辑地址/凭据时自动检测。地址必须是可解析的 HTTPS URL，否则“立即同步”按钮置灰不可点；同步是唯一的连通性检查，同步失败即视为未连通并显示错误。编辑连接参数或关闭对话框后清除旧结果，避免过期状态覆盖当前输入。
 - `src/runtime-fetch.ts` 将浏览器网络请求路由到同源 `/api/feed`、`/api/article` 与 `/api/webdav`。只有用户在摘要文章中点击“获取全文”时才请求 `/api/article`；Readability 提取的正文和主图只写入本机 IndexedDB，不进入 WebDAV 同步。`worker/index.ts` 是无状态代理，不是个人资料库服务，不得引入数据库或后台抓取。
-- `src/article-content.tsx` 用 Preact 白名单渲染正文；图片先按 `strict-origin-when-cross-origin` 只暴露部署 origin，加载失败后自动改用无 Referer 重试一次（有的图床拒绝空 Referer，如 sspai 的 CDN；有的只接受空 Referer）。`src/article-extractor.ts` 在提取前统一解析懒加载图片：`data-*` 地址属性、`srcset`/`data-srcset`、`<picture><source>`、`<noscript>` 兜底，并按最大候选取图。不要删掉这些兼容处理：正文有文字却没有图，通常来自图片地址未被解析或被图床拒绝。
+- `src/article-content.tsx` 用 Preact 白名单渲染正文；图片先按 `strict-origin-when-cross-origin` 只暴露部署 origin，`http:` 图片升级为 `https:`（https 页面与 CSP 会拦截 http 图片），失败回退原地址，再失败改用无 Referer 重试一次。`src/article-extractor.ts` 在提取前统一解析懒加载图片：`data-*` 地址属性、`srcset`/`data-srcset`、`<picture><source>`、`<noscript>` 兜底，并按最大候选取图。不要删掉这些兼容处理：正文有文字却没有图，通常来自图片地址未被解析、协议被拦截或被图床拒绝。
 - Worker 校验同源请求标记、目标协议/主机/端口和每次重定向，阻止显式本机、内网及保留地址，限制响应体和超时；`/api/article` 的原网页响应上限为 8 MiB、超时 45 秒，WebDAV 要求 HTTPS，仅放行同步目录/文件及必要方法，凭据只随该请求转发。保留这些保护及对应测试；同源标记不等于用户鉴权。
 
 #### Web 版验证与部署
@@ -716,7 +720,7 @@ npx wrangler deploy --dry-run
 - 首次上架：manifest 固定了扩展 ID 时，`web-ext sign` 只会 `PUT addon/<id>/versions/<version>/`，不会创建 add-on，因此新 ID 必须先注册一次——用 AMO API `POST /api/v5/addons/addon/` 携带 `upload/` 返回的文件 uuid（或 Developer Hub 上传表单）。注册之后 `release.ps1` 即可按上面的流程工作。
 - 时钟与 JWT：AMO 会以 HTTP 401 拒绝 `iat` 超前的 JWT，并把 JWT 有效期（`exp - iat`）限制在 60 秒内。本机 `w32time` 未同步时系统时钟比 AMO 快约 18 秒，发布前先确认时钟同步，否则 `release.ps1` 的版本查询和 `web-ext sign` 都会失败。
 - 商品页字段：用 AMO API `PATCH /api/v5/addons/addon/<id>/` 可上传商品图标（multipart 字段 `icon`，已上传 `public/icons/icon-128.png`），但 `homepage` 既不会随 create 或版本提交写入，也不会被该 PATCH 采纳（返回 HTTP 200 但字段仍为空），只能在 Developer Hub 手工填写。AMO 对同一账号有请求频率限制，超限返回 HTTP 429 `Request was throttled`。
-- AMO 现状：`dox-reader@magi`（slug `dox-reader`，分类 `feeds-news-blogging`）于 2026-10-20 创建，先提交 1.1.8，随后依次被 1.1.9、1.1.10、1.1.11、1.1.12、1.1.13、1.1.14 取代。AMO 上最新提交版本为 1.2.1（版本 id `6636441`，2026-10-29 提交，listed 审核中，状态 `nominated`、文件 `unreviewed`，审核页 <https://addons.mozilla.org/en-US/developers/addon/dox-reader/versions/6636441>）；1.2.0 引入全文提取、自动刷新并移除后端模式，1.2.1 只合并设置文案。审核通过后重新运行 `release.ps1` 下载并校验签名 XPI，覆盖为 `bb7581fa1bbf4b928862.xpi`。同一版本不要重复提交。`AMO_REVIEW_NOTES.md` 会作为审核备注上传，长度上限 3000 字符。
+- AMO 现状：`dox-reader@magi`（slug `dox-reader`，分类 `feeds-news-blogging`）于 2026-10-20 创建，逐步迭代至 1.2.4 并公开（版本 id `6645405`，2026-10-31 提交，移除工具栏全局“全部标为已读”按钮）。1.2.5（版本 id `6687712`，2026-11-10 提交）为 listed 审核中、文件 `unreviewed`，内容是“获取全文”图片兼容修复，审核页 <https://addons.mozilla.org/en-US/developers/addon/dox-reader/versions/6687712>。`bb7581fa1bbf4b928862.xpi` 仍为 1.2.4 签名包，1.2.5 通过后需重跑 `release.ps1` 取回。同一版本不要重复提交。`AMO_REVIEW_NOTES.md` 会作为审核备注上传，长度上限 3000 字符。
 - 维护约束：`public/manifest.json` 的 gecko `id` 固定为 `dox-reader@magi`，不得随发布变动；manifest 不得设置 `update_url`（listed 渠道由 AMO 更新）；版本号在 `package.json`、`public/manifest.json` 与 `package-lock.json` 三处保持一致；`amo-listing.json` 的 `homepage` 与 manifest 的 `homepage_url` 都指向 `Firefox/Add-Ons/Dox Reader`；模块目录不设独立 `.gitignore`，`node_modules/`、`dist/`、`web-ext-artifacts/`、`*.log`、`.env.release` 由根 `.gitignore` 排除。
 
 验证：
@@ -814,7 +818,7 @@ node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 
 ### 3.9 Scripts（Edge 清理与 FFmpeg 安装）
 
-`Scripts/` 收纳 Windows 批处理工具、Edge 清理辅助脚本和 FFmpeg 安装脚本。
+`Scripts/` 收纳 Windows 批处理工具、Edge 清理辅助脚本、FFmpeg 安装脚本和磁盘图标脚本。
 
 #### Edge 清理（RemoveMSEdge）
 
@@ -969,6 +973,32 @@ pwsh -NoProfile -File .\Scripts\InstallFFmpeg.ps1 -Directory $env:TEMP\ff-check
 | 篡改期望摘要 | 报 SHA-256 mismatch，重下 `$ArchiveRetries` 次后失败，目标目录不新增文件 |
 | 断开网络 / 无该资源 | 明确报错，不静默跳过校验 |
 | 结束后的临时目录 | `%TEMP%` 下无 `dox-ffmpeg-*` 残留 |
+
+#### 磁盘图标（Fix-DriveIcon.ps1）
+
+`Scripts/PowerShell/Fix-DriveIcon.ps1` 诊断并修复「此电脑」里的盘图标。默认只读，`-Repair` / `-SetIcon` / `-RebuildCache` 才落盘。需要 PowerShell 5.1+。
+
+图标来源固定三层，脚本按同一顺序判定并报告命中的那一层：
+
+```text
+DriveIcons\<盘符>\DefaultIcon   (HKLM 先于 HKCU)
+        │ 指不到文件
+        ▼
+<盘根>\autorun.inf  →  [Autorun] Icon=
+        │ 文件不存在 / ICO 损坏
+        ▼
+内置图标：DriveType 3 硬盘    DriveType 2 可移动磁盘
+```
+
+- 诊断逐盘输出盘符、`DriveType`、文件系统、卷标和命中的覆盖层。
+- `Icon=` 指向的文件要过 ICO 结构校验：6 字节头、`16 × n` 字节目录项、每帧 `offset + size` 不越界、宽度字节 `0` 按 256 处理。只看文件在不在会把截断的图标当成正常。
+- `-Repair` 只动两类已确认失效的项：删除指向不存在文件的 `DefaultIcon` 键（先 `reg export` 到 `%TEMP%`），把失效的 `Icon=` 注释掉（先备份 `<盘根>\autorun.inf.bak`）。HKLM 键需要管理员权限，删不掉只提示、不中断。
+- `-SetIcon` 校验 `.ico` 后复制为盘根 `driveicon.ico`（隐藏），写入或替换 `[Autorun]` 里的 `Icon=`，保留 `open=` 等其余段落。
+- `-RebuildCache` 删除 `%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache*` 后重启 `explorer.exe`。
+- `-Help`（别名 `-h`）是 main 的第一个分支，打印用法后直接 `return`：`-Help -RebuildCache`、`-Help -SetIcon 缺失路径` 都不能真的执行，也不再校验盘符。对应 Batch 脚本「帮助在动手前退出」的约定。
+- 边界：只写盘根两个文件、`%TEMP%` 备份和 `DriveIcons` 覆盖项，不碰数据；`DriveType` 由外壳固件决定，脚本不修改。
+
+验证：`powershell -File` 与 `pwsh -File` 各跑一次全盘诊断；用 `subst` 建临时盘验证 `-Repair`（失效 `Icon=` 被注释、生成 `.bak`）与 `-SetIcon`（生成 `driveicon.ico`，诊断转为 OK）；`-Help`、`-Help -RebuildCache` 都以 0 退出且不动 explorer。不要为验证改动真实数据盘的根目录。
 
 ### 3.10 DeepSeek Harness Launcher
 
@@ -1425,9 +1455,11 @@ foobar2000 组件，检查文件是否名不副实：容器写着 24-bit / 96 kH
 | `src/app.h` | 39 | `TrackClaim`、UTF-8/UTF-16 转换、`kMaxSeconds`/`kMaxSampleRate` |
 | `src/claim.cpp` | 41 | 从 `file_info` 读声称的编码/位深/采样率/声道 |
 | `src/scan.h` / `scan.cpp` | 18 / 165 | 后台扫描 `threaded_process_callback`、解码循环 |
-| `src/report_window.h` / `.cpp` | 17 / 288 | Win32 报告窗口（ListView + 只读 EDIT）、暗色模式 |
+| `src/report_window.h` / `.cpp` | 17 / 480 | Win32 报告窗口（ListView + 只读 EDIT + 频谱图）、暗色模式 |
+| `src/spectrum_view.h` / `.cpp` | 33 / 160 | 长期频谱图绘制（纯 GDI，可在独立探针里渲染） |
 | `src/main.cpp` | 139 | 右键菜单、主菜单、`initquit` 清理、组件版本声明 |
-| `foo_vespertine_analyze.vcxproj` | 283 | 6 个配置：Debug/Release × Win32/x64/ARM64EC |
+| `foo_vespertine_analyze.vcxproj` | 277 | 6 个配置：Debug/Release × Win32/x64/ARM64EC |
+| `package.ps1` | — | 找 VS/工具集 → msbuild → 打 `.fb2k-component`（DLL + `LICENSE.txt`） |
 | `test/core_test.cpp` | 410 | 11 个已知答案用例 + 分块无关性断言 + `--dump` 导出 |
 | `test/parity.sh` | — | 编 C++ 核心、跑 Swift 参照、逐字节 diff |
 | `test/swift-parity/` | — | SwiftPM 包，直接引用上游 Vespertine 源码 |
@@ -1439,10 +1471,14 @@ foobar2000 组件，检查文件是否名不副实：容器写着 24-bit / 96 kH
 
 #### 构建
 
-- 需要 Visual Studio 2022（v143 工具集）、Windows 10 SDK 和 foobar2000 SDK **2026-10-01**（`SDK-2026-10-01.7z`，BSD-3-Clause，与 GPL-3.0-or-later 兼容）。SDK 解压目录里要有 `foobar2000/`、`pfc/`、`libPPUI/`。
+- 需要 Windows 10 SDK、foobar2000 SDK **2026-10-01**（`SDK-2026-10-01.7z`，BSD-3-Clause，与 GPL-3.0-or-later 兼容）和一个带 C++ 工具集的 Visual Studio（2022 起）。SDK 解压目录里要有 `foobar2000/`、`pfc/`（`libPPUI/` 不需要）。
 - 工程读 MSBuild 属性 `Fb2kSdkDir`（默认 `$(MSBuildThisFileDirectory)..\..\foobar2000-sdk`），可直接用 VS 打开单个 `.vcxproj`，不需要 `.sln`。
-- 输出 `build\$(Platform)\$(Configuration)\foo_vespertine_analyze.dll`，复制到 foobar2000 的 `user-components\foo_vespertine_analyze\`。
-- 链接 `$(Fb2kSdkDir)\foobar2000\shared\shared-$(Platform).lib` 与 `comctl32.lib`，并引用 SDK 自带的 `pfc`、`libPPUI`、`foobar2000_component_client`、`helpers`、`SDK` 五个工程。
+- 工具集写的是 `$(DefaultPlatformToolset)`：VS 2022 解析成 v143，VS 2026 解析成 v145。SDK 自带工程硬编码 v143，所以 `package.ps1` 会把本机最新的工具集作为全局属性传进去（同时覆盖 SDK 的三个工程）；手工 msbuild 时也要自己传 `/p:PlatformToolset=<工具集>`。
+- 只引用 SDK 自带的 `pfc`、`foobar2000_component_client`、`foobar2000_SDK` 三个工程。`libPPUI` 和 `helpers` 依赖 WTL（SDK 不带），本组件不用它们的任何头文件或函数，引了就会因为缺 `atlapp.h` 编译失败。
+- 输出 `build\$(Platform)\Release\foo_vespertine_analyze.dll`；安装包是同目录的 `foo_vespertine_analyze.fb2k-component`。
+- 打包用 `.\package.ps1`：vswhere 找 VS → 取本机最新工具集 → msbuild → 把 DLL 和 `LICENSE`（包内改名 `LICENSE.txt`）压成 zip。`.fb2k-component` 就是 zip，fb2k 的 Install 会把它解到 `user-components-<arch>\foo_vespertine_analyze\`，再把 `LICENSE.txt` 一起放进去。
+  - `.\package.ps1 -Platform Win32` 出 32-bit 包；`-NoBuild` 只重新打包，不重新编译。
+- 链接 `$(Fb2kSdkDir)\foobar2000\shared\shared-$(Platform).lib` 与 `comctl32.lib`。Release 配置定义 `NDEBUG`（漏了 pfc 会 `#pragma message` 报警）。
 
 #### 验证
 
@@ -1455,11 +1491,24 @@ test/parity.sh
 
 `core_test.cpp` 同时断言：分块大小不影响结果（同一信号按 511 帧分块与一次性喂入结果一致）、`Looks genuine` 时报告第二列与第三列必须完全相同。
 
-Windows 端没有自动化测试，只能真机加载组件：选中混合批次（真 Hi-Res、16-bit 零填充、MP3 转的 24/96、上采样）检查三列文本、单选与底部详情、取消扫描、单文件解码失败的表现、亮/暗两套配色。
+Windows 端在 2026-10-30 用 VS 2026（v145）走通过一遍完整流程：`core_test.exe`（MSVC `cl /std:c++20 /O2 /fp:precise` 直接编 `test/core_test.cpp` + `src/core/*.cpp`，需 `/D_USE_MATH_DEFINES`）11 个用例全过，与 clang++ 结果一致；`.fb2k-component` 装进 foobar2000 v2.26.1 x64 后，右键 `Vespertine` → `Check for fake hi-res` 跑通，2 个文件出 2 行、三列文本正确、点选行刷新底部详情、`Show last report` 关窗后能重开并保留上一次结果、暗色主题下窗口与控件配色正常。
+
+**之后的分工：开发只负责编译和打包，实测由维护者在自己的 foobar2000 上做**（有问题截图反馈）。不要再自行部署 foobar2000 去验证。
+
+真机检查清单（交给维护者）：选中混合批次（真 Hi-Res、16-bit 零填充、MP3 转的 24/96、上采样）检查三列文本、单选与底部详情、取消扫描、单文件解码失败的表现、亮色主题配色。
+
+#### 临时环境与测试
+
+- 需要本地临时环境时，**所有临时内容只放在 `foo_vespertine_analyze\build\tmp\`**：便携版 foobar2000、测试音频、试跑脚本、截图都放这里。该目录已被根 `.gitignore` 的 `foo_vespertine_analyze/build/` 覆盖，不用再加忽略规则。
+- 不要装到 `Program Files`、`C:\Workspace\test` 之类的仓库外目录，也不要留下开始菜单/桌面快捷方式。
+- 必须用便携安装，配置才会留在安装目录的 `profile\`；不要用静默 `/S /D=` 安装（实测仍然是普通安装，会写 `%APPDATA%\foobar2000-v2`）。v2.26 实测只放一个空的 `portable` 文件（或 `profile` 目录）不会切换到便携配置，必须在安装器界面里选便携安装。
+- 试跑完删掉整个 `build\tmp\`，并确认 `%APPDATA%\foobar2000-v2` 没有被重新创建。
+- 安装器还会写注册表：`HKLM\SOFTWARE\foobar2000\capabilities`（文件关联声明，需要管理员）、`HKCU\Software\Classes\.fb2k-component`、`HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.fb2k-component`。临时安装用完要一并删掉，否则统计栏、默认应用里会残留一个不存在的 foobar2000。
 
 #### 维护约束
 
 - **`FloatingPointModel` 必须是 `Precise`**，不能沿用 SDK 样例的 `Fast`：分析结果必须与参照实现逐位一致，浮点重排会直接让 `parity.sh` 失败。
+- **产品文案里的术语统一写 `Hi-Res`**：H 和 R 都大写、中间是连字符。菜单项、窗口标题、组件名、进度提示、README 一律这样写，不要出现 `hi-res` / `Hi-res` / `hires`；这属于术语，不是普通短语。上游分析结果的英文文案不受影响（那里不出现这个词，`parity.sh` 不比对 UI 文案）。
 - **英文结论文案不能改**。`file_analysis.cpp` 里的文案与阈值是上游实现的逐字复制，改字就会让 `parity.sh` 出现 `DIFFERS`；要改先改上游或接受对照基线失效。
 - 声称的位深取容器里的 `%bitspersample%`（`file_info::info_get_int`），不要取 `decoded_bitspersample`，也不要取 `audio_chunk` 的格式：前者是解码后的，后者是后处理后的。
 - 解码 flags 必须带 `input_flag_no_postproc`。否则装了会改 PCM 的输入组件（如 HDCD 解码器）时，「低位全 0」判定会被污染。
@@ -1467,9 +1516,14 @@ Windows 端没有自动化测试，只能真机加载组件：选中混合批次
 - 不要引 `helpers/*.cpp`（`input_helper` 等）：工程只链接 `shared-$(Platform).lib`，需要那些 helper 就得把它们编进来。只用纯头文件接口 `input_entry::g_open_for_decoding()`。
 - 两个 group 工厂的参数顺序相反：`contextmenu_group_popup_factory(guid, parent, name, priority)`、`mainmenu_group_popup_factory(guid, parent, priority, name)`。
 - 暗色钩子要在**每次创建窗口**时重新 `AddDialogWithControls()`（`WM_DESTROY` 里把单例置空），否则重新打开的报告窗口是暗框亮内容。
-- 不提供原生 ARM64 配置：SDK 只有 `shared-ARM64EC.lib`，且 `component_client`、`helpers`、`SDK` 三个工程本身也只有 ARM64EC 配置，硬加 ARM64 会在链接阶段失败。
+- **暗色钩子会把 `LVS_REPORT` 的 ListView 换成 fb2k 自己的列表控件**（libPPUI `DARKMODE_LISTVIEW_SUBST`）：`AddDialogWithControls()` 返回后原 HWND 已销毁，必须按控件 ID 用 `GetDlgItem` 取回新句柄；列、扩展样式和字体都不会迁过去，要在替换之后重设。写子项用 `LVM_SETITEM`——替换控件没有实现 `LVM_SETITEMTEXT`；`LVM_SETBKCOLOR`/`SETTEXTCOLOR` 同样被忽略，颜色跟随 fb2k 主题。
+- 字体取 `NONCLIENTMETRICS.lfMessageFont`：`GetStockObject(DEFAULT_GUI_FONT)` 是非 ClearType 的老式位图字体，和 foobar2000 其余界面明显不一致。
+- 报告窗口的外观约定：**列标题与正文同字体族同字号，只加粗**（`headerFont()` / `uiFont()`）；**没有选中行时详情框和频谱图隐藏**，列表铺满客户区（`updateDetail(-1)` 负责切换并重排）；正文编辑框用 `WS_EX_STATICEDGE`，和暗色钩子替换出来的列表控件同一种细边框。
+- **标题栏靠 `WS_EX_DLGMODALFRAME` 去掉图标**：只有带这个扩展样式的窗口，Windows 才不画标题栏图标（普通窗口和普通对话框都会画 `IDI_APPLICATION`）。窗口样式去掉 `WS_MINIMIZEBOX`/`WS_MAXIMIZEBOX`，只留关闭按钮，和 foobar2000 的 Preferences 一致；打开位置在 `centeredRect()` 里按主窗口所在显示器的工作区居中，不要用 `CW_USEDEFAULT`（会贴左上角）。
+- **长期频谱图**：数据来自 `FileAnalysis::spectrum`——256 个点，20 Hz 到 Nyquist 按对数等距，单位 dBFS；绘制在 `spectrum_view.cpp`，只依赖 GDI 和核心类型，所以能用独立探针单独渲染预览。纵轴固定 `kSpectrumMinDB = -120`，横轴画 100 Hz / 1 kHz / 10 kHz 网格与 Nyquist 标签，有 `forensics->cliffHz` 时补一条虚线。<br>这个文件与 `report_window.cpp` 的分工：前者只管画图，后者的子窗口只负责取当前行并配色。
+- 不提供原生 ARM64 配置：SDK 只有 `shared-ARM64EC.lib`，且 `component_client`、`SDK` 两个工程本身也只有 ARM64EC 配置，硬加 ARM64 会在链接阶段失败。
 - `shared/fb2kdebug.h:44` 的 `uBugCheck` 是 `PFC_NORETURN`，所以 `switch` 不必写 `default` 也不会触发 C4715（工程把 4715 当成错误）。
-- 本组件没有在真机 MSVC 上编译过（开发机是 macOS），SDK 调用是逐条对照头文件核对的；首次在 Windows 构建时先清编译错误再谈行为。
+- 本组件已在 Windows + MSVC 上编译并实机跑通（见上方验证），但只验证过 x64 Release 的实机行为；Win32 Release 只确认能编译链接，ARM64EC 未验证。
 
 #### 未实现
 
@@ -1483,7 +1537,7 @@ Windows 端没有自动化测试，只能真机加载组件：选中混合批次
 | SizerWin | VS Build Tools / Windows SDK `cl.exe`+`rc.exe`，可选 CMake | `cd SizerWin; .\build.ps1` |
 | SizerSwift | macOS 13+，Swift 5.9+，辅助功能权限 | `cd SizerSwift; ./build.sh --install`（只构建用 `swift build -c release`） |
 | CapsLockOSD | VS Build Tools | `cd CapsLockOSD; .\build.ps1` |
-| foo_vespertine_analyze | VS 2022（v143）+ foobar2000 SDK 2026-10-01；验证需 macOS/Linux 的 clang++ 与 Swift 6.2+ | `msbuild foo_vespertine_analyze\foo_vespertine_analyze.vcxproj /p:Configuration=Release /p:Platform=x64`；`cd foo_vespertine_analyze; ./test/parity.sh` |
+| foo_vespertine_analyze | Visual Studio 2022+（`package.ps1` 自动取本机最新工具集）+ foobar2000 SDK 2026-10-01；Swift 对照另需 macOS/Linux 的 clang++ 与 Swift 6.2+ | `cd foo_vespertine_analyze; .\package.ps1`（出 `.fb2k-component`）；`./test/parity.sh` |
 | Dox Reader（Web 版） | Node.js 24+；Cloudflare 账号 | `cd "Dox Reader/Cloudflare Workers"; npm ci; npm run check`；部署须授权 |
 | Firefox/Add-Ons/Dox Reader（Dox Reader 扩展） | Node.js 24+；发布另需 AMO API 凭据 | `cd "Firefox/Add-Ons/Dox Reader"; npm ci; npm run check`；`pwsh -File release.ps1 -SkipSign` |
 | Firefox/Add-Ons/AutoSortBookmarks | Firefox 142+；Node.js（测试） | `node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js` |
@@ -1497,6 +1551,7 @@ Windows 端没有自动化测试，只能真机加载组件：选中混合批次
 | Scripts（Edge 清理） | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
 | Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\InstallFFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
 | ApkRename（APK 改名脚本） | PowerShell，apktool/Java 等工具 | `.\Scripts\rename-apk.ps1 [-SetupTools]` |
+| Scripts（磁盘图标） | PowerShell 5.1+ | `.\Scripts\PowerShell\Fix-DriveIcon.ps1 [-Drive P] [-Repair] [-SetIcon 图标] [-RebuildCache] [-Help]` |
 
 ---
 

@@ -159,7 +159,7 @@ void startScan(metadb_handle_list_cref tracks) {
     static_api_ptr_t<threaded_process>()->run_modeless(
         process,
         threaded_process::flag_show_progress_dual | threaded_process::flag_show_item | threaded_process::flag_show_abort,
-        core_api::get_main_window(), "Vespertine: checking for fake hi-res");
+        core_api::get_main_window(), "Vespertine: checking for fake Hi-Res");
 }
 
 } // namespace vesper

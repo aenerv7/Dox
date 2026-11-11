@@ -20,11 +20,27 @@ function safeUrl(value: string | null, baseUrl: string, image = false): string |
   return undefined;
 }
 
+const INSECURE_IMAGE_PREFIX = "http://";
+
+// https 页面会拦截 http 图片（CSP 与混合内容），所以先按 https 加载；失败再回退原地址。
+function upgradeImage(src: string): { src: string; insecure?: string } {
+  if (!src.startsWith(INSECURE_IMAGE_PREFIX)) return { src };
+  return { src: `https://${src.slice(INSECURE_IMAGE_PREFIX.length)}`, insecure: src };
+}
+
 // 图床的保护策略并不统一：有的要求带 Referer（如 sspai 的 CDN），有的只接受不带 Referer 的请求。
 // 首次按源站 origin 加载，失败后换成不带 Referer 重试；只改 URL 片段，服务端收到的地址不变。
 function retryImage(event: Event): void {
   const image = event.currentTarget as HTMLImageElement | null;
-  if (!image || image.dataset.doxRetry) return;
+  if (!image) return;
+
+  const insecure = image.dataset.doxInsecure;
+  if (insecure) {
+    delete image.dataset.doxInsecure;
+    image.src = insecure;
+    return;
+  }
+  if (image.dataset.doxRetry) return;
   image.dataset.doxRetry = "1";
   image.referrerPolicy = "no-referrer";
   const url = new URL(image.src);
@@ -57,7 +73,9 @@ function renderNode(node: Node, baseUrl: string, key: string): ComponentChildren
   if (tag === "img") {
     const src = safeUrl(node.getAttribute("src"), baseUrl, true);
     if (!src) return null;
-    props.src = src;
+    const image = upgradeImage(src);
+    props.src = image.src;
+    if (image.insecure) props["data-dox-insecure"] = image.insecure;
     props.alt = node.getAttribute("alt") || "";
     props.loading = "lazy";
     // 部分图床（如 sspai 的 CDN）拒绝没有 Referer 的请求并返回 403；只暴露源站 origin。

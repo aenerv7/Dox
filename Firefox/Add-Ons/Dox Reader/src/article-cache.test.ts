@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
-import { addFeed, applySyncDocument, db, exportSyncDocument, saveParsedFeed, setFeedError, setItemState, updateItemContent } from "./database";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { addFeed, applySyncDocument, db, exportSyncDocument, getActor, saveParsedFeed, setFeedError, setItemState, updateItemContent } from "./database";
 import type { ParsedFeed } from "./model";
 
 beforeEach(async () => {
@@ -74,5 +74,19 @@ describe("local article cache", () => {
     await db.items.delete("one");
     expect(await updateItemContent("one", "late response", parsed.items[0].url)).toBeUndefined();
     expect(await db.items.count()).toBe(0);
+  });
+
+  it("generates ids without crypto.randomUUID in insecure contexts", async () => {
+    const original = globalThis.crypto;
+    vi.stubGlobal("crypto", {
+      getRandomValues: original.getRandomValues.bind(original),
+    });
+    try {
+      const feed = await addFeed("https://example.com/insecure");
+      expect(feed.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(await getActor()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

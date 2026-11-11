@@ -2,7 +2,7 @@
 // foo_vespertine_analyze — 组件入口：菜单与生命周期。
 //
 // 把 Vespertine (https://github.com/szeremeta1/Vespertine) 的分析部分移植到 foobar2000：
-// 它查找那些并非真的 hi-res 的 hi-res 文件 —— 补零的字长、有损来源、升频而来的素材、
+// 它查找那些并非真的 Hi-Res 的 Hi-Res 文件 —— 补零的字长、有损来源、升频而来的素材、
 // 合成出来的高频。
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -36,7 +36,7 @@ public:
 
     void get_item_name(unsigned index, pfc::string_base& out) override {
         switch (index) {
-        case cmd_check: out = "Check for fake hi-res"; break;
+        case cmd_check: out = "Check for fake Hi-Res"; break;
         case cmd_show: out = "Show last report"; break;
         default: uBugCheck();
         }
@@ -88,11 +88,11 @@ public:
     GUID get_command(t_uint32 index) override { return index == 0 ? guid_check : guid_show; }
 
     void get_name(t_uint32 index, pfc::string_base& out) override {
-        out = index == 0 ? "Check selected tracks for fake hi-res" : "Show last report";
+        out = index == 0 ? "Check selected tracks for fake Hi-Res" : "Show last report";
     }
 
     bool get_description(t_uint32 index, pfc::string_base& out) override {
-        out = index == 0 ? "Decodes the playing playlist's selection and reports fake hi-res."
+        out = index == 0 ? "Decodes the playing playlist's selection and reports fake Hi-Res."
                          : "Brings back the report of the last check.";
         return true;
     }
@@ -125,8 +125,8 @@ public:
 
 static initquit_factory_t<vespertine_lifetime> g_lifetime;
 
-DECLARE_COMPONENT_VERSION("Vespertine fake hi-res checker", "0.1.0",
-                          "Looks for hi-res files that are not really hi-res.\n"
+DECLARE_COMPONENT_VERSION("Vespertine fake Hi-Res checker", "0.3.3",
+                          "Looks for Hi-Res files that are not really Hi-Res.\n"
                           "A port of the analysis code from Vespertine by szeremeta1.\n"
                           "\n"
                           "Checks the word length actually in use, where the spectrum stops, "

@@ -23,6 +23,7 @@
 | [`foo_vespertine_analyze`](./foo_vespertine_analyze) | foobar2000 组件：找出假 Hi-Res 文件（位深填充、有损来源、合成高频、上采样） |
 | [`Scripts`](./Scripts) | Windows 批处理工具、Edge 关联清理辅助脚本和 FFmpeg 安装脚本 |
 | [`Scripts/Flatten.bat`](./Scripts/Flatten.bat) | Windows 目录展平工具 |
+| [`Scripts/PowerShell/Fix-DriveIcon.ps1`](./Scripts/PowerShell/Fix-DriveIcon.ps1) | 诊断并修复「此电脑」里显示不对的磁盘图标 |
 | [`Scripts/InstallFFmpeg.ps1`](./Scripts/InstallFFmpeg.ps1) | 下载最新 FFmpeg full 构建并就地升级 `PATH` 中已有的那份安装 |
 | [`Scripts/RemoveMSEdge.bat`](./Scripts/RemoveMSEdge.bat) | Microsoft Edge 清理脚本（保留 WebView2），带关联审计/修复入口 |
 | [`Scripts/RemoveMSEdgeAll.bat`](./Scripts/RemoveMSEdgeAll.bat) | Microsoft Edge 与 WebView2 的完整清理脚本 |
@@ -46,7 +47,7 @@ Web 版源码位于 [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%
 - 在设置中填写 HTTPS WebDAV URL 前缀、用户名和应用密码，手动点击“立即同步”同步；输入时不会自动检测，URL 无效时“立即同步”按钮置灰，同步出错即视为未连通并显示错误。自动使用该目录下的 `Dox Reader/state.json`。
 - WebDAV 只同步订阅、已读/收藏状态、刷新时间和外观/阅读偏好，不上传文章正文、图片、凭据或本机布局。新设备同步订阅后会首次抓取文章。
 - 自动刷新默认 24 小时，按每个订阅源上次成功更新的时间单独判断；可在设置中以整数小时调整，设为 0 关闭（当前设备）。页面打开时每分钟检查一次，回到页面或恢复网络时补查；失败后至少间隔 5 分钟重试，关闭页面后不运行。
-- 自动刷新、单源刷新与右上角全部刷新共用队列，全部刷新会接入正在刷新的源，避免重复请求；刷新期间同步与“全部标为已读”按钮置灰，每个正在刷新的订阅源按钮都播放动画（自动刷新同样生效），右上角刷新按钮只在全局刷新时播放动画。
+- 自动刷新、单源刷新与右上角全部刷新共用队列，全部刷新会接入正在刷新的源，避免重复请求；刷新期间同步按钮置灰，单源或自动刷新只禁用该源的编辑、删除按钮，标记已读不受后台刷新影响。每个正在刷新的订阅源按钮都播放动画（自动刷新同样生效），右上角刷新按钮只在全局刷新时播放动画。
 - 不配置 WebDAV 也可本地使用。关闭页面后不会继续抓取；清除本机数据不会删除 WebDAV 文件。
 - Web 版的 Worker 只提供静态资源和 RSS/原文/WebDAV 无状态跨域代理，不存储文章或运行定时抓取。WebDAV 凭据经过该代理，请使用自己信任的部署及专用应用密码。
 
@@ -258,17 +259,24 @@ foobar2000 组件（原生 DLL，Win32 / x64 / ARM64EC），检查文件是不�
 | `High frequencies synthesized` | 高频是合成补的：台阶 + 平坦 shelf + 电平跟随音乐 |
 | `Not applicable` | 数字静音、太短或解码失败，判不了 |
 
-报告窗口是一个三列单选列表：绝对路径、声称的格式和数据、可能的实际格式和数据；没问题时后两列完全一样，一眼就能看出哪些行不对劲。选中某行，底部显示这一条的完整分析结果（结论、置信度、Vespertine 的说明文字和测到的数字）。
+报告窗口是一个三列单选列表：绝对路径、声称的格式和数据、可能的实际格式和数据；没问题时后两列完全一样，一眼就能看出哪些行不对劲。选中某行，底部显示这一条的完整分析结果（结论、置信度、Vespertine 的说明文字和测到的数字），下面是这次解码的**长期频谱图**：对数频率轴、dBFS 纵轴，检测到截止频率时用虚线标出该位置。
 
 用法：
 
-- 选中曲目 → 右键 → `Vespertine` → `Check for fake hi-res`
+- 选中曲目 → 右键 → `Vespertine` → `Check for fake Hi-Res`
 - 主菜单 `View` → `Vespertine` → 分析当前播放列表里选中的曲目
 - `Show last report` 重新打开上一次的报告窗口
 
 扫描在后台线程进行，可随时中止；单曲解码失败只影响那一行（显示 `Not applicable` 并写出原因）。
 
-构建需要 Visual Studio 2022（v143）和 foobar2000 SDK 2026-10-01：把 SDK 解压后改工程属性里的 `Fb2kSdkDir`，选 `Release | x64` 生成，产物 `foo_vespertine_analyze.dll` 放进 foobar2000 的 `user-components\foo_vespertine_analyze\`。
+构建需要 foobar2000 SDK 2026-10-01 和 Visual Studio（2022 及更新版本均可）：把 SDK 解压到工程默认查找的 `..\..\foobar2000-sdk`（或改工程属性里的 `Fb2kSdkDir`），然后：
+
+```powershell
+cd foo_vespertine_analyze
+.\package.ps1
+```
+
+产物是 `build\x64\Release\foo_vespertine_analyze.fb2k-component`，拖进 foobar2000 窗口（或 Preferences → Components → Install）即可安装，落在 `user-components-x64\foo_vespertine_analyze\`。32-bit 版用 `.\package.ps1 -Platform Win32`。
 
 已知限制：只做频谱与位深取证，不识别 Dolby Atmos 等格式；不写标签、不做自动播放列表；采样率高于 768 kHz 的文件直接跳过；32-bit 版 foobar2000 可用但慢，大批次建议用 64-bit 版。
 
@@ -842,6 +850,25 @@ Edge 删除脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/Shad
 两个 BAT 需与 `EdgeAssociations.ps1` 一起使用。`-audit-associations` 只读检查旧关联残留，`-repair-associations` 备份并修复已识别的父项权限异常；这两个入口不执行卸载。正常清理不再修改 `UserChoice` 权限，受保护或无法判断的选择会保留并报告。
 
 两个脚本都会调用机器级和当前用户级 Edge 卸载器，并清理其他 ProfileList 用户的残留；卸载后扫描各用户 URL 协议和文件扩展名的选择记录，仅清理确认失效、无 Hash 且无冲突的 Edge 选择值。关联审计、修复入口、退出码与验证方式见下文[「Edge 关联清理与旧权限残留」](#edge-关联清理与旧权限残留)；职责边界、计划任务配置、执行流程和维护验证要求见仓库根 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
+
+### 磁盘图标
+
+[`Scripts/PowerShell/Fix-DriveIcon.ps1`](./Scripts/PowerShell/Fix-DriveIcon.ps1) 诊断并修复「此电脑」里显示不对的磁盘图标。默认只读，不改任何东西。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Help
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Drive P -Repair
+powershell -ExecutionPolicy Bypass -File .\Scripts\PowerShell\Fix-DriveIcon.ps1 -Drive Q -SetIcon .\disk.ico
+```
+
+- 图标来源固定三层：注册表 `DriveIcons\<盘符>\DefaultIcon` → 盘根 `autorun.inf` 的 `Icon=` → 卷类型的内置图标（`DriveType 3` 硬盘、`2` 可移动磁盘），脚本逐层报告命中了哪一层
+- `-Help`（或 `-h`）打印用法、参数说明和示例后退出，不读盘、不做任何改动
+- `-Drive` 只查指定盘（`P` 或 `P,Q`），省略则检查所有卷
+- `-Repair` 删除指向不存在文件的注册表覆盖项（先 `reg export` 备份），注释 `autorun.inf` 里失效的 `Icon=`（先备份 `.bak`）
+- `-SetIcon` 把 `.ico` 复制到盘根并写入 `autorun.inf`，图标跟着盘走，换电脑也不丢
+- `-RebuildCache` 重建当前用户图标缓存，会重启 `explorer.exe`
+- 需要 PowerShell 5.1+；卷被外壳芯片报告为「可移动磁盘」时类型改不了，只能用 `-SetIcon` 覆盖
 
 ### FFmpeg
 

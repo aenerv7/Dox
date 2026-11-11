@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Merge the automatic-refresh explanation into the Settings section heading. No behavior change.",
-      "zh-CN": "把自动刷新说明合并到设置分区标题中，行为不变。"
+      "en-US": "Remove the global mark-all-read button; marking read remains available per subscription.",
+      "zh-CN": "移除工具栏的全局全部标为已读按钮，仍可按订阅源标记已读。"
     }
   }
 }

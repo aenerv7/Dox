@@ -13,6 +13,17 @@ describe("article content rendering", () => {
     expect(img.getAttribute("referrerpolicy")).toBe("strict-origin-when-cross-origin");
   });
 
+  it("loads insecure images over https and falls back to the original URL", () => {
+    const root = document.createElement("div");
+    render(h("div", {}, renderArticleContent('<img src="http://img.example/a.jpg">', "https://example.com/post")), root);
+
+    const img = root.querySelector("img")!;
+    expect(img.getAttribute("src")).toBe("https://img.example/a.jpg");
+
+    img.dispatchEvent(new Event("error"));
+    expect(img.getAttribute("src")).toBe("http://img.example/a.jpg");
+  });
+
   it("retries a failed image once without a referrer", () => {
     const root = document.createElement("div");
     render(h("div", {}, renderArticleContent('<img src="https://cdn.example/a.jpg">', "https://example.com/post")), root);

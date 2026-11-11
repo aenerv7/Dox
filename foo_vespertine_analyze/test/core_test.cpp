@@ -288,7 +288,7 @@ std::vector<Case> cases() {
     v.push_back({"genuine-16", 44100, 4, Shape{20, 21400, 4000}, 16, 16, "genuine"});
     // 同样的音频放在 24-bit 容器里。
     v.push_back({"padded-24-16", 44100, 4, Shape{20, 21400, 4000}, 24, 16, "padded"});
-    // 真正的 hi-res 24-bit 母带。
+    // 真正的 Hi-Res 24-bit 母带。
     v.push_back({"genuine-24", 96000, 4, Shape{20, 43000, 8000}, 24, 24, "genuine"});
     // CD 区域之下的 16 kHz 砖墙：128 kbps MP3，或者是频带受限的母带。
     v.push_back({"wall-16k-44", 44100, 4, Shape{20, 15800, 150}, 16, 16, "lossy-origin"});

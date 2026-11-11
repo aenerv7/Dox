@@ -13,7 +13,7 @@ vi.mock("./repository", () => ({
   listFeeds: vi.fn(), listItems: vi.fn(), getItemCounts: vi.fn(),
   getFeedUnreadCounts: vi.fn(), getLastRefreshAllAt: vi.fn(() => Date.now()),
   migrateLegacyEntities: vi.fn(), hasLocalReaderData: vi.fn(() => true),
-  setItemState: vi.fn(), markAllRead: vi.fn(), markFeedRead: vi.fn(),
+  setItemState: vi.fn(), markFeedRead: vi.fn(),
   updateSyncedPreferences: vi.fn(), updateItemContent: vi.fn(),
 }));
 vi.mock("./article-extractor", async (importOriginal) => ({
