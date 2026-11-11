@@ -1,10 +1,5 @@
 .DS_Store
 
-# Scripts logs
-Scripts/*_dbg.log
-Scripts/*_hlpr.log
-Scripts/RemoveMSEdge-backups/
-
 # Swift
 SizerSwift/.build/
 SizerSwift/build/
@@ -28,6 +23,26 @@ foo_vespertine_analyze/.vs/
 foo_vespertine_analyze/*.user
 foo_vespertine_analyze/test/swift-parity/.build/
 
+# DefaultApps（Android 构建产物、本地工具链与签名凭据）
+DefaultApps/**/.gradle/
+DefaultApps/**/build/
+DefaultApps/local.properties
+DefaultApps/*.iml
+DefaultApps/**/.idea/
+DefaultApps/tools/jdk17/
+DefaultApps/tools/gradle-8.9/
+DefaultApps/tools/sdk/
+DefaultApps/tools/gradle-home/
+DefaultApps/tools/android-home/
+DefaultApps/tools/*.lock
+DefaultApps/tools/*.log
+DefaultApps/keystore.properties
+DefaultApps/keystore/
+DefaultApps/**/*.jks
+DefaultApps/**/*.apk
+DefaultApps/**/*.aab
+DefaultApps/**/*.keystore
+
 # Dox Reader（本地依赖与构建产物）
 Dox Reader/**/node_modules/
 Dox Reader/**/dist/
@@ -48,16 +63,11 @@ Firefox/Add-Ons/**/.env.release
 # Firefox registry scripts
 Firefox/__pycache__/
 
-# Firefox 本机构建产物、原版备份与校验报告
-Firefox/build/
-Firefox/backups/
-Firefox/validation.json
-
 # DeepSeek Harness Launcher（构建产物）
 DeepSeek Harness/Launcher/bin/
 
-# ApkRename（自动下载的工具）
-Scripts/tools/
+# ApkRename（自动下载的工具，位于脚本同目录）
+Scripts/PowerShell/tools/
 
 # Codex temporary workspace files
 .codex-tmp/

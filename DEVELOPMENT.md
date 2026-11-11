@@ -4,7 +4,7 @@
 >
 > **全仓库只有两份文档：根 `README.md`（用户使用）和本文件（维护规范）。** 不存在模块级 README，也不存在第二份开发文档；同一事实只写一处，不复制到两处。新增模块在根 `README.md` 加一个小节、在本文件加一个小节即可。
 >
-> 随包分发或合规用途的文件不属于此约定，保持原位：各 `PRIVACY.md`（隐私说明）、`Firefox/Add-Ons/AutoSortBookmarks/THIRD_PARTY_NOTICES.md`（第三方许可）、`Firefox/Add-Ons/Dox Reader/README.md`（随 AMO 源码包分发）。
+> 随包分发或合规用途的文件不属于此约定，保持原位：各 `PRIVACY.md`（隐私说明）、`Firefox/Add-Ons/AutoSortBookmarks/THIRD_PARTY_NOTICES.md`（第三方许可）、`Firefox/Add-Ons/Dox Reader/README.md`（随 AMO 源码包分发）、`Firefox/Add-Ons/Dox Reader/AMO_REVIEW_NOTES.md`（随 AMO 源码包分发的审核说明）、`SizerSwift/INSTALL.md`（随 App 分发的首次打开说明）。
 
 ## 目录
 
@@ -19,7 +19,7 @@
    - 3.6 [Firefox Auto Sort Bookmarks](#36-firefox-auto-sort-bookmarks)
    - 3.7 [Userscript 小脚本](#37-userscript-小脚本)
    - 3.8 [AdGuard（magi.txt）](#38-adguardmagitxt)
-   - 3.9 [Scripts（Edge 清理与 FFmpeg 安装）](#39-scriptsedge-清理与-ffmpeg-安装)
+   - 3.9 [Scripts（Windows 脚本小工具）](#39-scriptswindows-脚本小工具)
    - 3.10 [DeepSeek Harness Launcher](#310-deepseek-harness-launcher)
    - 3.11 [ApkRename（APK 改名脚本）](#311-apkrenameapk-改名脚本)
    - 3.12 [Firefox 默认应用重复项清理](#312-firefox-默认应用重复项清理)
@@ -29,6 +29,9 @@
    - 3.16 [strelaysrv（VPS 私有中继状态页）](#316-strelaysrvvps-私有中继状态页)
    - 3.17 [Firefox（用户层配置）](#317-firefox用户层配置)
    - 3.18 [foo_vespertine_analyze（foobar2000 假 Hi-Res 检查）](#318-foo_vespertine_analyzefoobar2000-假-hi-res-检查)
+   - 3.19 [DefaultApps（Android 默认应用）](#319-defaultappsandroid-默认应用)
+   - 3.20 [Windhawk 模组](#320-windhawk-模组)
+   - 3.21 [Windows（注册表脚本与快捷方式）](#321-windows注册表脚本与快捷方式)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -52,7 +55,10 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | JavaScript / Cloudflare Workers | `sub-store/`、`sub-store-front-end/`、`bwh-traffic/` | Sub-Store 前后端在 Cloudflare Workers 上的部署适配（构建期拉取上游源码）、搬瓦工流量订阅头 Worker |
 | JavaScript | `Scripts/Userscripts/*.user.js`、`Firefox/Add-Ons/AutoSortBookmarks/`、`Firefox/Add-Ons/Dox Reader/` | 浏览器用户脚本、Manifest V3 扩展 |
 | CSS | `CSS/*.css` | 字体映射 |
-| 批处理 / PowerShell | `Scripts/*.bat`、`Scripts/*.ps1` | Edge 清理脚本和 FFmpeg 安装脚本 |
+| 批处理 / PowerShell | `Scripts/Batch files/*.bat`、`Scripts/PowerShell/*.ps1` | Windows 小工具：目录展平、缓存修复、FFmpeg 安装、磁盘图标、APK 改名 |
+| Java 17 / Gradle 8.9 / Android SDK | `DefaultApps/` | Android 默认应用管理器（经 Shizuku 以 shell 身份调系统接口） |
+| C++ / Windhawk 模组 API | `Windhawk/CJKSpacer/`、`Windhawk/TextReplaceForSciter/` | Explorer 文本修饰与 Sciter DOM 文本替换模组 |
+| 注册表脚本 / 快捷方式 | `Windows/Registrys/*.reg`、`Windows/Shortcuts/*.lnk` | Windows 界面调整与系统文件夹快捷方式 |
 
 ### 1.3 模块清单
 
@@ -70,9 +76,12 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `DeepSeek Harness/Launcher/` | 活跃 | DeepSeek Harness `dsh web` 本地托盘监督器 |
 | `CSS/` | 活跃 | 中文字体映射 CSS |
 | `Scripts/Userscripts/` | 活跃 | Tampermonkey/Greasemonkey 用户脚本和图标 |
-| `Scripts/` | 活跃 | Edge 清理脚本（保留/删除 WebView2 两版）、Flatten 和 FFmpeg 安装脚本 |
-| `Scripts/rename-apk.ps1` | 活跃 | 只改 APK 应用名的 PowerShell 脚本 |
-| `Scripts/PowerShell/Fix-DriveIcon.ps1` | 活跃 | 诊断并修复「此电脑」磁盘图标的 PowerShell 脚本 |
+| `Scripts/Batch files/` | 活跃 | 目录展平、强制删除、图标缓存、Verifier dll 归位等批处理小工具 |
+| `Scripts/PowerShell/` | 活跃 | FFmpeg 安装、磁盘图标诊断、APK 改名、Codex 右键菜单清理 |
+| `DefaultApps/` | 活跃 | Android 默认应用管理器（Shizuku + shell 身份） |
+| `Windhawk/CJKSpacer/` | 活跃 | 给 Explorer 菜单/Tooltip 的 CJK 与拉丁字符边界补空格的 Windhawk 模组 |
+| `Windhawk/TextReplaceForSciter/` | 活跃 | 替换 Sciter 界面 DOM 文本的 Windhawk 模组 |
+| `Windows/` | 活跃 | 单文件注册表脚本（`Registrys/`）与系统文件夹快捷方式（`Shortcuts/`） |
 | `sub-store/` | 活跃 | Sub-Store 后端在 Cloudflare Workers 上的适配（D1 持久化、路径口令鉴权） |
 | `sub-store-front-end/` | 活跃 | Sub-Store-Front-End 静态资源 Worker |
 | `bwh-traffic/` | 活跃 | 把 BandwagonHost KiwiVM 流量转成 Sub-Store 订阅头 `subscription-userinfo` 的 Worker |
@@ -96,7 +105,11 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/Add-Ons/Dox Reader/.env.release`（AMO API 发布凭据）
 - `sub-store/.upstream/`、`sub-store/build/`
 - `sub-store-front-end/dist/`、`sub-store-front-end/build/`
-- `Scripts/tools/`
+- `Scripts/PowerShell/tools/`
+- `DefaultApps/**/build/`、`DefaultApps/**/.gradle/`、`DefaultApps/local.properties`、`DefaultApps/**/.idea/`
+- `DefaultApps/tools/jdk17/`、`DefaultApps/tools/gradle-8.9/`、`DefaultApps/tools/sdk/`、`DefaultApps/tools/gradle-home/`、`DefaultApps/tools/android-home/`（本机工具链与缓存，`DefaultApps/tools/build.ps1` 属源码）
+- `DefaultApps/keystore.properties`、`DefaultApps/keystore/`、`DefaultApps/**/*.jks`、`DefaultApps/**/*.keystore`（签名凭据）
+- `DefaultApps/**/*.apk`、`DefaultApps/**/*.aab`
 
 当前源码入口：
 
@@ -110,7 +123,11 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 - `Firefox/user.js`、`Thunderbird/user.js`（个人配置目录偏好文件）
 - `Firefox/fix_duplicate.py`、`Firefox/test_duplicate.py`
 - `Scripts/Userscripts/中文字体优化.user.js`、`EmuParadise Download Workaround.user.js`、`Re-add Download Button Vimm's Lair.user.js`、`VGMdb Tracklist Copy Button.user.js`
-- `Scripts/PowerShell/InstallFFmpeg.ps1`、`Scripts/PowerShell/EdgeAssociations.ps1`、`Scripts/PowerShell/rename-apk.ps1`、`Scripts/PowerShell/Fix-DriveIcon.ps1`
+- `Scripts/PowerShell/InstallFFmpeg.ps1`、`Scripts/PowerShell/rename-apk.ps1`、`Scripts/PowerShell/Fix-DriveIcon.ps1`、`Scripts/PowerShell/Remove Open project in ChatGPT context menu.ps1`
+- `Scripts/Batch files/*.bat`（`Flatten.bat`、`Force Delete.bat`、`Icon Cache Fix.bat`、`Move Visual Studio dll to correct place.bat`）
+- `DefaultApps/app/src/main/java/com/dox/defaultapps/*.java`、`DefaultApps/app/src/main/aidl/com/dox/defaultapps/IDefaultsService.aidl`、`DefaultApps/app/src/main/res/`、`DefaultApps/app/build.gradle`、`DefaultApps/build.gradle`、`DefaultApps/settings.gradle`、`DefaultApps/gradle.properties`、`DefaultApps/keystore.properties.example`、`DefaultApps/tools/build.ps1`
+- `Windhawk/CJKSpacer/CJKSpacer.wh.cpp`、`Windhawk/CJKSpacer/tests/CJKSpacer.tests.cpp`、`Windhawk/TextReplaceForSciter/TextReplaceForSciter.wh.cpp`
+- `Windows/Registrys/*.reg`、`Windows/Shortcuts/*.lnk`
 - `sub-store/src/*.js`、`sub-store/scripts/*.mjs`、`sub-store/wrangler.jsonc`、`sub-store/migrations/`
 - `sub-store-front-end/scripts/*.mjs`、`sub-store-front-end/wrangler.jsonc`
 - `bwh-traffic/worker.js`、`bwh-traffic/wrangler.jsonc`
@@ -123,6 +140,8 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `SizerWin/logo.ico` | Windows 图标 |
 | `SizerSwift/AppIcon.icns` | macOS 菜单栏/Bundle 图标 |
 | `Scripts/Userscripts/中文字体优化.png` | 512×512 Userscript 图标 |
+| `DefaultApps/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`、`.../drawable/ic_launcher_foreground.xml` | Android 自适应启动图标（前景矢量 + 主题色） |
+| `Windhawk/CJKSpacer/Before.png`、`Windhawk/CJKSpacer/After.png` | 模组效果截图，不被代码引用 |
 
 图标更新时要检查所有平台的引用，不要只替换单一文件。
 
@@ -153,7 +172,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 忽略规则只写在仓库根 `.gitignore`，不分散到模块目录：
 
 - 模块目录下不新建各自的 `.gitignore`；已有的并入根文件后删除。
-- 忽略项按模块分组、加注释，路径从仓库根写起（`Firefox/build/`、`bwh-traffic/**/.wrangler/`），不要沿用只在该模块目录内生效的相对模式（如裸 `build/` 会波及全仓库）。
+- 忽略项按模块分组、加注释，路径从仓库根写起（`DefaultApps/tools/sdk/`、`bwh-traffic/**/.wrangler/`），不要沿用只在该模块目录内生效的相对模式（如裸 `build/` 会波及全仓库）。
 - 保持原匹配范围：模块 `.gitignore` 里未加斜杠的 `build/`、`__pycache__/`、`*.log` 在该模块下任意深度都生效，并入根文件要写成 `sub-store/**/build/`、`bwh-traffic/**/node_modules/`（`**/` 匹配零层或多层目录）；只锚定直接子目录会漏掉嵌套产物。
 - 调整忽略项后确认判定未变：`git check-ignore -v --no-index <路径>`（可指向不存在的路径），并用 `git status --porcelain --ignored=matching` 对比改动前后的忽略清单。
 - 例外两处，不再并入根文件：git 子模块 `Windhawk/windhawk-mods/`，以及被忽略的上游源码目录 `sub-store/.upstream/`，其 `.gitignore` 属于上游内容。
@@ -816,105 +835,78 @@ node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 
 维护要求：保持白名单按顶级域或站点分组；元素隐藏规则尽量落实到具体站点，不写过宽选择器。
 
-### 3.9 Scripts（Edge 清理与 FFmpeg 安装）
+### 3.9 Scripts（Windows 脚本小工具）
 
-`Scripts/` 收纳 Windows 批处理工具、Edge 清理辅助脚本、FFmpeg 安装脚本和磁盘图标脚本。
+`Scripts/` 按语言分目录：`Scripts/Batch files/` 批处理、`Scripts/PowerShell/` PowerShell、`Scripts/Userscripts/` 浏览器用户脚本（见 3.7）。除 `rename-apk.ps1`（见 3.11）外都是单文件、无测试框架的小工具，验证方式是在 Windows 上真实运行。
 
-#### Edge 清理（RemoveMSEdge）
+| 脚本 | 用途 |
+|---|---|
+| `Scripts/Batch files/Flatten.bat` | 把一个或多个目录的子目录文件移回根目录，删除变空的子目录 |
+| `Scripts/Batch files/Force Delete.bat` | 拖放强制删除被占用或路径异常的文件/目录 |
+| `Scripts/Batch files/Icon Cache Fix.bat` | 重建图标与缩略图缓存 |
+| `Scripts/Batch files/Move Visual Studio dll to correct place.bat` | 把 Application Verifier 的 dll 移进 `SysWOW64` 并修正 Installer 组件路径 |
+| `Scripts/PowerShell/Fix-DriveIcon.ps1` | 诊断并修复「此电脑」磁盘图标 |
+| `Scripts/PowerShell/InstallFFmpeg.ps1` | 下载 full 构建并就地升级 `PATH` 里的 FFmpeg |
+| `Scripts/PowerShell/rename-apk.ps1` | 只改 APK 应用名（见 3.11） |
+| `Scripts/PowerShell/Remove Open project in ChatGPT context menu.ps1` | 移除 Codex 的「Open project」右键菜单 |
 
-两个 Edge 清理脚本基于 [ShadowWhisperer/Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)，头部必须保留来源链接。
+脚本自带的说明（`SYNOPSIS`、`.EXAMPLE`、用法横幅）就是这层文档，必须与文件名和实际参数一致：改名时一并改，不留两套名字。
 
-#### 职责边界
+#### 目录展平（`Flatten.bat`）
 
-| 处理对象 | `RemoveMSEdge.bat` | `RemoveMSEdgeAll.bat` |
-|---|---|---|
-| 机器级 Edge 浏览器 | 删除 | 删除 |
-| 当前用户级 Edge 浏览器 | 删除 | 删除 |
-| 其他用户的 Edge 文件和注册表 | 删除 | 删除 |
-| 全用户 Edge AppX | 删除 | 删除 |
-| WebView2 Runtime | 保留 | 删除机器级、当前用户级及其他用户残留 |
-| `EdgeCore` | 保留 | 删除 |
-| `EdgeUpdate` 目录和注册表 | 保留 | 删除 |
-| Edge Update 任务和服务 | 保留 | 删除 |
-| `MicrosoftEdgeUpdate.exe` | 不终止 | 终止 |
+`.bat` 只是外壳：在 `# POWERSHELL` 标记处截断，把其后内容交给 `powershell.exe -Command` 执行，所以目标路径经环境变量 `FLATTEN_TARGET_n` 传递，不必给 PowerShell 拼引号。
 
-`RemoveMSEdge.bat` 只允许结束 `msedge.exe`；`msedgewebview2.exe`、WebView2 注册项、`EdgeCore`、`EdgeUpdate`、更新任务和服务属保留边界。`RemoveMSEdgeAll.bat` 是彻底清理入口。
-
-#### 入口和参数
-
-- `RemoveMSEdge.bat`：普通执行始终进入完整卸载流程；`-guard` 计划任务守卫模式（UAC 提权后、网络检测前检查机器级/用户级 msedge.exe 和 `Get-AppxPackage -AllUsers` 的 `*MicrosoftEdge*`，Edge 与 AppX 都不存在时输出 `Edge is not installed; nothing to remove` 并以 0 退出；AppX 查询失败 fail-open）。WebView2、`EdgeCore`、`EdgeUpdate` 不参与守卫判定。
-- `RemoveMSEdgeAll.bat`：无守卫模式，依次处理机器级 Edge、当前用户级 Edge、机器级/用户级 Evergreen WebView2、Edge AppX 及所有用户和共享更新设施残留。
-- 两脚本都支持 `-auto`（仅内置 Administrator 已启用时跳过身份确认，不等同于 `-guard`）。
-- 两脚本都支持 `-help`、`-h`、`/?` 显示参数说明；帮助在架构切换前退出，不触发 UAC、联网、下载或卸载。
-- 两脚本共用同目录 `EdgeAssociations.ps1`；缺失时必须在提权、下载、卸载前退出。新增 `-audit-associations` / `-repair-associations` 只检查或修复当前用户关联，在日志初始化前分流，不卸载、不联网、不请求 UAC，以便读取旧日志。使用及残留处理见根 [README.md 的「Edge 关联清理与旧权限残留」](./README.md#edge-关联清理与旧权限残留)。
-
-#### 计划任务约定
-
-保留 WebView2 并自动删除重装 Edge 时只能用 `RemoveMSEdge.bat -guard`。推荐顺序：先 `RemoveMSEdgeAll.bat` → 重装 WebView2 → 创建 `RemoveMSEdge.bat -guard` 计划任务（目标用户账户 + 最高权限运行，登录为触发器）。
+两个阶段是硬约束：
 
 ```text
-程序或脚本: %SystemRoot%\System32\cmd.exe
-添加参数:   /d /c ""C:\path\to\Scripts\RemoveMSEdge.bat" -guard"
-起始于:     C:\path\to\Scripts
+预检（全部目标）                      执行（逐目标）
+  存在？是目录？                      根目录已有同名项 → 跳过，原样保留
+  不是符号链接/目录联接？   ──►        其余文件 Move-Item 回根目录
+  不是盘符根/共享根？                  自底向上删除空目录
+  任一失败 → 整体不动
 ```
 
-#### 执行流程
+- 同名冲突不覆盖、不重命名，`[跳过]` 计数；正在运行的脚本本身也跳过，拖入"包含脚本的目录"不会把自己搬走。
+- 移动、跳过、保留、删除目录、失败分别计数，最后汇总。
+- 退出码：无参数用法提示 2，其余为 PowerShell 段的退出码。
 
-1. 回到原生 CMD 架构，拒绝 ARM，仅支持 x86 和 AMD64。
-2. 初始化调试日志并检查管理员权限，需要时 PowerShell 重新提升 CMD。
-3. `-guard` 在此执行前置检测。
-4. 从脚本目录或 `%TEMP%` 读取 `setup.exe` 和 `System.Data.SQLite.dll`；缺失时下载并校验硬编码 SHA-256。
-5. 卸载浏览器前捕获全用户 `*microsoftedge*` AppX 列表。
-6. 分别检测并调用机器级和当前用户级 Edge 卸载器。
-7. `RemoveMSEdgeAll.bat` 继续卸载机器级和当前用户级 WebView2。
-8. 解锁并删除 Edge AppX；staged/SYSTEM 状态包经临时 SYSTEM 计划任务重试，任务结束后注销。
-9. 遍历 ProfileList，加载必要离线 `NTUSER.DAT`，清除各用户 Edge 残留。
-10. 按职责边界清理机器目录、注册表、任务和服务，最后删除依赖硬链接。
+验证：`subst` 造多层目录，跑 `Flatten.bat X /Y`（同名跳过、空目录删除、非空目录保留）；一次拖入两个目录；对符号链接根与盘符根确认被拒绝。
 
-调试日志固定 `log_lvl.debug`，生成 `RemoveMSEdge*_dbg.log` 和临时 `*_hlpr.log`（已被 `.gitignore` 排除）。
+#### 强制删除（`Force Delete.bat`）
 
-#### 维护约束
+两行：`DEL /F /A /Q \\?\%1` 与 `RD /S /Q \\?\%1`。`\\?\` 前缀让路径直接进入宽字符 API，跳过 260 字符上限与路径规范化，因此能删掉资源管理器拒绝处理的长路径和异常名。用法是把文件或目录拖到脚本上（命令行传参等价）。无日志、无回收站、不可撤销。
 
-1. `RemoveMSEdge.bat` 破坏性命令不得引用 `EdgeWebView`、`EdgeCore`、`EdgeUpdate`、`MicrosoftEdgeUpdate`、`msedgewebview2` 或 WebView2 产品 GUID `{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}`。
-2. `RemoveMSEdgeAll.bat` 必须分别检测并调用机器级和用户级 Edge 卸载器，不能因机器级 Edge 不存在而跳过用户级分支。
-3. `-guard` 检测必须位于网络检查和 `Obtaining required files` 之前；未检测到 Edge 以 0 退出。
-4. 守卫只能以 `msedge.exe` 和 Edge AppX 为依据，不把 WebView2 或共享更新设施误判为 Edge。
-5. AppX 列表必须在浏览器卸载前捕获，否则会漏掉 `Microsoft.MicrosoftEdgeDevToolsClient`。
-6. ProfileList 循环每次读取前清空配置目录变量并验证路径，防止沿用上一用户路径。
-7. 修改 UAC 或嵌入式 PowerShell 时验证最终传给 PowerShell 的文本，不只是源文件外观。
-8. 标签名称唯一；所有 `goto`/`call :label` 都有对应标签，动态标签逐分支检查。
-9. 用户配置清理扫描 `UrlAssociations` 和 `Explorer\FileExts` 下所有 `UserChoice`/`UserChoiceLatest` 的直接或嵌套 `ProgId`。仅在根/嵌套均无 Hash、只有一个 Edge ProgId、处理程序确认已不存在时备份并原子删除该值；保留空壳键。保留其他浏览器、已安装 Edge、未知命令、DelegateExecute 和重复/冲突选择。
-10. 正常关联清理不得修改任何 ACL、所有者或 Hash，不得递归删除选择树。权限拒绝、扫描和备份错误必须可见并返回非零；完整卸载流程必须汇总关联失败，不得无条件报成功。独立 Repair 模式只处理已确认的只读父项 DACL 签名，先持久化原 DACL，恢复继承后校验，失败回滚。旧日志中确有文件 UserChoice ACL 修改尝试且缺少标准拒绝规则的项只报告，不猜测原 ACL；不能把 URL 协议的正常权限当成残留。
-11. 依赖文件缓存哈希不匹配时，必须删除失效缓存并重新下载；下载完成后再次校验，二次校验仍失败才返回 `ISSUE_HASH`。
+#### 图标缓存（`Icon Cache Fix.bat`）
 
-#### 验证清单
+结束 `explorer.exe` → 删 `%LOCALAPPDATA%\IconCache.db`、`%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache*` 与 `thumbcache*` → 重新启动 `explorer.exe`。用于桌面/任务栏图标变白块。删的是缓存，不碰程序与设置；但仍在运行的程序会随 explorer 一起退出，未保存的工作会丢，先保存再跑。
 
-静态：`git diff --check`、`git status --short --ignored`；确认所有 `powershell -noprofile -c` 块能被 `[scriptblock]::Create()` 解析、多行管道块经 CMD 转义后可解析、无缺/重标签、`RemoveMSEdge.bat` 无违反保留边界的破坏命令、调试日志保持 ignored。
+#### Verifier dll 归位（`Move Visual Studio dll to correct place.bat`）
 
-关联回归：`EdgeAssociations.ps1` 的验证脚本已随模块移除，当前检出不提供自动化关联测试。改动关联清理逻辑后必须人工复核下表场景，不得只凭静态检查通过；不得以实际卸载或关闭 UCPD 的方式运行验证。
+Application Verifier 会把 `appverifUI.dll`、`vfcompat.dll` 复制到 `C:\`，并在 Installer 组件表里记下这个错误路径。脚本对两个固定组件各做一步：
 
-破坏性验证只能在可回滚虚拟机/专用测试机：
+| 组件 ID | 记错的路径 | 归位到 |
+|---|---|---|
+| `0AF818DE4685190F5347FAF54BD80C82` | `C:\appverifUI.dll` | `C:\Windows\SysWOW64\appverifUI.dll` |
+| `E0C37F311948CF28AE087B694A681271` | `C:\vfcompat.dll` | `C:\Windows\SysWOW64\vfcompat.dll` |
 
-| 场景 | 预期结果 |
-|---|---|
-| 仅 WebView2，跑 `RemoveMSEdge.bat -guard` | 立即退出，WebView2 和 Edge Update 不变 |
-| 仅机器级 Edge | 调系统级卸载器并清理 AppX |
-| 仅当前用户级 Edge | 调用户级卸载器，不因机器级缺失而跳过 |
-| 其他用户存在 Edge | 守卫进入流程，清理对应 ProfileList 残留 |
-| AppX pending removal | 进入流程，重启后查询无输出 |
-| `RemoveMSEdge.bat` 且已装 WebView2 | Edge 删除，WebView2/共享更新保留 |
-| `RemoveMSEdgeAll.bat` | Edge、WebView2、EdgeCore、EdgeUpdate、任务和服务全删 |
-| 任一脚本已有其他浏览器处理 URL 或文件类型 | 保留对应 `UserChoice`/`UserChoiceLatest` |
-| 已不存在的 Edge 处理程序、无 Hash 且无冲突的选择 | 备份后只删除 ProgId 值，不更改 ACL |
-| 带 Hash / 未知处理程序 / 权限拒绝 | 保留并报告，返回待处理或错误状态 |
-| 旧版遗留、符合已确认签名的只读关联父项 | Repair 模式备份并恢复继承，选择值不变 |
-| 依赖文件缓存哈希不匹配 | 删除缓存、重新下载并通过二次 SHA-256 校验后继续 |
+1. 在 `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Components\<组件>` 下找值等于记错路径的 `REG_SZ`，改成新路径。
+2. 文件存在就 `move /Y` 到 `SysWOW64`，不存在只提示。
 
-不要在日常开发机上为语法验证直接跑完整脚本。
+需要管理员权限；注册表里找不到对应值或写入失败都只提示、不中断。
+
+#### Codex 右键菜单（`Remove Open project in ChatGPT context menu.ps1`）
+
+ChatGPT 的 MSIX 包（`OpenAI.Codex`）为文件夹注册了 `OpenProjectInCodex` 动词。脚本不硬编码 CLSID：
+
+1. 从已安装包的 `AppxManifest.xml` 里取出所有 `Verb[@Id='OpenProjectInCodex']` 的 `Clsid`。
+2. 写进 `HKCU:\Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Blocked`——Explorer 跳过列在这里的 shell 扩展。
+3. 删除 `HKCU:\Software\Classes\{Directory,Directory\Background,Folder,Drive,*}\shell\OpenProjectInCodex` 这些旧式键。
+
+包不存在或 manifest 里没有该动词时直接报错退出，不留半套改动；支持 `-WhatIf`；默认重启 explorer，`-NoExplorerRestart` 跳过（重启会关掉所有资源管理器窗口）。
 
 #### FFmpeg 安装（InstallFFmpeg.ps1）
 
-`Scripts/InstallFFmpeg.ps1` 安装 FFmpeg 的 Windows full 构建，需要 PowerShell 7。**本脚本刻意单文件、无测试脚本**：它的逻辑是下载与复制，验证方式是真实运行，见下方清单。
+`Scripts/PowerShell/InstallFFmpeg.ps1` 安装 FFmpeg 的 Windows full 构建，需要 PowerShell 7。**本脚本刻意单文件、无测试脚本**：它的逻辑是下载与复制，验证方式是真实运行，见下方清单。
 
 `$Binaries` 是安装契约：`ffmpeg.exe`、`ffplay.exe`、`ffprobe.exe`。`$PayloadExtensions` 决定从解压结果中取出哪些文件（`.exe`、`.dll`），其余是 32 个 HTML 手册、`LICENSE.txt`，共享库构建里还有头文件和导入库。
 
@@ -956,7 +948,7 @@ ffmpeg-<分支>-latest-win64-gpl[-shared][-<版本>].zip
 ##### 验证清单
 
 ```powershell
-pwsh -NoProfile -File .\Scripts\InstallFFmpeg.ps1 -Directory $env:TEMP\ff-check
+pwsh -NoProfile -File .\Scripts\PowerShell\InstallFFmpeg.ps1 -Directory $env:TEMP\ff-check
 ```
 
 | 场景 | 预期结果 |
@@ -1143,7 +1135,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\test-port.ps1
 
 ### 3.11 ApkRename（APK 改名脚本）
 
-`Scripts/rename-apk.ps1` 是只修改 APK 应用名称的 PowerShell 脚本：基于 apktool 反编译，仅改动名称相关的清单/字符串资源，重新打包并用原 keystore 重新签名，包名、代码与其余资源保持不变，最后逐文件哈希校验。工具（apktool、apksigner、zipalign、aapt）可下载到 `Scripts/tools/`（`.\Scripts\rename-apk.ps1 -SetupTools`）。
+`Scripts/PowerShell/rename-apk.ps1` 是只修改 APK 应用名称的 PowerShell 脚本：基于 apktool 反编译，仅改动名称相关的清单/字符串资源，重新打包并用原 keystore 重新签名，包名、代码与其余资源保持不变，最后逐文件哈希校验。工具（apktool、apksigner、zipalign、aapt）可下载到 `Scripts/PowerShell/tools/`（`.\Scripts\PowerShell\rename-apk.ps1 -SetupTools`）。
 
 签名“字节”必然变化（内容变了），但只要用原 keystore，签名“身份”（同一证书）不变，可覆盖安装。维护时注意：只改名称相关资源，不得动包名与代码；签名必须用原 keystore。
 
@@ -1530,6 +1522,104 @@ Windows 端在 2026-10-30 用 VS 2026（v145）走通过一遍完整流程：`co
 - 写标签与自动播放列表：`file_info_filter::apply_filter()` + `metadb_io_v2::update_info_async()` 就能把结论写成 `%vespertine_verdict%` 之类，便于做 autoplaylist。
 - CSV 导出、Atmos / DTS 格式识别、多核并行扫描（`fb2k::splitTask`）。
 
+### 3.19 DefaultApps（Android 默认应用）
+
+`DefaultApps/` 是一个单 Activity 的 Android 应用（包名 `com.dox.defaultapps`，Java + Material 3）。写默认项需要系统权限，应用自己拿不到，于是借 Shizuku 以 shell（UID 2000）身份调用系统接口：
+
+- `PackageManager.addUniquePreferredActivity`：设置 APK、邮件、地图、音乐、视频、PDF、日历、相机等 Intent 的默认处理者。
+- `RoleManager.addRoleHolderAsUser` / `clearRoleHoldersAsUser`：设置浏览器、电话、短信、主屏幕、数字助理、笔记等系统角色。
+
+#### 模块边界
+
+- 与 `Scripts/PowerShell/rename-apk.ps1`（3.11）无关：那个只改 APK 显示名，这个改系统默认项。
+- 不打包 Shizuku、不做 root：Shizuku 未运行或未授权时只显示状态，不发请求。
+- 不实现包安装：写包仍由系统 `PackageInstaller` 完成，"安装包"一项只改变点击 APK 时接管的应用。
+
+#### 源码
+
+| 文件 | 职责 |
+|---|---|
+| `app/src/main/java/com/dox/defaultapps/MainActivity.java` | 列表 UI、Shizuku 权限申请、逐项设置/清除 |
+| `app/src/main/java/com/dox/defaultapps/DefaultsRepository.java` | 枚举默认项与系统角色，读出当前处理者与候选包 |
+| `app/src/main/java/com/dox/defaultapps/DefaultsUserService.java` | shell 侧 AIDL 实现，真正调用系统接口的地方 |
+| `app/src/main/java/com/dox/defaultapps/DefaultsItem.java` | 单项模型（标题、当前处理者、可选包） |
+| `app/src/main/aidl/com/dox/defaultapps/IDefaultsService.aidl` | 上面两层的接口契约 |
+| `app/src/main/AndroidManifest.xml` | 单 Activity 与绑定 Shizuku 的 service 声明 |
+
+#### 构建
+
+工具链不进仓库（见 1.4），`tools/build.ps1` 进仓库，负责一切环境变量：`JAVA_HOME`、`ANDROID_HOME`、`GRADLE_USER_HOME`、`ANDROID_USER_HOME` 全指向 `DefaultApps/tools/` 下，不写用户目录，所以构建不会污染系统 JDK/Gradle/SDK。
+
+```powershell
+.\DefaultApps\tools\build.ps1                                  # 默认 assembleDebug
+.\DefaultApps\tools\build.ps1 clean assembleDebug --offline      # 缓存建好后可离线
+```
+
+- 首次构建联网下载依赖。`tools/debug.keystore` 首次构建时本地生成（storepass/keypass 均为 `android`），保证本机 debug 签名稳定；不提交。
+- 产物：`app/build/outputs/apk/debug/app-debug.apk`。
+
+release 签名：JKS 放 `keystore/release.jks`，复制 `keystore.properties.example` 为 `keystore.properties`（`storeFile` 相对 `DefaultApps/` 解析，路径分隔符写 `/`），然后 `assembleRelease` → `app/build/outputs/apk/release/app-release.apk`。没有 `keystore.properties` 时产出 `app-release-unsigned.apk`，构建不失败。校验：
+
+```powershell
+.\DefaultApps\tools\sdk\build-tools\35.0.0\apksigner.bat verify --print-certs .\app\build\outputs\apk\release\app-release.apk
+```
+
+#### 维护约束
+
+1. 需要系统权限的调用只能走 `DefaultsUserService`（shell 身份），Activity 不直接调。
+2. 每加一项默认项，同时给"设置"和"清除"两条路径；只做设置会留下改不回去的状态。
+3. `clearRoleHoldersAsUser` 清的是该包全部 preferred activity，UI 上不能写成"只清这一项"。
+4. 系统角色会校验应用资格，设置失败是正常结果：必须显示原因，不静默重试。
+5. debug 与 release 签名不同，换签名装机会报 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`，安装说明保留"先卸载旧版"。
+6. 要求 Android 10+、Shizuku 13+（ADB 无线调试或 root 启动均可，Sui 也可）。
+
+#### 验证
+
+Android 10+ 设备装 Shizuku 并授权后：逐项设置 → 回系统设置确认；逐项清除 → 确认恢复"每次都问"；关掉 Shizuku 再操作，确认应用只报错不崩。`assembleRelease` 后 `apksigner verify --print-certs` 确认证书。
+
+### 3.20 Windhawk 模组
+
+`Windhawk/` 下两个自用模组，各自单文件 `.wh.cpp`，由 Windhawk 在应用内编译并注入，仓库不做构建。`Windhawk/windhawk-mods/` 是上游子模块，不归本仓库维护。
+
+| 模组 | 文件 | `@include` |
+|---|---|---|
+| CJK 空格 | `Windhawk/CJKSpacer/CJKSpacer.wh.cpp` | `explorer.exe` |
+| Sciter 文本替换 | `Windhawk/TextReplaceForSciter/TextReplaceForSciter.wh.cpp` | `*`（进程内发现 Sciter 运行时才动作） |
+
+共同约束：头部 `@id`、`@version`、`@license`、`@include`、`@architecture`、`@compilerOptions` 是 Windhawk 的元数据。改 `@id` 等于另起一个新模组；改代码必须递增 `@version`，否则已安装实例不会更新。
+
+#### CJK 空格（`CJKSpacer`）
+
+给 Explorer 菜单和 Tooltip 里中日韩字符与拉丁字符的边界补空格（`打开(C)` → `打开 (C)`）。范围限于 `explorer.exe`，不改其他进程的文本。
+
+- 只处理 CJK 与拉丁/数字/符号的交界，CJK 与 CJK 之间不动。
+- 生效依赖模组注入：改完重启 Explorer，或在 Windhawk 里重载。
+- 用例 `Windhawk/CJKSpacer/tests/CJKSpacer.tests.cpp` 用 `#define WH_MOD`、`#define WH_EDITING` 后直接 include 模组源码，`wmain` 里跑断言，可在 Windows 上用 MSVC 单独编译运行，不需要 Windhawk。`Before.png` / `After.png` 是效果截图，不被代码引用。
+
+#### Sciter 文本替换（`TextReplaceForSciter`）
+
+把 Sciter 界面里的指定文本替换掉（典型用途：英文串改中文）。通过进程内 `SciterAPI` 导出发现 Sciter 运行时，支持 Sciter 4（JS，API 9/10），遍历 Sciter DOM 文本节点替换。
+
+不覆盖：图片与 `canvas` 里的文字、表单 `value`/`placeholder`/`title`、脚本和可编辑元素、静态链接 Sciter 或非窗口集成的程序。
+
+`@include *` 意味着注入所有进程，只有发现 Sciter 运行时才动手；改匹配逻辑时注意别在无 Sciter 的进程里做无谓遍历。
+
+### 3.21 Windows（注册表脚本与快捷方式）
+
+`Windows/` 只放双击即用的东西，没有代码：
+
+- `Windows/Registrys/*.reg`：Windows 11 界面调整的单文件注册表脚本。同一主题成对存在（添加/移除、开启/关闭），导入一次、反向导入即可撤销。
+- `Windows/Shortcuts/*.lnk`：系统文件夹快捷方式（当前用户与所有用户的开始菜单、启动、任务栏、程序文件夹等），用来把隐藏目录放进资源管理器可见位置。
+
+维护约束：
+
+1. `.reg` 成对维护：新增"添加"就补对应"移除"，文件名沿用同一主题的措辞。
+2. `.reg` 保持 `Windows Registry Editor Version 5.00` 头部与 UTF-16 LE 编码；存成 ANSI/UTF-8 会让中文键名和值乱码。
+3. `.lnk` 是二进制：只能在资源管理器里创建后提交，文本 diff 审不出内容，改动路径要整个重新生成。
+4. 双击 `.reg` 不提示、不备份，直接写入注册表；后果写进文件名或用户文档，别指望脚本兜底。
+
+---
+
 ## 4. 开发环境与构建命令速查
 
 | 模块 | 需要的环境 | 主要命令 |
@@ -1546,11 +1636,10 @@ Windows 端在 2026-10-30 用 VS 2026（v145）走通过一遍完整流程：`co
 | Sub-Store（Cloudflare Workers） | Node.js 24+；Cloudflare 账号与 API Token | `cd sub-store; npm ci; npm run check`；`cd sub-store-front-end; npm ci; npm run build` |
 | bwh-traffic | Node.js 24+；Cloudflare 账号；非 Cloudflare 中转 | `node --test bwh-traffic/worker.test.js`；`cd bwh-traffic; npx wrangler deploy` |
 | Userscript | Tampermonkey / Greasemonkey | 浏览器安装脚本 |
-| Stash | Stash 运行环境 | 直接导入脚本 |
 | CSS | 可加载自定义 CSS 的浏览器/工具 | 直接引用 `CSS/*.css` |
-| Scripts（Edge 清理） | Windows（x86/AMD64） | `RemoveMSEdge.bat [-guard\|-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` / `RemoveMSEdgeAll.bat [-userchoice\|-audit-associations\|-repair-associations\|-auto\|-help]` |
-| Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\InstallFFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
-| ApkRename（APK 改名脚本） | PowerShell，apktool/Java 等工具 | `.\Scripts\rename-apk.ps1 [-SetupTools]` |
+| Scripts（批处理） | Windows | 双击或把目标拖到脚本上，无构建步骤 |
+| Scripts（FFmpeg 安装） | PowerShell 7 | `.\Scripts\PowerShell\InstallFFmpeg.ps1 [-Directory 路径] [-Shared] [-Git] [-Silent]` |
+| ApkRename（APK 改名脚本） | PowerShell，apktool/Java 等工具 | `.\Scripts\PowerShell\rename-apk.ps1 [-SetupTools]` |
 | Scripts（磁盘图标） | PowerShell 5.1+ | `.\Scripts\PowerShell\Fix-DriveIcon.ps1 [-Drive P] [-Repair] [-SetIcon 图标] [-RebuildCache] [-Help]` |
 
 ---
