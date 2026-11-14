@@ -206,11 +206,12 @@ export function upstreamPlugin({ expected = EXPECTED } = {}) {
                 let code = read(args.path);
 
                 // 非 Node 分支会把所有未匹配路径 302 到官方站点；Worker 入口自己路由，未知路径应当 404。
+                // 不依赖注释文案，只认 $app.get('/') 的 302 响应体。
                 code = replaceOnce(
                     code,
-                    /\/\/ Redirect sub\.store to vercel webpage[\s\S]*?\.end\(\);\s*\}\);/,
+                    /(?:\/\/[^\n]*\r?\n\s*)?\$app\.get\('\/', async \(req, res\) => \{[\s\S]*?res\.set\('location',[\s\S]*?\.status\(302\)[\s\S]*?\.end\(\);\s*\}\);/,
                     '// patched: 路由由 Workers 入口处理，未匹配路径返回 404。',
-                    'miscs.js vercel redirect',
+                    'miscs.js root redirect',
                 );
                 code = replaceOnce(
                     code,

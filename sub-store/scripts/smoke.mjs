@@ -445,6 +445,9 @@ function load(source) {
     };
 
     vm.createContext(sandbox, { codeGeneration: { strings: false, wasm: true } });
+    // 上游依赖的 lodash 用 self/global 探测 root，两者都缺时会退回 Function("return this")；
+    // Workers 本来就提供 self，这里复刻同样的前置条件。
+    vm.runInContext('globalThis.self = globalThis;', sandbox);
     vm.runInContext(source, sandbox, { filename: 'smoke.cjs' });
 
     return sandbox.module.exports;
