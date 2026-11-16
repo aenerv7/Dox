@@ -185,17 +185,12 @@ export function upstreamPlugin({ expected = EXPECTED } = {}) {
             build.onLoad({ filter: /[\\/]restful[\\/]token\.js$/ }, (args) => {
                 let code = read(args.path);
 
-                code = replaceOnce(
-                    code,
-                    'eval(`require("ms")`)',
-                    'globalThis.__substore_ms__',
-                    'token.js ms',
-                );
-                code = replaceOnce(
-                    code,
+                // 2.44.15 起上游改用静态 import，Node 分支里的 eval require 正在逐个消失。
+                // 存在才替换：上游清掉动态 require 是好事，不该让构建失败。
+                code = code.replace('eval(`require("ms")`)', 'globalThis.__substore_ms__');
+                code = code.replace(
                     'eval(`require("nanoid")`)',
                     'globalThis.__substore_nanoid__',
-                    'token.js nanoid',
                 );
 
                 bump('restful/token.js');
