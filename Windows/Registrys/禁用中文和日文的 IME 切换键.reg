@@ -1,0 +1,26 @@
+Windows Registry Editor Version 5.00
+
+; Disable the IME / non-IME toggle hotkey (HKID 0x10, Chinese) and
+; HKID 0x70 (Japanese) for the current user and for the default profile.
+; Virtual Key ff = no key assigned; Key Modifiers 00c0 = none.
+; Import elevated, then sign out / sign in.
+
+[HKEY_CURRENT_USER\Control Panel\Input Method\Hot Keys\00000010]
+"Virtual Key"=hex:ff,00,00,00
+"Key Modifiers"=hex:00,c0,00,00
+"Target IME"=hex:00,00,00,00
+
+[HKEY_CURRENT_USER\Control Panel\Input Method\Hot Keys\00000070]
+"Virtual Key"=hex:ff,00,00,00
+"Key Modifiers"=hex:00,c0,00,00
+"Target IME"=hex:00,00,00,00
+
+[HKEY_USERS\.DEFAULT\Control Panel\Input Method\Hot Keys\00000010]
+"Virtual Key"=hex:ff,00,00,00
+"Key Modifiers"=hex:00,c0,00,00
+"Target IME"=hex:00,00,00,00
+
+[HKEY_USERS\.DEFAULT\Control Panel\Input Method\Hot Keys\00000070]
+"Virtual Key"=hex:ff,00,00,00
+"Key Modifiers"=hex:00,c0,00,00
+"Target IME"=hex:00,00,00,00
