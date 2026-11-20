@@ -39,6 +39,8 @@ HWND g_detail = nullptr;
 HWND g_spectrum = nullptr;
 bool g_detailVisible = false;
 int g_selectedRow = -1;
+//! 报告窗口出现之前的前台窗口，关窗时把前台还回去。
+HWND g_previousForeground = nullptr;
 
 fb2k::CCoreDarkModeHooks* g_dark = nullptr;
 HBRUSH g_darkBrush = nullptr;
@@ -138,6 +140,28 @@ void registerSpectrumClass() {
     wc.lpszClassName = kSpectrumClass;
     RegisterClassExW(&wc);
     registered = true;
+}
+
+//! 能接受前台焦点的窗口：隐藏或最小化的窗口不算。
+bool canTakeForeground(HWND window) {
+    if (window == nullptr || !IsWindow(window)) return false;
+    if (!IsWindowVisible(window)) return false;
+    return !IsIconic(window);
+}
+
+//! 销毁自己之前先把前台显式交还出去。
+//! 系统是在活动窗口销毁之后才挑下一个前台窗口的：所有者不可用、或者挑到 Z 序里别的程序，
+//! 表现就是 foobar2000 退到了后台。趁本进程还在前台（这时 SetForegroundWindow 才被允许，
+//! 销毁之后再去调只能闪一下任务栏）先激活目标窗口，系统就没有可挑的余地了。
+//! 优先还给所有者（fb2k 主窗口，长期存在）；它不可用时才用记下的前台窗口，
+//! 因为那个句柄可能已经被销毁并被系统回收给别的窗口。
+void handOffActivation(HWND window) {
+    if (GetForegroundWindow() != window) return; // 用户已经自己切走，不去抢焦点
+
+    HWND target = GetWindow(window, GW_OWNER);
+    if (!canTakeForeground(target)) target = g_previousForeground;
+    if (!canTakeForeground(target)) return;
+    SetForegroundWindow(target);
 }
 
 //! 编辑控件要求 CRLF；而报告文本用的是 LF。
@@ -367,6 +391,7 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
         return 0;
 
     case WM_CLOSE:
+        handOffActivation(window);
         DestroyWindow(window);
         return 0;
 
@@ -377,6 +402,7 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
         g_spectrum = nullptr;
         g_detailVisible = false;
         g_selectedRow = -1;
+        g_previousForeground = nullptr;
         return 0;
 
     default:
@@ -425,6 +451,10 @@ RECT centeredRect(int width, int height) {
 } // namespace
 
 void showReportWindow() {
+    // 记住进来之前的前台窗口，关窗时还给它（见 handOffActivation）。
+    const HWND foreground = GetForegroundWindow();
+    if (foreground != nullptr && foreground != g_window) g_previousForeground = foreground;
+
     if (g_window == nullptr) {
         registerWindowClass();
         registerSpectrumClass();

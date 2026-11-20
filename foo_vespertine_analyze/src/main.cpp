@@ -125,7 +125,7 @@ public:
 
 static initquit_factory_t<vespertine_lifetime> g_lifetime;
 
-DECLARE_COMPONENT_VERSION("Vespertine fake Hi-Res checker", "0.3.3",
+DECLARE_COMPONENT_VERSION("Vespertine fake Hi-Res checker", "0.3.4",
                           "Looks for Hi-Res files that are not really Hi-Res.\n"
                           "A port of the analysis code from Vespertine by szeremeta1.\n"
                           "\n"

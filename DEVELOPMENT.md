@@ -1447,7 +1447,7 @@ foobar2000 组件，检查文件是否名不副实：容器写着 24-bit / 96 kH
 | `src/app.h` | 39 | `TrackClaim`、UTF-8/UTF-16 转换、`kMaxSeconds`/`kMaxSampleRate` |
 | `src/claim.cpp` | 41 | 从 `file_info` 读声称的编码/位深/采样率/声道 |
 | `src/scan.h` / `scan.cpp` | 18 / 165 | 后台扫描 `threaded_process_callback`、解码循环 |
-| `src/report_window.h` / `.cpp` | 17 / 480 | Win32 报告窗口（ListView + 只读 EDIT + 频谱图）、暗色模式 |
+| `src/report_window.h` / `.cpp` | 17 / 508 | Win32 报告窗口（ListView + 只读 EDIT + 频谱图）、暗色模式 |
 | `src/spectrum_view.h` / `.cpp` | 33 / 160 | 长期频谱图绘制（纯 GDI，可在独立探针里渲染） |
 | `src/main.cpp` | 139 | 右键菜单、主菜单、`initquit` 清理、组件版本声明 |
 | `foo_vespertine_analyze.vcxproj` | 277 | 6 个配置：Debug/Release × Win32/x64/ARM64EC |
@@ -1487,7 +1487,7 @@ Windows 端在 2026-10-30 用 VS 2026（v145）走通过一遍完整流程：`co
 
 **之后的分工：开发只负责编译和打包，实测由维护者在自己的 foobar2000 上做**（有问题截图反馈）。不要再自行部署 foobar2000 去验证。
 
-真机检查清单（交给维护者）：选中混合批次（真 Hi-Res、16-bit 零填充、MP3 转的 24/96、上采样）检查三列文本、单选与底部详情、取消扫描、单文件解码失败的表现、亮色主题配色。
+真机检查清单（交给维护者）：选中混合批次（真 Hi-Res、16-bit 零填充、MP3 转的 24/96、上采样）检查三列文本、单选与底部详情、取消扫描、单文件解码失败的表现、亮色主题配色；关掉报告窗口后 foobar2000 主窗口应留在前台（不要另开别的窗口挡在它前面）。
 
 #### 临时环境与测试
 
@@ -1512,6 +1512,7 @@ Windows 端在 2026-10-30 用 VS 2026（v145）走通过一遍完整流程：`co
 - 字体取 `NONCLIENTMETRICS.lfMessageFont`：`GetStockObject(DEFAULT_GUI_FONT)` 是非 ClearType 的老式位图字体，和 foobar2000 其余界面明显不一致。
 - 报告窗口的外观约定：**列标题与正文同字体族同字号，只加粗**（`headerFont()` / `uiFont()`）；**没有选中行时详情框和频谱图隐藏**，列表铺满客户区（`updateDetail(-1)` 负责切换并重排）；正文编辑框用 `WS_EX_STATICEDGE`，和暗色钩子替换出来的列表控件同一种细边框。
 - **标题栏靠 `WS_EX_DLGMODALFRAME` 去掉图标**：只有带这个扩展样式的窗口，Windows 才不画标题栏图标（普通窗口和普通对话框都会画 `IDI_APPLICATION`）。窗口样式去掉 `WS_MINIMIZEBOX`/`WS_MAXIMIZEBOX`，只留关闭按钮，和 foobar2000 的 Preferences 一致；打开位置在 `centeredRect()` 里按主窗口所在显示器的工作区居中，不要用 `CW_USEDEFAULT`（会贴左上角）。
+- **关窗前要显式交还前台**：`WM_CLOSE` 里先 `handOffActivation()` 再 `DestroyWindow()`。系统是等活动窗口销毁之后才挑下一个前台窗口，所有者不可用或挑到 Z 序里别的程序时，表现就是 foobar2000 退到了后台；趁本进程还在前台（此时 `SetForegroundWindow` 才被允许，销毁之后再去调只能闪任务栏）先激活所有者（fb2k 主窗口），不可用时退回 `g_previousForeground`（`showReportWindow()` 打开窗口前记下的前台窗口，句柄可能已被销毁并回收给别的窗口，所以放第二顺位）。用户自己切走时不抢焦点；组件卸载走 `destroyReportWindow()`，不经过 `WM_CLOSE`，也就不会在退出时抢焦点。
 - **长期频谱图**：数据来自 `FileAnalysis::spectrum`——256 个点，20 Hz 到 Nyquist 按对数等距，单位 dBFS；绘制在 `spectrum_view.cpp`，只依赖 GDI 和核心类型，所以能用独立探针单独渲染预览。纵轴固定 `kSpectrumMinDB = -120`，横轴画 100 Hz / 1 kHz / 10 kHz 网格与 Nyquist 标签，有 `forensics->cliffHz` 时补一条虚线。<br>这个文件与 `report_window.cpp` 的分工：前者只管画图，后者的子窗口只负责取当前行并配色。
 - 不提供原生 ARM64 配置：SDK 只有 `shared-ARM64EC.lib`，且 `component_client`、`SDK` 两个工程本身也只有 ARM64EC 配置，硬加 ARM64 会在链接阶段失败。
 - `shared/fb2kdebug.h:44` 的 `uBugCheck` 是 `PFC_NORETURN`，所以 `switch` 不必写 `default` 也不会触发 C4715（工程把 4715 当成错误）。
