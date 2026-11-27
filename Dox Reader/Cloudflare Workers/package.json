@@ -28,7 +28,7 @@
     "happy-dom": "^20.14.5",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
-    "vitest": "^4.1.10",
+    "vitest": "^4.1.12",
     "wrangler": "^4.147.0"
   },
   "overrides": {
