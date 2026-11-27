@@ -1,0 +1,481 @@
+import type {Resource} from "../shared/types";
+import {
+  HEADER_EXPIRATION_MS,
+  HEADER_SNAPSHOT_LIMIT,
+  RESOURCE_LIMIT,
+} from "./constants";
+
+export type HeaderSnapshot = {
+  url: string;
+  headers: Record<string, string>;
+  capturedAt: number;
+  tabId: number | null;
+  supportsRange: boolean;
+  size: number;
+};
+
+// Gated CDNs use custom auth headers (x-nd-auth, ...) that no allowlist can enumerate, so only drop ones that break the desktop's own requests.
+const HEADER_BLOCKLIST = new Set([
+  "range",
+  "if-range",
+  "if-match",
+  "if-none-match",
+  "if-modified-since",
+  "if-unmodified-since",
+  "content-length",
+  "content-type",
+  "accept-encoding",
+  "host",
+  "connection",
+  "keep-alive",
+  "transfer-encoding",
+  "te",
+  "trailer",
+  "upgrade",
+  "expect",
+  "proxy-authorization",
+  "proxy-connection",
+  "alt-used",
+  "purpose",
+  "sec-purpose",
+]);
+
+export type ResourceCacheSnapshot = {
+  resources: Record<string, Resource[]>;
+  headers: HeaderSnapshot[];
+};
+
+export function selectAllowedHeaders(headers: Record<string, string> | undefined): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers ?? {})) {
+    const name = key.trim().toLowerCase();
+    if (!name || HEADER_BLOCKLIST.has(name)) {
+      continue;
+    }
+    const text = value.trim();
+    if (!text) {
+      continue;
+    }
+    result[name] = text;
+  }
+  return result;
+}
+
+function buildCookieHeader(base: string | undefined, override: string | undefined): string {
+  if (!base) {
+    return override ?? "";
+  }
+  if (!override) {
+    return base;
+  }
+  const cookies = new Map<string, string>();
+  for (const source of [base, override]) {
+    for (const part of source.split(";")) {
+      const pair = part.trim();
+      const eqIndex = pair.indexOf("=");
+      if (eqIndex <= 0) {
+        continue;
+      }
+      cookies.set(pair.slice(0, eqIndex).trim(), pair.slice(eqIndex + 1).trim());
+    }
+  }
+  return Array.from(cookies, ([name, value]) => `${name}=${value}`).join("; ");
+}
+
+function buildHeaders(
+  base: Record<string, string> | undefined,
+  override: Record<string, string> | undefined,
+): Record<string, string> {
+  const headers: Record<string, string> = { ...(base ?? {}), ...(override ?? {}) };
+  const cookie = buildCookieHeader(base?.cookie, override?.cookie);
+  if (cookie) {
+    headers.cookie = cookie;
+  }
+  return headers;
+}
+
+export function urlWithoutHash(value: string, allowBlob = false): string {
+  if (!value) {
+    return "";
+  }
+  if (allowBlob && value.startsWith("blob:")) {
+    return value;
+  }
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return value.split("#", 1)[0] ?? value;
+  }
+}
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
+}
+
+function sortResources(resources: Iterable<Resource>): Resource[] {
+  return [...resources].sort((left, right) => right.capturedAt - left.capturedAt);
+}
+
+function resourceFromStorage(resource: Resource): Resource {
+  return {...resource, requestHeaders: selectAllowedHeaders(resource.requestHeaders)};
+}
+
+function headerSnapshotFromStorage(snapshot: HeaderSnapshot): HeaderSnapshot {
+  return {...snapshot, headers: selectAllowedHeaders(snapshot.headers)};
+}
+
+// Pure in-memory cache for captured resources + request-header snapshots. No chrome deps,
+// so it unit-tests cleanly. The bridge owns persistence (toSnapshot/load) and wires
+// `onChange` to a debounced save. Header snapshots outlive tab close and navigation (bounded
+// by TTL and capacity) because download popups and WAF redirects close or navigate the tab
+// before the download handoff reads the captured headers.
+export class ResourceCache {
+  private resourcesByTab = new Map<number, Map<string, Resource>>();
+  private resourcesById = new Map<string, Resource>();
+  private headerSnapshotsByUrl = new Map<string, HeaderSnapshot>();
+  private awaiters = new Map<string, Set<(resource: Resource) => void>>();
+  private readonly onChange: () => void;
+
+  constructor(onChange: () => void) {
+    this.onChange = onChange;
+  }
+
+  add(resource: Resource): void {
+    let resourceMap = this.resourcesByTab.get(resource.tabId);
+    if (!resourceMap) {
+      resourceMap = new Map<string, Resource>();
+      this.resourcesByTab.set(resource.tabId, resourceMap);
+    }
+    const existing = resourceMap.get(resource.id);
+    const merged: Resource = existing
+      ? {
+          ...existing,
+          ...resource,
+          pageTitle: resource.pageTitle || existing.pageTitle,
+          pageUrl: resource.pageUrl || existing.pageUrl,
+          filename: resource.filename || existing.filename,
+          // SourceBuffer mime (see enrichResource) outranks the container mime of later range requests.
+          mime: existing.mime.includes("codecs") ? existing.mime : resource.mime || existing.mime,
+          size: resource.size > 0 ? resource.size : existing.size,
+          supportsRange: resource.supportsRange || existing.supportsRange,
+          referer: resource.referer || existing.referer,
+          // Fresh cookies/auth/sec-* override stale ones (per-key, like every field above).
+          requestHeaders: buildHeaders(existing.requestHeaders, resource.requestHeaders),
+          capturedAt: Math.max(existing.capturedAt, resource.capturedAt),
+          sentToDesktopAt: existing.sentToDesktopAt ?? resource.sentToDesktopAt,
+        }
+      : resource;
+
+    resourceMap.set(merged.id, merged);
+    this.resourcesById.set(merged.id, merged);
+
+    const awaiterSet = this.awaiters.get(merged.id);
+    if (awaiterSet && awaiterSet.size > 0) {
+      this.awaiters.delete(merged.id);
+      for (const resolver of awaiterSet) {
+        try {
+          resolver(merged);
+        } catch {
+          // Awaiter callback failed — swallow so a bad consumer can't break capture.
+        }
+      }
+    }
+
+    // A late webRequest event can carry real size/headers for a row an earlier click
+    // synthesised. Propagate the enrichment to every row sharing this URL.
+    const mergedUrl = urlWithoutHash(merged.url, true);
+    if (mergedUrl && (merged.size > 0 || merged.mime || merged.supportsRange)) {
+      for (const related of this.resourcesById.values()) {
+        if (related.id === merged.id || !related.id.endsWith(`:${mergedUrl}`)) {
+          continue;
+        }
+        related.size = merged.size > 0 ? merged.size : related.size;
+        related.mime = merged.mime || related.mime;
+        related.filename = related.filename && related.filename !== "resource" ? related.filename : merged.filename;
+        related.supportsRange = merged.supportsRange || related.supportsRange;
+      }
+    }
+
+    this.removeOverflow(resource.tabId);
+    this.onChange();
+  }
+
+  resourceById(id: string): Resource | undefined {
+    return this.resourcesById.get(id);
+  }
+
+  resourceByUrl(url: string, tabId?: number): Resource | null {
+    const resourceIdSuffix = `:${urlWithoutHash(url, true)}`;
+    let matched: Resource | null = null;
+    const resources = tabId == null
+      ? this.resourcesById.values()
+      : (this.resourcesByTab.get(tabId)?.values() ?? []);
+    for (const resource of resources) {
+      if (!resource.id.endsWith(resourceIdSuffix)) {
+        continue;
+      }
+      if (matched == null || resource.capturedAt > matched.capturedAt) {
+        matched = resource;
+      }
+    }
+    return matched;
+  }
+
+  resourcesForTab(tabId: number): Resource[] {
+    return sortResources(this.resourcesByTab.get(tabId)?.values() ?? []);
+  }
+
+  otherResources(activeTabId: number | null): Resource[] {
+    const result: Resource[] = [];
+    for (const [tabId, resourceMap] of this.resourcesByTab.entries()) {
+      if (activeTabId != null && tabId === activeTabId) {
+        continue;
+      }
+      result.push(...resourceMap.values());
+    }
+    return sortResources(result);
+  }
+
+  // CDNs often serve DASH audio as video/mp4; only the page's SourceBuffer mime (with codecs) tells tracks apart.
+  enrichResource(tracks: Array<{ url: string; mime: string }>, meta: {
+    duration?: number;
+    videoWidth?: number;
+    videoHeight?: number;
+    posterUrl?: string;
+  }): void {
+    let changed = false;
+    for (const track of tracks) {
+      const normalizedUrl = urlWithoutHash(track.url, true);
+      const trackMime = track.mime.toLowerCase();
+      const isAudio = trackMime.startsWith("audio/");
+      for (const resource of this.resourcesById.values()) {
+        if (!resource.id.endsWith(`:${normalizedUrl}`)) { continue; }
+        if (trackMime.includes("codecs")) { resource.mime = trackMime; }
+        if (meta.duration != null && meta.duration > 0) { resource.duration = meta.duration; }
+        if (!isAudio && meta.videoWidth != null && meta.videoWidth > 0) { resource.videoWidth = meta.videoWidth; }
+        if (!isAudio && meta.videoHeight != null && meta.videoHeight > 0) { resource.videoHeight = meta.videoHeight; }
+        if (meta.posterUrl) { resource.posterUrl = meta.posterUrl; }
+        changed = true;
+      }
+    }
+    if (changed) { this.onChange(); }
+  }
+
+  enrichTabPoster(tabId: number, posterUrl: string): void {
+    const resourceMap = this.resourcesByTab.get(tabId);
+    if (!resourceMap || !posterUrl) { return; }
+    let changed = false;
+    for (const resource of resourceMap.values()) {
+      if (!resource.posterUrl) {
+        resource.posterUrl = posterUrl;
+        changed = true;
+      }
+    }
+    if (changed) { this.onChange(); }
+  }
+
+  setSent(id: string): void {
+    const resource = this.resourcesById.get(id);
+    if (!resource) {
+      return;
+    }
+    resource.sentToDesktopAt = Date.now();
+    this.onChange();
+  }
+
+  clearTab(tabId: number): void {
+    const resourceMap = this.resourcesByTab.get(tabId);
+    if (!resourceMap) {
+      return;
+    }
+    for (const resourceId of resourceMap.keys()) {
+      this.resourcesById.delete(resourceId);
+    }
+    this.resourcesByTab.delete(tabId);
+    this.onChange();
+  }
+
+  headerSnapshotByUrl(url: string): HeaderSnapshot | null {
+    this.removeStaleHeaders();
+    return this.headerSnapshotsByUrl.get(url)
+      ?? this.headerSnapshotsByUrl.get(urlWithoutHash(url)) ?? null;
+  }
+
+  setHeaderSnapshot(
+    url: string,
+    headers: Record<string, string>,
+    tabId: number | null,
+    supportsRange: boolean,
+    size = 0,
+  ): void {
+    const existing = this.headerSnapshotsByUrl.get(url);
+    const mergedHeaders = buildHeaders(existing?.headers, headers);
+    const mergedSupportsRange = supportsRange || Boolean(existing?.supportsRange);
+    const mergedSize = (size > 0 ? size : 0) || existing?.size || 0;
+    if (Object.keys(mergedHeaders).length === 0 && !mergedSupportsRange && !mergedSize) {
+      return;
+    }
+    this.headerSnapshotsByUrl.set(url, {
+      url,
+      headers: mergedHeaders,
+      capturedAt: Date.now(),
+      tabId: tabId ?? existing?.tabId ?? null,
+      supportsRange: mergedSupportsRange,
+      size: mergedSize,
+    });
+    this.removeStaleHeaders();
+    this.onChange();
+  }
+
+  // Direct URL snapshot wins for non-cookie headers; cookies merge with the freshest
+  // same-host snapshot in chronological order so auth/WAF cookies set on a sibling URL
+  // or challenge response propagate even when the direct URL had stale pre-auth cookies.
+  headersForUrl(url: string, fallbackReferer = ""): Record<string, string> {
+    const direct = this.headerSnapshotByUrl(url);
+    let freshest: HeaderSnapshot | null = null;
+    const host = hostOf(url);
+    if (host !== null) {
+      for (const candidate of this.headerSnapshotsByUrl.values()) {
+        if (candidate.headers.cookie && hostOf(candidate.url) === host && (!freshest || candidate.capturedAt > freshest.capturedAt)) {
+          freshest = candidate;
+        }
+      }
+    }
+    const headers: Record<string, string> = { ...(direct?.headers ?? freshest?.headers ?? {}) };
+    const cookie = buildCookieHeader(direct?.headers.cookie, freshest?.headers.cookie);
+    if (cookie) {
+      headers.cookie = cookie;
+    }
+    if (fallbackReferer && !direct?.headers.referer) {
+      headers.referer = fallbackReferer;
+    }
+    return headers;
+  }
+
+  // Lets resourceForMediaUrl wait when a click races ahead of webRequest (SW restart).
+  waitForResource(id: string, timeoutMs: number): Promise<Resource | null> {
+    return new Promise((resolve) => {
+      let set = this.awaiters.get(id);
+      if (!set) {
+        set = new Set();
+        this.awaiters.set(id, set);
+      }
+      let settled = false;
+      const finish = (value: Resource | null) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        set?.delete(resolver);
+        if (set && set.size === 0) {
+          this.awaiters.delete(id);
+        }
+        clearTimeout(timer);
+        resolve(value);
+      };
+      const resolver = (resource: Resource) => finish(resource);
+      set.add(resolver);
+      const timer = setTimeout(() => finish(null), timeoutMs);
+    });
+  }
+
+  toSnapshot(): ResourceCacheSnapshot {
+    this.removeStaleHeaders();
+    const resources: Record<string, Resource[]> = {};
+    for (const [tabId, resourceMap] of this.resourcesByTab.entries()) {
+      resources[String(tabId)] = sortResources(resourceMap.values()).slice(0, RESOURCE_LIMIT);
+    }
+    return {
+      resources,
+      headers: [...this.headerSnapshotsByUrl.values()],
+    };
+  }
+
+  load(snapshot: ResourceCacheSnapshot): void {
+    // Event handlers (onSendHeaders, onResponseStarted) may have written to the
+    // cache between service-worker start and this load call. Preserve those
+    // in-flight entries — they are always fresher than stored data.
+    const inFlightResources = new Map(this.resourcesById);
+    const inFlightHeaders = new Map(this.headerSnapshotsByUrl);
+
+    this.resourcesByTab.clear();
+    this.resourcesById.clear();
+    for (const [tabIdText, resources] of Object.entries(snapshot.resources ?? {})) {
+      const tabId = Number(tabIdText);
+      if (!Number.isInteger(tabId) || tabId <= 0 || !Array.isArray(resources)) {
+        continue;
+      }
+      const resourceMap = new Map<string, Resource>();
+      for (const resource of sortResources(resources.map(resourceFromStorage)).slice(0, RESOURCE_LIMIT)) {
+        resourceMap.set(resource.id, resource);
+        this.resourcesById.set(resource.id, resource);
+      }
+      this.resourcesByTab.set(tabId, resourceMap);
+    }
+
+    for (const [id, inFlight] of inFlightResources) {
+      const stored = this.resourcesById.get(id);
+      if (!stored || inFlight.capturedAt > stored.capturedAt) {
+        let tabMap = this.resourcesByTab.get(inFlight.tabId);
+        if (!tabMap) {
+          tabMap = new Map<string, Resource>();
+          this.resourcesByTab.set(inFlight.tabId, tabMap);
+        }
+        tabMap.set(id, inFlight);
+        this.resourcesById.set(id, inFlight);
+      }
+    }
+
+    this.headerSnapshotsByUrl.clear();
+    for (const snapshotHeader of snapshot.headers ?? []) {
+      const normalized = headerSnapshotFromStorage(snapshotHeader);
+      if (!normalized.url) {
+        continue;
+      }
+      this.headerSnapshotsByUrl.set(normalized.url, normalized);
+    }
+
+    for (const [url, inFlight] of inFlightHeaders) {
+      const stored = this.headerSnapshotsByUrl.get(url);
+      if (!stored || inFlight.capturedAt > stored.capturedAt) {
+        this.headerSnapshotsByUrl.set(url, inFlight);
+      }
+    }
+
+    this.removeStaleHeaders();
+  }
+
+  private removeOverflow(tabId: number): void {
+    const resourceMap = this.resourcesByTab.get(tabId);
+    if (!resourceMap || resourceMap.size <= RESOURCE_LIMIT) {
+      return;
+    }
+    const keepIds = new Set(sortResources(resourceMap.values()).slice(0, RESOURCE_LIMIT).map((resource) => resource.id));
+    for (const resourceId of resourceMap.keys()) {
+      if (keepIds.has(resourceId)) {
+        continue;
+      }
+      resourceMap.delete(resourceId);
+      this.resourcesById.delete(resourceId);
+    }
+  }
+
+  private removeStaleHeaders(): void {
+    const now = Date.now();
+    const snapshots = [...this.headerSnapshotsByUrl.values()]
+      .filter((snapshot) => snapshot.url && now - snapshot.capturedAt <= HEADER_EXPIRATION_MS)
+      .sort((left, right) => right.capturedAt - left.capturedAt)
+      .slice(0, HEADER_SNAPSHOT_LIMIT);
+
+    this.headerSnapshotsByUrl.clear();
+    for (const snapshot of snapshots) {
+      this.headerSnapshotsByUrl.set(snapshot.url, snapshot);
+    }
+  }
+}

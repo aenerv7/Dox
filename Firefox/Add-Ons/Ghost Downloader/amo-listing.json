@@ -1,0 +1,30 @@
+{
+  "default_locale": "zh-CN",
+  "name": { "zh-CN": "Ghost Downloader 浏览器扩展（Dox 修改版）", "en-US": "Ghost Downloader Browser Extension (Dox Edition)" },
+  "slug": "ghost-downloader-dox",
+  "summary": {
+    "zh-CN": "将下载交给本机 Ghost Downloader；可逐次确认发送媒体至第三方在线 FFmpeg。非官方 GPLv3 分支。",
+    "en-US": "Unofficial GPLv3 fork: hand off downloads to Ghost Downloader and optionally send media to online FFmpeg."
+  },
+  "description": {
+    "zh-CN": "扩展会把任务交给本机桌面端，也支持可选的第三方在线 FFmpeg。网页或录制工具可以提出处理请求，但每次都要你在扩展内确认；拒绝、关闭或不确认就不发送。允许后，来源网址、标题、文件名和实际音视频内容可能交给 https://ffmpeg.bmmmd.com/。扩展不在隐私窗口运行。\n\n这是 Dox 独立维护的非官方 GPLv3 分支，不由 Ghost Downloader 上游发布或背书。请另行安装 Ghost Downloader 桌面端，避免同时启用两个接管相同下载的扩展。\n\n已在 Windows 桌面版 Firefox 实测：\n• 打开面板时直接显示已保存的主题，不再先闪过 Firefox 默认背景。\n• 打开面板或切换任务、资源、图片页签时，空状态图标和文字不再跳动。\n• 开启接管时，可识别的附件和二进制下载在 Firefox 保存对话框出现前交给扩展；关闭接管仍由 Firefox 处理。无法提前识别的下载沿用后备流程。\n\n下载任务可能将 Cookie、Authorization 等登录凭据交给本机桌面端；手动发送资源时还可能附带媒体解密密钥。预览或下载可能访问原始网站或 CDN。",
+    "en-US": "Send tasks to the desktop app on this computer. An optional online FFmpeg feature can send media to https://ffmpeg.bmmmd.com/. A webpage or recording tool can request processing, but each transfer requires your approval in the extension. Refusing, dismissing or ignoring the request sends nothing to the online tool. After approval, the site can receive the source URL, title, filenames and actual audio/video. The extension does not run in private windows.\n\nAn unofficial GPLv3 fork independently maintained by Dox, not published or endorsed by the upstream project. Install the Ghost Downloader desktop app separately. Avoid enabling two download interceptors at once.\n\nVerified in Firefox for Windows: the panel uses the saved theme from the first paint; empty-state icons and text stay in place when opening or switching between Tasks, Resources and Images; eligible attachment and binary downloads can be handed off before Firefox opens its save dialog. Turning interception off restores normal Firefox handling. Other downloads retain the fallback path.\n\nTask headers sent to the paired local desktop app may include cookies and authorization credentials; sending a resource may also include media decryption keys. Previews and downloads may contact original hosts or CDNs."
+  },
+  "homepage": { "zh-CN": "https://github.com/aenerv7/Dox/tree/main/Firefox/Add-Ons/Ghost%20Downloader" },
+  "support_url": { "zh-CN": "https://github.com/aenerv7/Dox/issues" },
+  "privacy_policy": {
+    "zh-CN": "第三方在线 FFmpeg 默认不发送：有访问权限的网页或录制工具可提出处理请求。只有你在扩展界面明确允许该笔请求后，https://ffmpeg.bmmmd.com/ 才会收到相关来源网址、标题、文件名、资源地址或实际媒体内容。拒绝、关闭或不确认就不发送。该第三方网页可读取交付的内容；本扩展无法保证它不会另行传输或保留。\n\n扩展识别网址、资源及请求头；下载接管或手动发送会将网址、来源页、文件名和可能含 Cookie、Authorization 等登录凭据的请求头交给配对的本机桌面端。发送资源可附带同标签页收集的媒体解密密钥。配对令牌和偏好存于本地；资源快照、请求头与离线队列可存于会话存储，部分状态可回退到本地存储。原始网站或 CDN 可收到预览/下载请求。本扩展禁止在隐私窗口运行，不含开发者遥测。禁用扩展可停止其活动；卸载不删除接收方已有副本。完整声明：https://github.com/aenerv7/Dox/blob/main/Firefox/Add-Ons/Ghost%20Downloader/PRIVACY.md",
+    "en-US": "Online FFmpeg is optional and does not send by default. A webpage or recording tool can request processing. Only if you approve that specific transfer in the extension can https://ffmpeg.bmmmd.com/ receive the source URL, title, filenames, media addresses or actual media. Refusing, dismissing or ignoring the prompt sends nothing to the online tool. The third-party page can read the material; the extension cannot guarantee it will not transmit or retain it.\n\nThe add-on detects page and resource URLs and request headers. Interception or manual handoff may send URLs, referrers, filenames and headers containing cookies and authorization credentials to the paired desktop app on this computer. Sending a resource can include media decryption keys captured for the same tab. Settings and the pairing token are stored locally. Resource snapshots, headers and queued tasks can be stored for the session; some state can fall back to local storage. Previews and downloads may contact original hosts or CDNs. Private-window operation is disabled. No developer telemetry. Disable the extension to stop its activity; uninstalling does not erase recipients’ copies. Full policy: https://github.com/aenerv7/Dox/blob/main/Firefox/Add-Ons/Ghost%20Downloader/PRIVACY.md"
+  },
+  "categories": { "firefox": ["download-management"] },
+  "requires_payment": false,
+  "version": {
+    "compatibility": ["firefox"],
+    "approval_notes": "Independent GPLv3 fork for desktop Firefox only. Three fixes: use the saved popup theme from first paint, keep empty states in place across tabs, and hand off eligible downloads before the native save dialog appears. The extension cannot run in private windows. Webpages and recording tools may request online FFmpeg processing, but each transfer to https://ffmpeg.bmmmd.com/ requires separate approval in the extension; dismissal or refusal sends nothing to that site. See BUILD.md in the source archive for tool versions and steps to reproduce the submitted build.",
+    "license": "GPL-3.0-only",
+    "release_notes": {
+      "zh-CN": "Dox 非官方分支首版：修复面板背景闪烁、三个页签的空状态跳动，以及部分下载接管时仍弹出 Firefox 保存对话框的问题。",
+      "en-US": "First Dox fork release: fixes panel theme flashing, shifting empty states, and native save dialogs on eligible intercepted downloads."
+    }
+  }
+}

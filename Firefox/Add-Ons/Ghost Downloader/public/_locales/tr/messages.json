@@ -1,0 +1,17 @@
+{
+  "ffmpegConsentTitle": {
+    "message": "Medya bu üçüncü taraf hizmetine gönderilsin mi?"
+  },
+  "ffmpegConsentData": {
+    "message": "Hizmet aşağıda gösterilen medyayı, kaynak sayfanın adresini, başlığı ve işleme ayrıntılarını alacak."
+  },
+  "ffmpegConsentAllow": {
+    "message": "Bir kez gönder"
+  },
+  "extensionDescription": {
+    "message": "Dox tarafından geliştirilen bu resmî olmayan eklentiyle Ghost Downloader görevlerini yönetin ve tarayıcıdaki kaynakları masaüstü uygulamasına gönderin."
+  },
+  "extensionName": {
+    "message": "Ghost Downloader tarayıcı eklentisi (Dox sürümü)"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "ffmpegConsentTitle": {
+    "message": "Medien an diesen Drittanbieter senden?"
+  },
+  "ffmpegConsentData": {
+    "message": "Der Dienst erhält die unten aufgeführten Medien, die URL der Quellseite, den Titel und die Verarbeitungsdetails."
+  },
+  "ffmpegConsentAllow": {
+    "message": "Einmal senden"
+  },
+  "extensionDescription": {
+    "message": "Inoffizielle Erweiterung von Dox zum Verwalten von Aufgaben und Senden von Browserressourcen an Ghost Downloader."
+  },
+  "extensionName": {
+    "message": "Ghost Downloader für den Browser (Dox-Edition)"
+  }
+}

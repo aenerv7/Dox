@@ -1,0 +1,141 @@
+Dox: Ghost Downloader for Firefox — source and license notices
+
+This is an independent, modified Firefox extension maintained in aenerv7/Dox.
+It is not an official release of Ghost Downloader or Cat Catch and is not
+endorsed by either project. The original copyright notices remain applicable.
+Fork source: https://github.com/aenerv7/Dox/tree/main/Firefox/Add-Ons/Ghost%20Downloader
+
+Ghost Downloader 3: https://github.com/XiaoYouChR/Ghost-Downloader-3
+Upstream revision: cc55b9a4cd96c29ca6393782107bb7f041a123b1 (extension 2.3.4).
+License of this fork: GPL-3.0-only. See LICENSE for the full text.
+Modified by aenerv7 on 2026-11-27. The extension is separately identified and
+built for Firefox. The Firefox fixes incorporated from aenerv7's source branch
+fix/firefox-popup-layout-and-downloads (c962609a8dced7e0e8ce09e9bb3b2bc096c68d76):
+  1. Restore the popup theme before the first paint to prevent background flashes.
+  2. Hand off recognized downloads before Firefox opens its native save dialog.
+  3. Keep empty-state icons and text in place when opening or switching tabs.
+For this distribution, private windows are excluded and each transfer to the
+third-party online FFmpeg tool requires confirmation in an extension page.
+
+Cat Catch: https://github.com/xifangczy/cat-catch
+Vendored revision: 97f6005bf06230338001d4b0458a959b722cb384.
+The bundled capture scripts originate from that revision. Dox changed
+catch-script/catch.js and catch-script/recorder.js to pass media as Firefox
+Blobs, and js/content-script.js to deliver approved media only to the named
+top-level recipient. Their GPL version 3 license is included as
+licenses/cat-catch/LICENSE in the distribution.
+
+npm packages retain their own licenses. The build uses package-lock.json and
+copies the installed runtime packages' license and notice files under
+licenses/npm/. See licenses/npm/index.json for the exact versions and paths.
+Some npm tarballs omit their upstream license or notice files. The following
+texts are reproduced from the specified upstream versions for offline builds.
+
+--- @fluentui/react-icons@2.0.344/LICENSE ---
+Source: https://raw.githubusercontent.com/microsoft/fluentui-system-icons/f1260014e8a4fcfa6777182fd6cf082fc5e952d8/LICENSE
+
+MIT License
+
+Copyright (c) 2020 Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+--- @fluentui/react-icons@2.0.344/NOTICE ---
+Source: https://raw.githubusercontent.com/microsoft/fluentui-system-icons/f1260014e8a4fcfa6777182fd6cf082fc5e952d8/NOTICE
+
+This project uses third party material from the projects listed below. The original copyright notice and the license under which Microsoft received such Third Party OSS, are set forth below. Such licenses and notices are provided for informational purposes only. Microsoft licenses the Third Party OSS to you under the licensing terms for the Microsoft product or service. Microsoft reserves all other rights not expressly granted under this agreement, whether by implication, estoppel or otherwise.
+
+------------
+
+replace
+
+Copyright (c) 2020 Alessandro Maclaine
+
+Provided for Informational Purposes Only
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the Software), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+------------
+
+avocado
+
+Copyright (c) 2020 Alex Lockwood
+
+Provided for Informational Purposes Only
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the Software), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+------------
+
+yargs
+
+Copyright (c) 2020 yargs
+
+Provided for Informational Purposes Only
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the Software), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+------------
+
+--- embla-carousel{,-autoplay,-fade}@8.6.0/LICENSE ---
+Source: https://raw.githubusercontent.com/davidjerleke/embla-carousel/v8.6.0/LICENSE
+
+MIT License
+
+Copyright (c) David Jerleke.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+--- End of upstream texts ---

@@ -1,0 +1,879 @@
+{
+  "ffmpegConsentTitle": {
+    "message": "Send media to this third-party service?"
+  },
+  "ffmpegConsentData": {
+    "message": "The service will receive the media shown below, the source page URL, title and processing details."
+  },
+  "ffmpegConsentAllow": {
+    "message": "Send once"
+  },
+  "about": {
+    "message": "About"
+  },
+  "advancedFeatures": {
+    "message": "Advanced Features"
+  },
+  "advancedFeaturesHint": {
+    "message": "Enable as needed; some features require page injection or special permissions"
+  },
+  "audio": {
+    "message": "Audio",
+    "description": "Badge label for audio resources"
+  },
+  "audioTrack": {
+    "message": "Audio Track"
+  },
+  "authenticating": {
+    "message": "Verifying"
+  },
+  "autoPair": {
+    "message": "Auto Pair"
+  },
+  "autoSelectPort": {
+    "message": "Auto Select Port"
+  },
+  "awaitingPairing": {
+    "message": "Pairing"
+  },
+  "browserDownload": {
+    "message": "Browser Download"
+  },
+  "bypassShortcutKey": {
+    "message": "Bypass Shortcut"
+  },
+  "bypassShortcutKeyHint": {
+    "message": "Hold this key while clicking a download link to skip interception and download via browser"
+  },
+  "pressShortcutKey": {
+    "message": "Press shortcut key..."
+  },
+  "cacheCapture": {
+    "message": "Cache Capture"
+  },
+  "cacheCaptureDescription": {
+    "message": "Capture resources from the browser cache"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "clearSelection": {
+    "message": "Clear Selection",
+    "description": "Clears multi-select, not a task cancellation"
+  },
+  "completed": {
+    "message": "Completed"
+  },
+  "fileMissing": {
+    "message": "File missing"
+  },
+  "confirmPairing": {
+    "message": "Confirm Pairing"
+  },
+  "connected": {
+    "message": "Connected"
+  },
+  "connecting": {
+    "message": "Connecting"
+  },
+  "connectionClosed": {
+    "message": "Connection Closed"
+  },
+  "connectionConfig": {
+    "message": "Connection Config"
+  },
+  "darkTheme": {
+    "message": "Dark"
+  },
+  "dashSegmentsCount": {
+    "message": "$1 DASH segments $2",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "5"
+      },
+      "2": {
+        "content": "$2",
+        "example": "▾"
+      }
+    }
+  },
+  "deepSearch": {
+    "message": "Deep Search"
+  },
+  "deepSearchDescription": {
+    "message": "Deeply analyze page requested resources"
+  },
+  "desktopVersionInfo": {
+    "message": "Desktop $1",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "4.0.1"
+      }
+    }
+  },
+  "disconnected": {
+    "message": "Disconnected"
+  },
+  "downloadThisMedia": {
+    "message": "Download this media"
+  },
+  "mediaButtonLabel": {
+    "message": "Media button"
+  },
+  "downloadWithGhostDownloader": {
+    "message": "Download with Ghost Downloader"
+  },
+  "saveAsWithGhostDownloader": {
+    "message": "Save As with Ghost Downloader"
+  },
+  "downloading": {
+    "message": "Downloading"
+  },
+  "emptyCurrentResourcesDescription": {
+    "message": "After playing a video or audio, captured resources will automatically appear here."
+  },
+  "emptyCurrentResourcesTitle": {
+    "message": "No resources on the current page yet"
+  },
+  "emptyImagesDescription": {
+    "message": "Try switching to a page with images, or adjust the filter criteria."
+  },
+  "emptyImagesTitle": {
+    "message": "No images found on the current page"
+  },
+  "emptyOtherResourcesDescription": {
+    "message": "After switching to other tabs and capturing resources, they will automatically appear here."
+  },
+  "emptyOtherResourcesTitle": {
+    "message": "No resources from other pages yet"
+  },
+  "emptyTasksDescription": {
+    "message": "After the browser takes over download or resources are sent from the sniffer page, tasks will appear here."
+  },
+  "emptyTasksTitle": {
+    "message": "No tasks yet"
+  },
+  "errorAutoPairingFailed": {
+    "message": "Auto pairing failed"
+  },
+  "errorBackgroundNotReady": {
+    "message": "Background service not ready"
+  },
+  "errorBrowserNoDownloadId": {
+    "message": "Browser did not return a download task"
+  },
+  "errorCannotLocateMedia": {
+    "message": "Cannot locate media"
+  },
+  "errorConnectionFailed": {
+    "message": "Connection failed"
+  },
+  "errorExtensionNotReady": {
+    "message": "Extension not ready"
+  },
+  "errorFeatureToggleFailed": {
+    "message": "Feature toggle failed"
+  },
+  "errorFullscreenFailed": {
+    "message": "Fullscreen failed"
+  },
+  "errorInvalidDownloadRequest": {
+    "message": "Invalid download request"
+  },
+  "errorInvalidMergeRequest": {
+    "message": "Invalid merge request"
+  },
+  "errorInvalidPairToken": {
+    "message": "Pairing token is invalid"
+  },
+  "errorMediaActionFailed": {
+    "message": "Media action failed"
+  },
+  "errorMediaSourceUnrecognized": {
+    "message": "Unrecognized media source"
+  },
+  "errorMergeFailed": {
+    "message": "Online merge failed"
+  },
+  "errorMergeRequiresTwoResources": {
+    "message": "Online merge only supports selecting 2 resources at the moment"
+  },
+  "errorMultipleMediaFound": {
+    "message": "Multiple media resources found, please select in the resource sniffer page"
+  },
+  "errorNoActiveTab": {
+    "message": "No operable tab"
+  },
+  "errorNoControllableMedia": {
+    "message": "No controllable media"
+  },
+  "errorNoMediaDetected": {
+    "message": "No media detected"
+  },
+  "errorNoTokenReturned": {
+    "message": "No token returned"
+  },
+  "errorOnlineMergeFailed": {
+    "message": "Online merge failed"
+  },
+  "errorPairingDisconnected": {
+    "message": "Pairing disconnected"
+  },
+  "errorPairingRejected": {
+    "message": "Pairing rejected"
+  },
+  "errorPairingTimeout": {
+    "message": "Pairing timeout"
+  },
+  "errorPipFailed": {
+    "message": "Picture-in-picture failed"
+  },
+  "errorReadMediaStateFailed": {
+    "message": "Failed to read media state"
+  },
+  "errorReconnectFailed": {
+    "message": "Reconnect failed"
+  },
+  "errorResourceNotFound": {
+    "message": "Resource not found"
+  },
+  "errorResourcesNotMergeable": {
+    "message": "The selected resources do not meet the online merge conditions"
+  },
+  "errorResponseTimeout": {
+    "message": "Response timeout"
+  },
+  "errorSavePairingTokenFailed": {
+    "message": "Failed to save pairing token"
+  },
+  "errorSaveServerUrlFailed": {
+    "message": "Failed to save server address"
+  },
+  "errorSendFailed": {
+    "message": "Send failed"
+  },
+  "errorSendImagesFailed": {
+    "message": "Failed to send images"
+  },
+  "errorSendResourceFailed": {
+    "message": "Failed to send resource"
+  },
+  "errorStrategyException": {
+    "message": "Strategy exception: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "TypeError: ..."
+      }
+    }
+  },
+  "errorSwitchMediaFailed": {
+    "message": "Switch media failed"
+  },
+  "errorTargetTabNotFound": {
+    "message": "Target tab not found"
+  },
+  "errorTaskActionFailed": {
+    "message": "Task action failed"
+  },
+  "errorUnknownCommand": {
+    "message": "Unknown command: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "popup_foo"
+      }
+    }
+  },
+  "errorUnknownDownloadType": {
+    "message": "Unknown download request type"
+  },
+  "errorUpdateMediaButtonFailed": {
+    "message": "Failed to update download button"
+  },
+  "errorUpdateTakeDownloadsFailed": {
+    "message": "Failed to update take-over downloads"
+  },
+  "extensionDescription": {
+    "message": "Unofficial Dox extension for managing Ghost Downloader tasks and sending browser resources to the desktop app."
+  },
+  "extensionName": {
+    "message": "Ghost Downloader Browser Extension (Dox Edition)"
+  },
+  "extensionVersionInfo": {
+    "message": "Extension version $1",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "2.0.1"
+      }
+    }
+  },
+  "failed": {
+    "message": "Failed"
+  },
+  "featureBackgroundDisabled": {
+    "message": "Feature background state is off; panels in pages can be closed within the web page itself"
+  },
+  "featureDisabled": {
+    "message": "Feature disabled"
+  },
+  "featureEnabled": {
+    "message": "Feature enabled"
+  },
+  "featureEnabledAfterReload": {
+    "message": "Feature enabled; takes effect after page reload"
+  },
+  "featureStateUpdated": {
+    "message": "Feature state updated"
+  },
+  "featureToggles": {
+    "message": "Feature Toggles"
+  },
+  "filterAll": {
+    "message": "All"
+  },
+  "filterAudio": {
+    "message": "Audio"
+  },
+  "filterHeightLabel": {
+    "message": "H",
+    "description": "Short label for minimum height filter"
+  },
+  "filterVideo": {
+    "message": "Video"
+  },
+  "filterWidthLabel": {
+    "message": "W",
+    "description": "Short label for minimum width filter"
+  },
+  "followSystem": {
+    "message": "Follow system"
+  },
+  "fullscreen": {
+    "message": "Fullscreen"
+  },
+  "general": {
+    "message": "General"
+  },
+  "hlsSegmentsCount": {
+    "message": "$1 HLS segments $2",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "12"
+      },
+      "2": {
+        "content": "$2",
+        "example": "▾"
+      }
+    }
+  },
+  "imagesProcessed": {
+    "message": "$1 images processed",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "imagesSent": {
+    "message": "Images sent"
+  },
+  "installMethodInfo": {
+    "message": "Install method $1",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "商店安装"
+      }
+    }
+  },
+  "installTypeDevelopment": {
+    "message": "Self-managed desktop"
+  },
+  "installTypeSideload": {
+    "message": "Sideload install"
+  },
+  "installTypeStore": {
+    "message": "Store install"
+  },
+  "installTypeUnknown": {
+    "message": "Unknown"
+  },
+  "interceptUnknownSize": {
+    "message": "Intercept when size unknown"
+  },
+  "skipExtensions": {
+    "message": "Skip extensions"
+  },
+  "skipExtensionsHint": {
+    "message": "File extensions to skip, separated by commas"
+  },
+  "catImages": {
+    "message": "Images"
+  },
+  "catDocuments": {
+    "message": "Documents"
+  },
+  "catAudio": {
+    "message": "Audio"
+  },
+  "invertSelection": {
+    "message": "Invert Selection"
+  },
+  "itemCount": {
+    "message": "$1 items",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "8"
+      }
+    }
+  },
+  "launchDesktop": {
+    "message": "Launch Desktop"
+  },
+  "lightTheme": {
+    "message": "Light"
+  },
+  "localServerAddress": {
+    "message": "Local Server Address"
+  },
+  "loop": {
+    "message": "Loop"
+  },
+  "mediaBridgeNotReady": {
+    "message": "Media bridge on this page is not ready"
+  },
+  "mediaConnected": {
+    "message": "Current media connected"
+  },
+  "mediaControl": {
+    "message": "Media Control"
+  },
+  "mediaReleased": {
+    "message": "Media released"
+  },
+  "merge": {
+    "message": "Merge"
+  },
+  "mergeTaskSentToDesktop": {
+    "message": "Online merge task sent to Ghost Downloader"
+  },
+  "minInterceptSize": {
+    "message": "Minimum Intercept Size"
+  },
+  "minInterceptSizeHint": {
+    "message": "Files below this size will be downloaded directly by the browser; 0 means intercept all"
+  },
+  "mobileUserAgent": {
+    "message": "Mobile User-Agent"
+  },
+  "mobileUserAgentDescription": {
+    "message": "Simulate mobile device access to the page"
+  },
+  "mobileUserAgentDisabled": {
+    "message": "Mobile User-Agent disabled"
+  },
+  "mobileUserAgentEnabled": {
+    "message": "Mobile User-Agent enabled, will take effect after refresh"
+  },
+  "mute": {
+    "message": "Mute"
+  },
+  "navAdvanced": {
+    "message": "Advanced"
+  },
+  "navImages": {
+    "message": "Images"
+  },
+  "navResources": {
+    "message": "Resources"
+  },
+  "navTasks": {
+    "message": "Tasks"
+  },
+  "noActiveTabForMedia": {
+    "message": "No operable tab"
+  },
+  "noControllableMedia": {
+    "message": "No controllable media"
+  },
+  "noControllableMediaDetected": {
+    "message": "No controllable media detected"
+  },
+  "noMediaDetected": {
+    "message": "No media detected"
+  },
+  "noMediaStateResponse": {
+    "message": "Page returned no media state"
+  },
+  "notConnected": {
+    "message": "Not connected"
+  },
+  "openFile": {
+    "message": "Open File"
+  },
+  "openFolder": {
+    "message": "Open Folder"
+  },
+  "openWhenDone": {
+    "message": "Open when done"
+  },
+  "pageNoControllableMedia": {
+    "message": "No controllable media detected on current page"
+  },
+  "pairing": {
+    "message": "Pairing"
+  },
+  "pairingRequestSentConfirmOnDesktop": {
+    "message": "Pairing request sent, please confirm on desktop"
+  },
+  "pairingToken": {
+    "message": "Pairing Token"
+  },
+  "pairingTokenPlaceholder": {
+    "message": "Enter pairing token"
+  },
+  "pairingTokenSaved": {
+    "message": "Pairing token saved"
+  },
+  "pasteToken": {
+    "message": "Paste Token"
+  },
+  "pause": {
+    "message": "Pause"
+  },
+  "paused": {
+    "message": "Paused"
+  },
+  "pendingPairing": {
+    "message": "Pairing"
+  },
+  "pendingQueueBadge": {
+    "message": "$1 · $2 queued",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "已连接"
+      },
+      "2": {
+        "content": "$2",
+        "example": "3"
+      }
+    }
+  },
+  "pictureInPicture": {
+    "message": "Picture-in-Picture"
+  },
+  "play": {
+    "message": "Play"
+  },
+  "reconnect": {
+    "message": "Reconnect"
+  },
+  "recordWebRTC": {
+    "message": "Record WebRTC"
+  },
+  "recordWebRTCDescription": {
+    "message": "Record WebRTC real-time communication content"
+  },
+  "redownload": {
+    "message": "Redownload"
+  },
+  "removeTask": {
+    "message": "Remove from List"
+  },
+  "reloadRequired": {
+    "message": "Reload required"
+  },
+  "rescan": {
+    "message": "Rescan"
+  },
+  "resolving": {
+    "message": "Resolving"
+  },
+  "resource": {
+    "message": "Resource",
+    "description": "Fallback badge label when type is unknown"
+  },
+  "resourceBridgeUnavailableDescription": {
+    "message": "The current tab cannot provide the resource list at the moment."
+  },
+  "resourceBridgeUnavailableTitle": {
+    "message": "Current tab does not support resource bridge"
+  },
+  "resourceProcessed": {
+    "message": "Resource processed successfully"
+  },
+  "resourceSentToBrowser": {
+    "message": "Resource sent to browser for downloading"
+  },
+  "resourceSentToDesktop": {
+    "message": "Resource sent to Ghost Downloader"
+  },
+  "restoringCapturedResources": {
+    "message": "Restoring captured resources"
+  },
+  "restoringCatCatchResources": {
+    "message": "Restoring cat-catch captured resources"
+  },
+  "restoringResourcesDescription": {
+    "message": "Restoring captured resources."
+  },
+  "restoringResourcesTitle": {
+    "message": "Restoring current page resources"
+  },
+  "resume": {
+    "message": "Resume"
+  },
+  "scanning": {
+    "message": "Scanning…"
+  },
+  "scopeCurrentPage": {
+    "message": "Current Page"
+  },
+  "scopeOtherPages": {
+    "message": "Other Pages"
+  },
+  "screenCapture": {
+    "message": "Screen Capture"
+  },
+  "screenCaptureDescription": {
+    "message": "Capture screen, window, or tab"
+  },
+  "screenshot": {
+    "message": "Screenshot"
+  },
+  "selectAll": {
+    "message": "Select All"
+  },
+  "selectMedia": {
+    "message": "Select Media"
+  },
+  "selectMediaPlaceholder": {
+    "message": "Select media"
+  },
+  "selectResourceLabel": {
+    "message": "Select $1",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "video.mp4"
+      }
+    }
+  },
+  "sendCount": {
+    "message": "Send ($1)",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "sendCurrentMediaToGhostDownloader": {
+    "message": "Send current media to Ghost Downloader"
+  },
+  "sendToDesktop": {
+    "message": "Send to Ghost Downloader"
+  },
+  "sending": {
+    "message": "Sending"
+  },
+  "sent": {
+    "message": "Sent"
+  },
+  "sentToBrowserDownload": {
+    "message": "Sent to browser download"
+  },
+  "sentToDesktop": {
+    "message": "Sent to Ghost Downloader"
+  },
+  "serverUrlSaved": {
+    "message": "Address saved"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "sortByArea": {
+    "message": "Area"
+  },
+  "sortByHeight": {
+    "message": "Height"
+  },
+  "sortByWidth": {
+    "message": "Width"
+  },
+  "tabNotSupportResourceBridge": {
+    "message": "Current tab does not support cat-catch resource bridge"
+  },
+  "takeOverDownloads": {
+    "message": "Take over"
+  },
+  "taskQueued": {
+    "message": "Desktop not connected, task queued"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "tokenInvalid": {
+    "message": "Token invalid"
+  },
+  "unmute": {
+    "message": "Unmute"
+  },
+  "video": {
+    "message": "Video",
+    "description": "Badge label for video resources"
+  },
+  "videoRecording": {
+    "message": "Video Recording"
+  },
+  "videoRecordingDescription": {
+    "message": "Record video content in web pages"
+  },
+  "videoTrack": {
+    "message": "Video Track"
+  },
+  "waitedTimeout": {
+    "message": "$1 (waited $2s)",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "等待音视频分轨齐全"
+      },
+      "2": {
+        "content": "$2",
+        "example": "8"
+      }
+    }
+  },
+  "waiting": {
+    "message": "Waiting"
+  },
+  "waitingForInstagramSeparateTracks": {
+    "message": "Waiting for Instagram audio/video separate tracks"
+  },
+  "waitingForResource": {
+    "message": "Waiting for resource…"
+  },
+  "waitingForResourceCapture": {
+    "message": "Waiting for cat-catch resource capture"
+  },
+  "waitingForSeparateTracks": {
+    "message": "Waiting for separate audio/video tracks"
+  },
+  "waitingForVideoResource": {
+    "message": "Waiting for current video resource to be sniffed"
+  },
+  "waitingForXMasterPlaylist": {
+    "message": "Waiting for X master playlist"
+  },
+  "skipDomains": {
+    "message": "Skip domains"
+  },
+  "skipDomainsHint": {
+    "message": "Downloads from these sites will not be intercepted"
+  },
+  "addCurrentSite": {
+    "message": "Add current site"
+  },
+  "openPopupOnSent": {
+    "message": "Open popup when task sent"
+  },
+  "filterPdf": {
+    "message": "PDF"
+  },
+  "filterImage": {
+    "message": "Images"
+  },
+  "filterArchive": {
+    "message": "Archives"
+  },
+  "filterDocument": {
+    "message": "Documents"
+  },
+  "filterSpreadsheet": {
+    "message": "Spreadsheets"
+  },
+  "filterOther": {
+    "message": "Other"
+  },
+  "moreKinds": {
+    "message": "More kinds"
+  },
+  "sortByTime": {
+    "message": "Time"
+  },
+  "sortBySize": {
+    "message": "Size"
+  },
+  "sortByName": {
+    "message": "Name"
+  },
+  "searchResourcesPlaceholder": {
+    "message": "Search name or link"
+  },
+  "noMatchingResourcesTitle": {
+    "message": "No matching resources"
+  },
+  "noMatchingResourcesDescription": {
+    "message": "Try another keyword, or clear the filters."
+  },
+  "clearFilters": {
+    "message": "Clear filters"
+  },
+  "sortByStatus": {
+    "message": "Status"
+  },
+  "sortAscending": {
+    "message": "Ascending"
+  },
+  "sortDescending": {
+    "message": "Descending"
+  },
+  "searchTasksPlaceholder": {
+    "message": "Search task name"
+  },
+  "noMatchingTasksTitle": {
+    "message": "No matching tasks"
+  },
+  "noMatchingTasksDescription": {
+    "message": "Try another keyword."
+  },
+  "moreOptions": {
+    "message": "More options"
+  },
+  "removeCompletedTasks": {
+    "message": "Remove completed tasks"
+  },
+  "removeMissingTasks": {
+    "message": "Remove missing tasks"
+  },
+  "errorRemoveTasksFailed": {
+    "message": "Failed to remove $1 tasks",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "mediaButtonStyle": {
+    "message": "Media button style"
+  },
+  "mediaButtonStyleStandard": {
+    "message": "Standard"
+  },
+  "mediaButtonStyleCompact": {
+    "message": "Compact"
+  },
+  "mediaButtonStyleHint": {
+    "message": "Compact style shows only the icon"
+  }
+}

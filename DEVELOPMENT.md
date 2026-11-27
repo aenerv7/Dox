@@ -32,6 +32,7 @@
    - 3.19 [DefaultApps（Android 默认应用）](#319-defaultappsandroid-默认应用)
    - 3.20 [Windhawk 模组](#320-windhawk-模组)
    - 3.21 [Windows（注册表脚本与快捷方式）](#321-windows注册表脚本与快捷方式)
+   - 3.22 [Ghost Downloader](#322-ghost-downloader)
 4. [开发环境与构建命令速查](#4-开发环境与构建命令速查)
 5. [提交前检查](#5-提交前检查)
 
@@ -70,6 +71,7 @@ Dox 是一个个人自用的 Windows/macOS 工具、浏览器扩展、用户脚�
 | `foo_vespertine_analyze/` | 活跃 | foobar2000 组件：频谱与位深取证，判假 Hi-Res（分析核心移植自 macOS 应用 Vespertine） |
 | `Dox Reader/Cloudflare Workers/` | 活跃 | 本地 IndexedDB + WebDAV 同步的 Web RSS 阅读器，无状态 Cloudflare Worker 代理 |
 | `Firefox/Add-Ons/Dox Reader/` | 活跃 | Dox Reader 的 Firefox WebExtension（Manifest V3，AMO listed，扩展 ID `dox-reader@magi`）源码、发布脚本与签名产物 |
+| `Firefox/Add-Ons/Ghost Downloader/` | 活跃 | Firefox 下载接管和任务面板，维护说明见 [3.22](#322-ghost-downloader) |
 | `Firefox/Add-Ons/AutoSortBookmarks/` | 活跃 | Manifest V3 书签自动整理扩展 |
 | `Firefox/`（根目录） | 活跃 | Firefox 用户层偏好配置，以及 Firefox / Zen 共用的默认应用重复项清理 |
 | `Thunderbird/` | 活跃 | 从 Firefox 偏好设置筛选并适配的 Thunderbird 用户层 user.js |
@@ -1634,6 +1636,34 @@ Android 10+ 设备装 Shizuku 并授权后：逐项设置 → 回系统设置确
 2. `.reg` 保持 `Windows Registry Editor Version 5.00` 头部与 UTF-16 LE 编码；存成 ANSI/UTF-8 会让中文键名和值乱码。
 3. `.lnk` 是二进制：只能在资源管理器里创建后提交，文本 diff 审不出内容，改动路径要整个重新生成。
 4. 双击 `.reg` 不提示、不备份，直接写入注册表；后果写进文件名或用户文档，别指望脚本兜底。
+
+---
+
+### 3.22 Ghost Downloader
+
+[模块根目录](./Firefox/Add-Ons/Ghost%20Downloader)是独立 npm 项目，以该目录的 `package.json` 和锁文件为准；不要在 Dox 根目录运行 npm。用户安装和配对见[根 README](./README.md#ghost-downloader-浏览器扩展dox-修改版)，本节只记录来源、构建和发布维护。
+
+源码来自 [Ghost-Downloader-3 的浏览器扩展](https://github.com/XiaoYouChR/Ghost-Downloader-3/tree/cc55b9a4/browser_extension/app)，本仓库维护 Firefox 版本，不包含上游桌面端。[来源补丁](https://github.com/XiaoYouChR/Ghost-Downloader-3/pull/1235)未合并；同步上游时须保留并复测三项行为：
+
+- 面板首次绘制就使用已保存主题；用与系统相反的主题关闭、重开面板，不应闪回默认色。
+- “任务”“资源”“图片”共用的空状态随页面内容排列；切换空页签时，图标和文字不应上下跳动。
+- 在 Firefox 的原生保存对话框出现前识别附件下载，只在桌面端接受任务或离线入队成功后取消原请求；关闭接管时，原生下载仍可用。
+
+从仓库根目录执行：
+
+```powershell
+cd 'Firefox/Add-Ons/Ghost Downloader'
+npm ci
+npm test
+npm run typecheck
+npm run build
+```
+
+`dist/` 是可临时载入的 Firefox 构建。在模块根运行 `pwsh -File ./release.ps1`，本地打包到 `web-ext-artifacts/`；脚本不提交至 AMO。密钥、本机环境文件及发布产物不得入库。打包成功不等于已签名或已上架。
+
+首次公开提交使用模块内的 `node scripts/amo.mjs`：先执行 `check` 核实账号和独立 ID，再执行 `upload listed`，用返回的 UUID 执行 `status UUID`。仅在校验完成且有效后执行 `create UUID`；它同时附上源码、图标和隐私政策。若条目已创建但附件未齐，用 `finalize` 续传，不要重新创建。`verify` 仅查询审核状态。此客户端仅用于本分支 1.0.0 首发，不会给上游扩展或 Dox Reader 升级。
+
+除三项修复和两项发布适配外，尽量保留上游行为。同步上游后，确认 manifest 仍禁止隐私窗口运行，且向外部 FFmpeg 每次发送前均须在扩展内确认；取消或关闭确认界面不得发送，上一次同意也不能代替下一次。桌面版最低 Firefox 140，以支持内置的数据收集声明。数据流向变更须同步核对 manifest 与[隐私声明](./Firefox/Add-Ons/Ghost%20Downloader/PRIVACY.md)。
 
 ---
 

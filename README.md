@@ -17,6 +17,7 @@
 | [`DefaultApps`](./DefaultApps) | Android 默认应用管理器，经 Shizuku 以 shell 身份设置默认处理者与系统角色 |
 | [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%20Workers) | 本地 RSS/Atom 阅读器，使用 WebDAV 同步，可部署到 Cloudflare Workers |
 | [`Firefox/Add-Ons/Dox Reader`](./Firefox/Add-Ons/Dox%20Reader) | Dox Reader 的 Firefox 扩展（Manifest V3，桌面版与 Android 版） |
+| [Ghost Downloader 浏览器扩展（Dox 修改版）](#ghost-downloader-浏览器扩展dox-修改版) | 将 Firefox 下载交给本机 Ghost Downloader 桌面端，在工具栏查看任务和页面资源 |
 | [`Firefox/Add-Ons/AutoSortBookmarks`](./Firefox/Add-Ons/AutoSortBookmarks) | Firefox 书签自动整理扩展 |
 | [`Firefox/fix_duplicate.py`](./Firefox/fix_duplicate.py) | 清理让「设置 > 默认应用」重复显示 Firefox 或 Zen 的注册表项 |
 | [`Firefox/user.js`](./Firefox/user.js) | Firefox 用户层偏好配置（字体、侧栏、表单与隐私选项；不修改应用包） |
@@ -470,6 +471,16 @@ python .\Firefox\fix_duplicate.py fix
 `Firefox/fix_duplicate.py` 不写文件，只删除注册表项；删除前可用 `detect` 查看将删除的内容，HKCU 部分可用 `reg export` 自行备份。
 
 ## Firefox 扩展
+
+### Ghost Downloader 浏览器扩展（Dox 修改版）
+
+[此扩展](./Firefox/Add-Ons/Ghost%20Downloader)是 Dox 公开维护的独立分支，非 Ghost Downloader 官方发行版，适用于桌面版 Firefox 140 及以上版本，不包含下载器本体。
+
+扩展不在隐私窗口中运行。在普通窗口中，它识别下载并把任务交给配对的桌面端；需要登录的资源可能连同 Cookie、Authorization 等请求头一起转交。预览和下载会访问资源网站。如果选择外部 FFmpeg 处理，扩展每次发送前都会单独请求确认；取消则不发送。数据和接收方详见[隐私声明](./Firefox/Add-Ons/Ghost%20Downloader/PRIVACY.md)。
+
+1. 按[开发文档](./DEVELOPMENT.md#322-ghost-downloader)构建后，打开 `about:debugging#/runtime/this-firefox`，点击“临时载入附加组件”，选择模块内的 `dist/manifest.json`（不是 `public/manifest.json`）。临时扩展会在 Firefox 重启后卸载。
+2. 启动桌面端，打开扩展面板，按提示完成配对，确认面板显示“已连接”。
+3. 开启“接管下载”后，附件等可识别的下载会交给桌面端处理；关闭则由 Firefox 处理。“任务”页可查看进度，“资源”和“图片”页可选择要发送的内容。
 
 ### Auto Sort Bookmarks
 

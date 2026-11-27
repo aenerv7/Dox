@@ -59,6 +59,9 @@ Firefox/Add-Ons/**/node_modules/
 Firefox/Add-Ons/**/dist/
 Firefox/Add-Ons/**/*.log
 Firefox/Add-Ons/**/.env.release
+Firefox/Add-Ons/Ghost Downloader/.env
+Firefox/Add-Ons/Ghost Downloader/.env.*
+!Firefox/Add-Ons/Ghost Downloader/.env.example
 
 # Firefox registry scripts
 Firefox/__pycache__/

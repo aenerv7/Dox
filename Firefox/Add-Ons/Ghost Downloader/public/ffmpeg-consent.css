@@ -1,0 +1,10 @@
+:root { color-scheme: light dark; font: 100%/1.5 system-ui, sans-serif; }
+dialog { box-sizing: border-box; max-inline-size: min(36rem, 94vw); max-block-size: 90vh; padding: 1.5rem; border: 1px solid GrayText; border-radius: .5rem; overflow-wrap: anywhere; }
+dialog:modal, dialog::backdrop { overscroll-behavior: contain; }
+dialog::backdrop { overflow: hidden; }
+h1 { font-size: 1.35rem; margin: 0; }
+#target { font-weight: bold; }
+ul { max-block-size: 35vh; overflow: auto; padding-inline-start: 1.5rem; }
+li { unicode-bidi: plaintext; }
+form { display: flex; flex-wrap: wrap; gap: .75rem; }
+button { font: inherit; min-block-size: 2.75rem; padding-inline: 1rem; }

@@ -1,0 +1,17 @@
+{
+  "ffmpegConsentTitle": {
+    "message": "Inviare i contenuti multimediali a questo servizio di terze parti?"
+  },
+  "ffmpegConsentData": {
+    "message": "Il servizio riceverà i contenuti elencati, l’URL della pagina di origine, il titolo e i dettagli di elaborazione."
+  },
+  "ffmpegConsentAllow": {
+    "message": "Invia una volta"
+  },
+  "extensionDescription": {
+    "message": "Estensione non ufficiale di Dox per gestire le attività di Ghost Downloader e inviare risorse dal browser all’app desktop."
+  },
+  "extensionName": {
+    "message": "Estensione di Ghost Downloader per browser (edizione Dox)"
+  }
+}

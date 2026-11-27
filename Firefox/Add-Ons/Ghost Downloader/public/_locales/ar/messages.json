@@ -1,0 +1,17 @@
+{
+  "ffmpegConsentTitle": {
+    "message": "هل تريد إرسال الوسائط إلى خدمة الطرف الثالث هذه؟"
+  },
+  "ffmpegConsentData": {
+    "message": "ستتلقى الخدمة الوسائط الموضحة أدناه وعنوان صفحة المصدر وعنوان المحتوى وتفاصيل المعالجة."
+  },
+  "ffmpegConsentAllow": {
+    "message": "إرسال هذه المرة"
+  },
+  "extensionDescription": {
+    "message": "إضافة غير رسمية من Dox لإدارة مهام Ghost Downloader وإرسال موارد المتصفح إليه."
+  },
+  "extensionName": {
+    "message": "إضافة Ghost Downloader للمتصفح (إصدار Dox)"
+  }
+}
