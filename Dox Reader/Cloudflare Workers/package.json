@@ -29,7 +29,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
     "vitest": "^4.1.10",
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.168.0"
   },
   "overrides": {
     "sharp": "^0.35.5"
