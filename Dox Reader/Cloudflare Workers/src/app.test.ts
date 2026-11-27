@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { DetachedWindowAPI } from "happy-dom";
 import { h, render } from "preact";
 import { act } from "preact/test-utils";
 import { App } from "./app";
@@ -89,6 +90,64 @@ describe("reader dialogs", () => {
     expect(root.querySelector("dialog")).toBeNull();
     await click(`button[title="${title}"]`);
     expect(root.querySelector("dialog")?.open).toBe(true);
+  });
+});
+
+describe("back key", () => {
+  const MOBILE_WIDTH = 400;
+  const DESKTOP_WIDTH = 1024;
+  const pane = () => root.querySelector(".app")!.className.match(/mobile-pane-(\w+)/)![1];
+  const back = async () => {
+    await act(async () => {
+      history.back();
+      await vi.advanceTimersByTimeAsync(100);
+    });
+  };
+  const resize = async (width: number) => {
+    await act(async () => {
+      (window as unknown as { happyDOM: DetachedWindowAPI }).happyDOM.setViewport({ width });
+      await vi.advanceTimersByTimeAsync(100);
+    });
+  };
+
+  afterEach(() => resize(DESKTOP_WIDTH));
+
+  it.each([
+    ["reader", ".item-row"],
+    ["feeds", '.items-header button[title="订阅列表"]'],
+  ])("returns from the %s pane to the article list", async (name, opener) => {
+    await resize(MOBILE_WIDTH);
+    await click(opener);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(pane()).toBe(name);
+
+    await back();
+
+    expect(pane()).toBe("items");
+  });
+
+  it("closes a dialog before leaving the pane under it", async () => {
+    await resize(MOBILE_WIDTH);
+    await click(".item-row");
+    await click('.mobile-nav button:last-child');
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(root.querySelector("dialog")?.open).toBe(true);
+
+    await back();
+    expect(root.querySelector("dialog")).toBeNull();
+    expect(pane()).toBe("reader");
+
+    await back();
+    expect(pane()).toBe("items");
+  });
+
+  it("adds no history entry for panes on a wide screen", async () => {
+    const entries = history.length;
+
+    await click(".item-row");
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+
+    expect(history.length).toBe(entries);
   });
 });
 

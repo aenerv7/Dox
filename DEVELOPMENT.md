@@ -706,6 +706,8 @@ cd CapsLockOSD
 
 添加订阅、编辑订阅和设置共用具名 `<dialog>`；用 `showModal()` 让浏览器隔离背景、处理 Esc 并在关闭后归还焦点。仅对 `[open]` 的设置窗应用网格布局；不支持 `closedby` 时保留点击背景关闭。修改时双端检查键盘操作、取消设置时还原外观及窄屏底部布局。
 
+`src/back-stack.ts`（双端共用）把打开的界面层映射到浏览器历史，让 Android 返回键/手势逐层关闭而不是直接离开：窄屏（`MOBILE_LAYOUT_QUERY`，须与 `styles.css` 的 760px 断点一致）下离开文章列表的窗格算一层，每个 `ReaderDialog` 算一层。打开时 `pushState`，从界面关闭时 `history.go` 回退，`popstate` 关闭多出的层；重载或前进留下的无主条目会自动退回。新增可返回的界面层用 `useBackLayer`，不要另外直接操作 `history`。
+
 解析订阅、刷新订阅和解析 WebDAV JSON 时，用 `{ cause }` 保留原始异常；向用户显示及写入本地的数据仍是原来的错误消息，不序列化异常链。
 
 #### Web 版数据与网络边界

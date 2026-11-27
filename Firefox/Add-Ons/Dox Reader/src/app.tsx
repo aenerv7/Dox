@@ -52,6 +52,7 @@ import {
 } from "./repository";
 import { refreshFeed, refreshFeeds, subscribeFeedRefreshes } from "./feed-service";
 import { AUTO_REFRESH_CHECK_MS, dueFeedIds } from "./auto-refresh";
+import { BackLayer, initBackStack, useBackLayer } from "./back-stack";
 import type { FeedRefreshProgress } from "./feed-service";
 import { needsInitialArticleRefresh } from "./initial-sync";
 import { formatItemSource, matchesItemView } from "./item-list";
@@ -65,6 +66,12 @@ type Filter = "all" | "unread" | "starred" | string;
 type MobilePane = "feeds" | "items" | "reader";
 type SyncStatus = "idle" | "syncing" | "ok" | "error";
 type ResizeTarget = "feeds" | "items";
+
+// Where the back key leaves the app on a narrow screen.
+const MOBILE_HOME_PANE: MobilePane = "items";
+
+// Same breakpoint as the single-pane layout in styles.css.
+const MOBILE_LAYOUT_QUERY = "(max-width: 760px)";
 
 interface RefreshDisplayProgress {
   completed: number;
@@ -234,6 +241,13 @@ export function App() {
   const autoRefreshBusy = useRef(false);
   const autoRefreshAttempts = useRef(new Map<string, number>());
   const itemListRef = useRef<HTMLDivElement>(null);
+
+  // Android back key: any other pane returns to the article list first.
+  // Wide screens show every pane at once, so there is nothing to go back to.
+  const mobileLayout = useMediaQuery(MOBILE_LAYOUT_QUERY);
+  const awayFromHome = mobileLayout && mobilePane !== MOBILE_HOME_PANE;
+  useEffect(initBackStack, []);
+  useBackLayer(awayFromHome ? BackLayer.Open : BackLayer.Closed, () => setMobilePane(MOBILE_HOME_PANE));
 
   // 首屏只读取本机数据库，不等待网络同步。
   const loadData = useCallback(async () => {
@@ -967,6 +981,20 @@ export function App() {
   );
 }
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [query]);
+
+  return matches;
+}
+
 function NavItem(props: { icon: ComponentChildren; label: string; count: number; active: boolean; onClick: () => void }) {
   return (
     <button class={props.active ? "active" : ""} onClick={props.onClick}>
@@ -1060,6 +1088,9 @@ function ReaderDialog(props: { class: string; titleId: string; onClose: () => vo
       dialog.close();
     };
   }, []);
+
+  // Android back key dismisses the dialog like Esc does.
+  useBackLayer(BackLayer.Open, () => ref.current?.close());
 
   // Retain backdrop dismissal where closedby is not implemented.
   const pressedOutside = useRef(false);
