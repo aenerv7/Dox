@@ -28,7 +28,7 @@ import {
   Upload,
   X,
 } from "lucide-preact";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import { renderArticleContent } from "./article-content";
 import { extractFullArticle, needsFullArticle } from "./article-extractor";
@@ -1050,13 +1050,44 @@ function Article(props: {
   );
 }
 
+function ReaderDialog(props: { class: string; titleId: string; onClose: () => void; children: ComponentChildren }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    const dialog = ref.current!;
+    dialog.showModal();
+    return () => {
+      ref.current = null;
+      dialog.close();
+    };
+  }, []);
+
+  // Retain backdrop dismissal where closedby is not implemented.
+  const pressedOutside = useRef(false);
+  function outside(event: PointerEvent, dialog: HTMLDialogElement) {
+    const rect = dialog.getBoundingClientRect();
+    return event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+  }
+  return <dialog ref={ref} class={`dialog ${props.class}`} aria-labelledby={props.titleId} closedby="any"
+    onClose={() => { if (ref.current) { props.onClose(); } }}
+    onPointerDown={event => {
+      pressedOutside.current = !("closedBy" in HTMLDialogElement.prototype) && outside(event, event.currentTarget);
+    }}
+    onPointerUp={event => {
+      if (pressedOutside.current && outside(event, event.currentTarget)) { event.currentTarget.close(); }
+      pressedOutside.current = false;
+    }}>
+    {props.children}
+  </dialog>;
+}
+
 function AddFeedDialog(props: { onClose: () => void; onAdd: (url: string) => Promise<void> }) {
+  const titleId = useId();
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   return (
-    <div class="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && props.onClose()}>
-      <form class="dialog add-dialog" onSubmit={(event) => {
+    <ReaderDialog class="add-dialog" titleId={titleId} onClose={props.onClose}>
+      <form onSubmit={(event) => {
         event.preventDefault();
         setBusy(true);
         setError("");
@@ -1065,12 +1096,12 @@ function AddFeedDialog(props: { onClose: () => void; onAdd: (url: string) => Pro
           setError(reason instanceof Error ? reason.message : String(reason));
         });
       }}>
-        <div class="dialog-title"><div><Rss size={20} /><h2>添加订阅</h2></div><button type="button" class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
+        <div class="dialog-title"><div><Rss size={20} /><h1 id={titleId}>添加订阅</h1></div><button type="button" class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
         <label class="field"><span>RSS 或 Atom URL</span><input type="url" required autoFocus value={url} onInput={(event) => setUrl(event.currentTarget.value)} placeholder="https://example.com/feed.xml" /></label>
         {error && <div class="form-error">{error}</div>}
         <div class="dialog-actions"><button type="button" class="secondary-button" onClick={props.onClose}>取消</button><button class="primary-button" disabled={busy}>{busy ? <LoaderCircle size={17} class="spin" /> : <Plus size={17} />}添加</button></div>
       </form>
-    </div>
+    </ReaderDialog>
   );
 }
 
@@ -1079,13 +1110,14 @@ function EditFeedDialog(props: {
   onClose: () => void;
   onSave: (customName: string, url: string) => Promise<void>;
 }) {
+  const titleId = useId();
   const [customName, setCustomName] = useState(props.feed.customName);
   const [url, setUrl] = useState(props.feed.url);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   return (
-    <div class="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && props.onClose()}>
-      <form class="dialog add-dialog" onSubmit={(event) => {
+    <ReaderDialog class="add-dialog" titleId={titleId} onClose={props.onClose}>
+      <form onSubmit={(event) => {
         event.preventDefault();
         setBusy(true);
         setError("");
@@ -1094,7 +1126,7 @@ function EditFeedDialog(props: {
           setError(reason instanceof Error ? reason.message : String(reason));
         });
       }}>
-        <div class="dialog-title"><div><Pencil size={20} /><h2>编辑订阅</h2></div><button type="button" class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
+        <div class="dialog-title"><div><Pencil size={20} /><h1 id={titleId}>编辑订阅</h1></div><button type="button" class="icon-button" title="关闭" onClick={props.onClose}><X size={18} /></button></div>
         <label class="field">
           <span>自定义名称（留空显示源标题）</span>
           <input
@@ -1111,7 +1143,7 @@ function EditFeedDialog(props: {
           <button class="primary-button" disabled={busy}>{busy ? <LoaderCircle size={17} class="spin" /> : <Check size={17} />}保存</button>
         </div>
       </form>
-    </div>
+    </ReaderDialog>
   );
 }
 
@@ -1125,6 +1157,7 @@ function SettingsDialog(props: {
   onExport: () => void;
   onClear: () => Promise<void>;
 }) {
+  const titleId = useId();
   const [draft, setDraft] = useState(props.settings);
   const [showPassword, setShowPassword] = useState(false);
   const syncing = props.syncing;
@@ -1172,9 +1205,8 @@ function SettingsDialog(props: {
     }
   };
   return (
-    <div class="dialog-backdrop settings-backdrop" onMouseDown={(event) => event.target === event.currentTarget && closeWithoutSaving()}>
-      <div class="dialog settings-dialog">
-        <div class="dialog-title"><div><Settings size={20} /><h2>设置</h2></div><button class="icon-button" title="关闭" onClick={closeWithoutSaving}><X size={18} /></button></div>
+    <ReaderDialog class="settings-dialog" titleId={titleId} onClose={closeWithoutSaving}>
+        <div class="dialog-title"><div><Settings size={20} /><h1 id={titleId}>设置</h1></div><button class="icon-button" title="关闭" onClick={closeWithoutSaving}><X size={18} /></button></div>
         <div class="settings-scroll">
           <section class="settings-section">
             <div class="section-heading"><Cloud size={18} /><div><h3>WebDAV 同步</h3><p>订阅、文章状态与偏好设置</p></div></div>
@@ -1260,7 +1292,6 @@ function SettingsDialog(props: {
           </section>
         </div>
         <div class="dialog-actions"><button class="secondary-button" disabled={saving} onClick={closeWithoutSaving}>取消</button><button class="primary-button" disabled={saving} onClick={() => void save()}><Check size={17} />{saving ? '正在保存' : '保存'}</button></div>
-      </div>
-    </div>
+    </ReaderDialog>
   );
 }

@@ -1132,18 +1132,22 @@ body.layout-resizing {
   color: var(--danger);
 }
 
-.dialog-backdrop {
-  position: fixed;
-  z-index: 50;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 20px;
+.dialog:modal {
+  overscroll-behavior: contain;
+}
+
+.dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
   background: var(--backdrop);
 }
 
 .dialog {
-  width: min(460px, 100%);
+  width: min(460px, calc(100% - 40px));
+  max-width: none;
+  margin: auto;
+  padding: 0;
+  color: inherit;
   max-height: calc(100dvh - 40px);
   overflow: hidden;
   border: 1px solid var(--border-strong);
@@ -1168,7 +1172,7 @@ body.layout-resizing {
   gap: 10px;
 }
 
-.dialog-title h2,
+.dialog-title h1,
 .section-heading h3 {
   margin: 0;
   font-size: 15px;
@@ -1263,10 +1267,10 @@ body.layout-resizing {
   line-height: 1.4;
 }
 
-.settings-dialog {
+.settings-dialog[open] {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(620px, 100%);
+  width: min(620px, calc(100% - 40px));
   max-height: calc(100dvh - 40px);
 }
 
@@ -1825,22 +1829,15 @@ body.layout-resizing {
     display: none;
   }
 
-  .dialog-backdrop {
-    align-items: end;
-    padding: 0;
-  }
-
-  .dialog {
+  .dialog,
+  .settings-dialog[open] {
+    margin-bottom: 0;
     width: 100%;
     max-height: calc(100dvh - 30px);
     border-right: 0;
     border-bottom: 0;
     border-left: 0;
     border-radius: 8px 8px 0 0;
-  }
-
-  .settings-dialog {
-    max-height: calc(100dvh - 30px);
   }
 
   .field-row {

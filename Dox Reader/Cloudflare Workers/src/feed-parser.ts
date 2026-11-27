@@ -83,7 +83,7 @@ export async function parseFeedXml(xml: string, feedId: string, sourceUrl: strin
   try {
     document = parser.parse(xml) as Record<string, any>;
   } catch (error) {
-    throw new Error(`无法解析订阅源：${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`无法解析订阅源：${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 
   const rssChannel = document.rss?.channel ?? document.rdf ?? document.RDF;

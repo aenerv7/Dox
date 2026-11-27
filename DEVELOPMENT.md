@@ -187,6 +187,12 @@ rg -n "TODO|FIXME|BUG" -g "!**/.git/**" -g "!**/*.exe" -g "!**/*.ico" -g "!**/*.
 
 按修改范围补做对应模块的验证清单。当前仓库没有统一的自动化测试套件，各模块验证方式见其小节，不能只依赖构建成功。
 
+### 2.5 Web 平台审查
+
+对整仓现代化，在根目录运行 `npx -y modern-web-guidance@latest legacy-scan . --json`。它只覆盖约两成指南；具体 UI 还需按能力 `search`、`retrieve`，结合模块支持的浏览器与可观察行为核实，修改后复扫并运行模块测试。
+
+本轮扫描发现 6 个候选：两套 Reader 的 4 处异常包装、Sub-Store 的请求结算及超时。前 5 处已替换；超时因回调兼容性保留（见 3.13）。人工检查还覆盖 Reader 对话框、用户脚本、bwh-traffic 内嵌面板。中文字体映射使用本机字体，Auto Sort Bookmarks 是无 UI 的后台扩展；Sub-Store 前端仅托管上游产物，strelaysrv 网页不在仓库。这些边界不因扫描而改变。
+
 ---
 
 ## 3. 模块开发文档
@@ -698,6 +704,10 @@ cd CapsLockOSD
 
 不维护 Dox Reader Backend、Durable Objects、服务端文章存储或定时抓取；仓库中不再有后端源码或后端模式字段。
 
+添加订阅、编辑订阅和设置共用具名 `<dialog>`；用 `showModal()` 让浏览器隔离背景、处理 Esc 并在关闭后归还焦点。仅对 `[open]` 的设置窗应用网格布局；不支持 `closedby` 时保留点击背景关闭。修改时双端检查键盘操作、取消设置时还原外观及窄屏底部布局。
+
+解析订阅、刷新订阅和解析 WebDAV JSON 时，用 `{ cause }` 保留原始异常；向用户显示及写入本地的数据仍是原来的错误消息，不序列化异常链。
+
 #### Web 版数据与网络边界
 
 - `src/repository.ts` 直接导出 `src/database.ts`，所有阅读数据写入 IndexedDB `dox-rss-reader`；保留原数据库名、同步协议和 localStorage 设置键 `doxReaderSettings`，兼容既有本地/WebDAV 数据。
@@ -796,11 +806,13 @@ node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 
 涉及 `Scripts/Userscripts/` 下四个脚本。中文字体优化脚本的小节见 [3.1](#31-中文字体优化cjk-字体映射)。
 
-- `EmuParadise Download Workaround.user.js`：从 URL 第 6 段取 `gid`，在 `.download-link` 前插入下载链接，依赖 `@require` jQuery。
-- `Re-add Download Button Vimm's Lair.user.js`：查找 `#dl_form`，无目标 submit 按钮则追加按钮。
+- `EmuParadise Download Workaround.user.js`：从路径第三段取数字 `gid`，用 `URL.searchParams` 构造同源链接并插入每个 `.download-link` 容器，不拼接 HTML。
+- `Re-add Download Button Vimm's Lair.user.js`：仅当 `#dl_form` 没有关联的提交控件时追加原生按钮，不依赖站点的内联样式。
 - `VGMdb Tracklist Copy Button.user.js`：在 VGMdb 专辑页曲目行的「序号与曲名之间」插入复制按钮，点击复制该语言版本的曲名，详见[下方小节](#vgmdb-tracklist-copy-button)。
 
-维护规则：改行为时递增 `@version`；`@match` 尽量窄；DOM 操作必须能承受目标元素不存在；`@downloadURL`/`@updateURL` 指向仓库 raw 地址；GitHub raw URL 中的空格和特殊字符要编码（`Vimm's Lair` 文件名里的单引号当前保留在 URL 中，改 URL 要实测 Tampermonkey 能更新）；外部依赖谨慎（当前仅 EmuParadise 用 jQuery）。
+维护规则：改行为时递增 `@version`；`@match` 尽量窄；DOM 操作必须能承受目标元素不存在；`@downloadURL`/`@updateURL` 指向仓库 raw 地址；GitHub raw URL 中的空格和特殊字符要编码（`Vimm's Lair` 文件名里的单引号当前保留在 URL 中，改 URL 要实测 Tampermonkey 能更新）；四个脚本均无 `@require`。
+
+回归测试：在已执行 `npm ci` 的 `Dox Reader/Cloudflare Workers/` 目录运行 `node --test ../../Scripts/Userscripts/tests/dom.test.mjs`，复用该目录的 happy-dom，不连接目标站点。
 
 #### VGMdb Tracklist Copy Button
 
@@ -815,9 +827,9 @@ node --test Firefox/Add-Ons/AutoSortBookmarks/tests/sorter.test.js
 
 - 序号格不写死 `cells[0]`，而是反查含 `span.label` 的格再取 `nextElementSibling` 作标题格。
 - 按钮作为标题格的 `firstChild` 插入，因此天然落在序号与曲名之间。
-- 复制内容由标题格克隆而来，先剔除按钮自身再把连续空白压成单个空格（标题格源码里带换行缩进，且按钮文案不能被复制进去）。
-- `navigator.clipboard.writeText` 优先，非安全上下文/未授权时回退到临时 `textarea` + `document.execCommand('copy')`。
-- 成功后图标换成 ✓ 并转绿，1.2s 后复原。
+- 复制前克隆标题格，剔除按钮及 `role="status"` 提示，再归一化曲名空白；连续复制也不带入上一次的提示。
+- 优先 `navigator.clipboard.writeText`；被拒或不可用时回退到临时 `textarea`，随后清理并还原焦点。
+- 按钮至少 24×24 CSS px，读屏名称包含曲名；成功、失败都写入可见状态提示，1.2 秒后清除。
 - `MutationObserver`（`requestAnimationFrame` 去抖）负责补注入；已有按钮的格子直接跳过，因此重入不会产生重复按钮；页面没有 `#tracklist` 时静默返回。
 
 **验证方式**：在仓库外临时目录装 happy-dom，在 Node 里加载 Wayback 存档的专辑页做无浏览器断言（行数=按钮数、每个 `span.tl` 块内行数=按钮数、逐条点击后复制内容与干净 DOM 的标题文本比对、MutationObserver 重入不重复注入、无 tracklist 页面不抛错）。**不要把依赖加进仓库**。
@@ -1215,6 +1227,8 @@ sub-store Worker
 7. **CORS 全域放行**：通过全局 `$argument = 'cors=*'` 走上游自带的 CORS 解析，不改上游 `cors.js` 默认值。
 8. **未匹配路径返回 404**：上游非 Node 分支把未知路径 302 到官方站点，`restful/miscs.js` 的跳转与问候 catch-all 路由必须保持移除。
 
+`$done` 通过每次请求自己的 `Promise.withResolvers()` 结算。`$httpClient` 保留可清理的计时器直到响应体读完：回调可观察到 `AbortError`，直接换成 `AbortSignal.timeout()` 会变成 `TimeoutError`。在仓库根运行 `node --test sub-store/src/runtime.test.js` 可验证两项契约。
+
 #### 上游补丁清单
 
 `sub-store/scripts/upstream-plugin.mjs` 以 esbuild 插件在内存里改上游源码，不落地修改检出，构建可重复。每个补丁带唯一标记，`build.onEnd` 断言命中次数，上游结构变化会直接让构建失败：
@@ -1343,7 +1357,7 @@ Secret：`BWH_VEID`、`BWH_API_KEY`，可选 `RELAY_TOKEN`（只作中转的共�
 6. `?debug=1` 回显上游状态、字段名、截断正文和算出的 userinfo，是排查线上问题的唯一入口，不得删。
 7. `BWH_VEID`、`BWH_API_KEY`、`RELAY_TOKEN`、`KIWIVM_BASE` 只用 `wrangler secret put` 配置：secret 跨 `wrangler deploy` 保留，明文 `vars` 会被覆盖清空（历史版本用明文 var 存过 VEID 和访问口令，一次部署就丢了）。`RELAY_TOKEN` 必须存在，否则 Worker 取 `/getServiceInfo` 时不带口令，Caddy 的 `@relay` 不匹配，请求会落到兜底 `handle` 再回 Worker，形成自环。
 8. `bwh-traffic.ddtwstudio.com` 只能是 **DNS only**，且不能同时挂成 Worker 的自定义域/路由。一旦它走橙云，Worker 取 `https://bwh-traffic.ddtwstudio.com/getServiceInfo` 会被 CF 当同区回源处理，源站不可达就回 `error code: 522`，Sub-Store 侧表现为 502（2026-10-15 实测）。判据：`?debug=1` 里 `upstream_status=522`、`upstream_body="error code: 522"`，而同一请求从非 Cloudflare 出口取 `api.64clouds.com` 正常返回 700005。
-9. 浏览器面板每 `PANEL_REFRESH_MS`（60 秒）静默重取一次同一地址：`fetch(location.href, { headers: { accept: "text/html" }, cache: "no-store" })`，只把新页面的 `main.card` 内容换进来，不整页重载；失败保留上一次数据，只在页脚标「更新失败」。因为刷新会替换整个 `main`（页脚也在里面），脚本里的节点必须现查现用，不能缓存引用。面板仍然自包含（内联 favicon、无任何外部 `src`/`href`）。
+9. 浏览器面板每 `PANEL_REFRESH_MS`（60 秒）静默重取一次同一地址：`fetch(location.href, { headers: { accept: "text/html" }, cache: "no-store" })`，保留现有 `main.card`，用 `replaceChildren` 移入已解析的新卡片子节点，不再序列化并重新解析 HTML。网络失败或响应缺少卡片时保留上一次数据，在原页脚标「更新失败」。页脚本身会随成功刷新被替换，更新它时必须重新查询。面板仍然自包含（内联 favicon、无任何外部 `src`/`href`）。
 
 #### 验证
 

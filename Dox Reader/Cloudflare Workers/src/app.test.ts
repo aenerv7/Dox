@@ -79,6 +79,19 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe("reader dialogs", () => {
+  it.each(["添加订阅", "编辑订阅", "设置"])("opens and dismisses the named modal %s", async title => {
+    await click(`button[title="${title}"]`);
+    const dialog = root.querySelector("dialog");
+    expect(dialog?.open).toBe(true);
+    expect(document.getElementById(dialog!.getAttribute("aria-labelledby")!)?.textContent).toBe(title);
+    await act(async () => { dialog!.close(); });
+    expect(root.querySelector("dialog")).toBeNull();
+    await click(`button[title="${title}"]`);
+    expect(root.querySelector("dialog")?.open).toBe(true);
+  });
+});
+
 describe("pending reader actions", () => {
   it("always shows sync and disables it without a valid HTTPS URL", async () => {
     await click('.topbar button[title="设置"]');

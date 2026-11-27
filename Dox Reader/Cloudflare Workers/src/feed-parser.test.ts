@@ -54,6 +54,11 @@ describe("parseFeedXml", () => {
     });
   });
 
+  it("preserves the XML parser failure under the localized message", async () => {
+    await expect(parseFeedXml("<rss><!--", "broken", "https://example.org/"))
+      .rejects.toMatchObject({ message: expect.stringContaining("无法解析订阅源"), cause: expect.any(Error) });
+  });
+
   it("rejects non-feed XML", async () => {
     await expect(parseFeedXml("<html><body>no feed</body></html>", "feed-c", "https://example.org"))
       .rejects.toThrow("不是可识别");

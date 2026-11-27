@@ -100,6 +100,17 @@ describe("WebDAV preference sync", () => {
     });
   });
 
+  it("preserves JSON syntax failures without writing the invalid remote file", async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 207 }))
+      .mockResolvedValueOnce(new Response("{"));
+    vi.stubGlobal("fetch", fetch);
+    await expect(syncWithWebDav(settings)).rejects.toMatchObject({
+      message: expect.stringContaining("不是有效 JSON"), cause: expect.any(SyntaxError),
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it("creates the Dox Reader directory on the first sync", async () => {
     database.exportSyncDocument.mockResolvedValue(document("desktop"));
     const fetchMock = vi.fn()

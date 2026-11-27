@@ -111,8 +111,8 @@ async function getRemote(settings: AppSettings, url: URL): Promise<RemoteFile> {
   let value: unknown;
   try {
     value = JSON.parse(await response.text());
-  } catch {
-    throw new Error("WebDAV 地址已有文件，但内容不是有效 JSON；请换用新的文件名");
+  } catch (cause) {
+    throw new Error("WebDAV 地址已有文件，但内容不是有效 JSON；请换用新的文件名", { cause });
   }
   return {
     exists: true,

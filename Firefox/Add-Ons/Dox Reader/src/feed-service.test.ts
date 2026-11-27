@@ -100,6 +100,15 @@ describe("feed refresh progress", () => {
     expect(database.saveParsedFeed).toHaveBeenCalledTimes(1);
   });
 
+  it("retains the rejected value when adding the feed name", async () => {
+    const cause = new TypeError("network unavailable");
+    runtimeFetch.fetchFeed.mockRejectedValueOnce(cause);
+    const job = refreshFeed("a");
+    await expect(job).rejects.toHaveProperty("message", "订阅 a：network unavailable");
+    await expect(job.catch(error => error.cause)).resolves.toBe(cause);
+    expect(database.setFeedError).toHaveBeenCalledWith("a", cause.message, "https://feeds.example/a.xml");
+  });
+
   it("advances progress when a feed fails", async () => {
     database.getFeed.mockImplementation(async (feedId: string) => ({
       id: feedId,

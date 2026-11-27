@@ -22,8 +22,8 @@
   "version": {
     "license": "MIT",
     "release_notes": {
-      "en-US": "Remove the global mark-all-read button; marking read remains available per subscription.",
-      "zh-CN": "移除工具栏的全局全部标为已读按钮，仍可按订阅源标记已读。"
+      "en-US": "Use native modal dialogs for feed management and settings, with improved keyboard focus behavior.",
+      "zh-CN": "订阅管理与设置改用原生模态对话框，改善键盘焦点操作。"
     }
   }
 }

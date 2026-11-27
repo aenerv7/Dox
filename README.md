@@ -44,6 +44,7 @@ Web 版源码位于 [`Dox Reader/Cloudflare Workers`](./Dox%20Reader/Cloudflare%
 
 - RSS/Atom 订阅、文章正文和阅读状态保存在当前浏览器的 IndexedDB，可阅读已缓存文章。对于只有摘要的订阅，打开文章后点击“获取全文”可按需从原网页提取正文和主图；提取结果只保存在本机。
 - 默认外观为 Material 3，亮暗模式跟随系统；已有本机设置或 WebDAV 同步的个人配色保持不变。
+- 添加订阅、编辑订阅和设置窗口支持 Esc 关闭；关闭后焦点回到打开窗口的控件，方便继续用键盘操作。
 - 支持搜索、收藏、已读/未读、订阅编辑和 OPML 导入导出。
 - 在设置中填写 HTTPS WebDAV URL 前缀、用户名和应用密码，手动点击“立即同步”同步；输入时不会自动检测，URL 无效时“立即同步”按钮置灰，同步出错即视为未连通并显示错误。自动使用该目录下的 `Dox Reader/state.json`。
 - WebDAV 只同步订阅、已读/收藏状态、刷新时间和外观/阅读偏好，不上传文章正文、图片、凭据或本机布局。新设备同步订阅后会首次抓取文章。
@@ -769,9 +770,9 @@ release 与 debug 签名不同，直接覆盖安装会报 `INSTALL_FAILED_UPDATE
 将脚本安装到 Tampermonkey 或 Greasemonkey 后按目标网站使用：
 
 - [`中文字体优化.user.js`](./Scripts/Userscripts/%E4%B8%AD%E6%96%87%E5%AD%97%E4%BD%93%E4%BC%98%E5%8C%96.user.js) — 全站中文字体优化，与 `CSS/font-face.css` 共用映射规则
-- [`EmuParadise Download Workaround.user.js`](./Scripts/Userscripts/EmuParadise%20Download%20Workaround.user.js) — 在 EmuParadise 页面补充可用下载链接，依赖脚本元数据中的 jQuery
+- [`EmuParadise Download Workaround.user.js`](./Scripts/Userscripts/EmuParadise%20Download%20Workaround.user.js) — 在数字游戏 ID 的 EmuParadise 页面补充同源下载链接，不再加载第三方脚本
 - [`Re-add Download Button Vimm's Lair.user.js`](./Scripts/Userscripts/Re-add%20Download%20Button%20Vimm's%20Lair.user.js) — 在 Vimm's Lair 下载按钮被移除时恢复提交按钮
-- [`VGMdb Tracklist Copy Button.user.js`](./Scripts/Userscripts/VGMdb%20Tracklist%20Copy%20Button.user.js) — 在 VGMdb 专辑页曲目列表的序号与标题之间插入复制按钮，点击复制该曲名；多语言 tracklist 的每个语言块都有按钮
+- [`VGMdb Tracklist Copy Button.user.js`](./Scripts/Userscripts/VGMdb%20Tracklist%20Copy%20Button.user.js) — 在 VGMdb 专辑页曲目列表的序号与标题之间插入复制按钮，点击复制该曲名；每种语言的按钮只复制本行曲名，并显示、播报复制结果
 
 ## ApkRename（APK 改名）
 

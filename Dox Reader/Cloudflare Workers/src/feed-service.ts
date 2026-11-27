@@ -87,7 +87,7 @@ async function fetchAndSaveFeed(feedId: string): Promise<number> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await setFeedError(feed.id, message, feed.url);
-    throw new Error(`${feed.title}：${message}`);
+    throw new Error(`${feed.title}：${message}`, { cause: error });
   }
 }
 

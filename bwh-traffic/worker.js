@@ -311,10 +311,12 @@ function page(info) {
       const next = new DOMParser().parseFromString(await response.text(), "text/html");
       const fresh = next.querySelector("main.card");
 
-      if (fresh) {
-        card.innerHTML = fresh.innerHTML;
-        localizeDate();
+      if (!fresh) {
+        throw new Error("未找到流量面板");
       }
+
+      card.replaceChildren(...fresh.childNodes);
+      localizeDate();
 
       markUpdated("最后更新");
     } catch (error) {
