@@ -30,18 +30,14 @@ const CORS_ARGUMENT = 'cors=*';
 
 /** 建立一次请求的上下文：预载数据、待落盘写入、$done 的落点。 */
 export function createContext(entries) {
-    const context = {
+    const { promise: done, resolve: settle } = Promise.withResolvers();
+
+    return {
         store: new Map(entries),
         dirty: new Map(),
-        settle: null,
-        done: null,
+        settle,
+        done,
     };
-
-    context.done = new Promise((resolve) => {
-        context.settle = resolve;
-    });
-
-    return context;
 }
 
 export function runInContext(context, handler) {
@@ -127,6 +123,7 @@ function createHttpClient() {
 }
 
 async function send(method, options, callback) {
+    // callback 接收原始 AbortError；AbortSignal.timeout() 会改为 TimeoutError。
     const controller = new AbortController();
     const timeoutMs = (Number(options.timeout) || DEFAULT_TIMEOUT_SECONDS) * 1000;
     const timer = setTimeout(() => controller.abort(), timeoutMs);

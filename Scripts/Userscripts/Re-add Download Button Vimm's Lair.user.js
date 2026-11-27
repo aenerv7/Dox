@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Re-add Download Button Vimm's Lair
-// @version      1.2
+// @version      1.3
 // @description  Grabs the mediaId and re-adds the download button only on pages that have them removed
 // @author       anonymous
 // @match        https://vimm.net/vault/*
@@ -11,9 +11,19 @@
 
 (function() {
     const downloadForm = document.querySelector('#dl_form');
-    const downloadButton = downloadForm?.querySelector('button[type="submit"][style="width:100%"]');
-
-    if (downloadForm && !downloadButton) {
-        downloadForm.insertAdjacentHTML('beforeend', '<button type="submit" style="width:34%">Download</button>');
+    if (!downloadForm) {
+        return;
     }
+
+    // Match by form owner, not inline width or placement in the page.
+    const controls = document.querySelectorAll('button, input[type="submit"], input[type="image"]');
+    if (Array.from(controls).some((control) => control.form === downloadForm && ['submit', 'image'].includes(control.type))) {
+        return;
+    }
+
+    const button = document.createElement('button');
+    button.type = 'submit';
+    button.style.width = '34%';
+    button.textContent = 'Download';
+    downloadForm.append(button);
 })();
