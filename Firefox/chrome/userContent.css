@@ -1,0 +1,6 @@
+@-moz-document url("about:addons") {
+  /* 隐藏纵向滚动条，避免扩展名被提前截断。 */
+  addon-card:not([expanded]) .addon-name {
+    overflow-y: hidden !important;
+  }
+}
